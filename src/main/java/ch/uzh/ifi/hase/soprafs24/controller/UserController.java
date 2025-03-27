@@ -27,5 +27,14 @@ public class UserController {
         return mapper.toUserPublicDTO(user);
     }
 
-    
+    // 2) PUT /api/users/me => update user
+    @PutMapping("/me")
+    @ResponseStatus(HttpStatus.OK)
+    public UserUpdateResponseDTO updateMyProfile(
+            @RequestHeader("Authorization") String token,
+            @RequestBody UserUpdateRequestDTO updateDTO
+    ) {
+        User updatedUser = userService.updateMyUser(token, updateDTO.getUsername(), updateDTO.getEmail(), updateDTO.getStatsPublic());
+        return mapper.toUpdateResponse(updatedUser);
+    }
 }
