@@ -1,13 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 @Service
 @Transactional
@@ -26,42 +27,6 @@ public class UserService {
     public User getPublicProfile(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-    }
-
-    // Update user
-    public User updateUser(Long userId, String token, String newUsername, String newEmail) {
-        // 1) Check if user is authenticated
-        User currentUser = authService.getUserByToken(token);
-        // If you only allow self-updates, check:
-        if (!currentUser.getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cannot update another user's profile");
-        }
-
-        // 2) Validate input
-        if (newUsername == null || newUsername.isBlank() ||
-            newEmail == null || newEmail.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or email");
-        }
-
-        // 3) Check conflicts
-        User emailCheck = userRepository.findByEmail(newEmail);
-        if (emailCheck != null && !emailCheck.getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email or username already registered");
-        }
-        User usernameCheck = userRepository.findByProfile_Username(newUsername);
-        if (usernameCheck != null && !usernameCheck.getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email or username already registered");
-        }
-
-        // 4) Perform update
-        currentUser.setEmail(newEmail);
-        currentUser.getProfile().setUsername(newUsername);
-
-        userRepository.save(currentUser);
-        userRepository.flush();
-        log.debug("Updated user: {}", currentUser);
-
-        return currentUser;
     }
 
     /**
