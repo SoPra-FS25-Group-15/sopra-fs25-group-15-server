@@ -1,14 +1,17 @@
 package ch.uzh.ifi.hase.soprafs24.repository;
 
-import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
+import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 
 @DataJpaTest
 public class UserRepositoryIntegrationTest {
@@ -20,25 +23,32 @@ public class UserRepositoryIntegrationTest {
   private UserRepository userRepository;
 
   @Test
-  public void findByName_success() {
+  public void findByEmail_success() {
     // given
     User user = new User();
-    user.setName("Firstname Lastname");
-    user.setUsername("firstname@lastname");
-    user.setStatus(UserStatus.OFFLINE);
+    user.setEmail("firstname.lastname@example.com");
+    user.setPassword("password");
     user.setToken("1");
+    user.setStatus(UserStatus.OFFLINE);
+    
+    UserProfile profile = new UserProfile();
+    profile.setUsername("Firstname Lastname");
+    profile.setMmr(1500);
+    profile.setAchievements(Arrays.asList("Achievement1", "Achievement2"));
+    // You can set other profile fields if necessary.
+    user.setProfile(profile);
 
     entityManager.persist(user);
     entityManager.flush();
 
     // when
-    User found = userRepository.findByName(user.getName());
+    User found = userRepository.findByEmail(user.getEmail());
 
     // then
     assertNotNull(found.getId());
-    assertEquals(found.getName(), user.getName());
-    assertEquals(found.getUsername(), user.getUsername());
-    assertEquals(found.getToken(), user.getToken());
-    assertEquals(found.getStatus(), user.getStatus());
+    assertEquals(user.getEmail(), found.getEmail());
+    assertEquals(user.getProfile().getUsername(), found.getProfile().getUsername());
+    assertEquals(user.getToken(), found.getToken());
+    assertEquals(user.getStatus(), found.getStatus());
   }
 }

@@ -1,19 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
-import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.UUID;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 /**
  * User Service
@@ -26,54 +21,95 @@ import java.util.UUID;
 @Transactional
 public class UserService {
 
-  private final Logger log = LoggerFactory.getLogger(UserService.class);
+    private final Logger log = LoggerFactory.getLogger(UserService.class);
+    private final UserRepository userRepository;
+    private final AuthService authService; // for token checks
 
-  private final UserRepository userRepository;
-
-  @Autowired
-  public UserService(@Qualifier("userRepository") UserRepository userRepository) {
-    this.userRepository = userRepository;
-  }
-
-  public List<User> getUsers() {
-    return this.userRepository.findAll();
-  }
-
-  public User createUser(User newUser) {
-    newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.OFFLINE);
-    checkIfUserExists(newUser);
-    // saves the given entity but data is only persisted in the database once
-    // flush() is called
-    newUser = userRepository.save(newUser);
-    userRepository.flush();
-
-    log.debug("Created Information for User: {}", newUser);
-    return newUser;
-  }
-
-  /**
-   * This is a helper method that will check the uniqueness criteria of the
-   * username and the name
-   * defined in the User entity. The method will do nothing if the input is unique
-   * and throw an error otherwise.
-   *
-   * @param userToBeCreated
-   * @throws org.springframework.web.server.ResponseStatusException
-   * @see User
-   */
-  private void checkIfUserExists(User userToBeCreated) {
-    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    User userByName = userRepository.findByName(userToBeCreated.getName());
-
-    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null && userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the name", "are"));
-    } else if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-    } else if (userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
+    public UserService(UserRepository userRepository, AuthService authService) {
+        this.userRepository = userRepository;
+        this.authService = authService;
     }
-  }
+    // Public profile
+      public User getPublicProfile(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    // Update user
+    public User updateUser(Long userId, String token, String newUsername, String newEmail) {
+        // 1) Check if user is authenticated
+        User currentUser = authService.getUserByToken(token);
+        // If you only allow self-updates, check:
+        if (!currentUser.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cannot update another user's profile");
+        }
+
+        // 2) Validate input
+        if (newUsername == null || newUsername.isBlank() ||
+            newEmail == null || newEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or email");
+        }
+
+        // 3) Check conflicts
+        User emailCheck = userRepository.findByEmail(newEmail);
+        if (emailCheck != null && !emailCheck.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email or username already registered");
+        }
+        User usernameCheck = userRepository.findByProfile_Username(newUsername);
+        if (usernameCheck != null && !usernameCheck.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email or username already registered");
+        }
+
+        // 4) Perform update
+        currentUser.setEmail(newEmail);
+        currentUser.getProfile().setUsername(newUsername);
+
+        userRepository.save(currentUser);
+        userRepository.flush();
+        log.debug("Updated user: {}", currentUser);
+
+        return currentUser;
+    }
+
+    /**
+     * Update the authenticated user's profile using their token.
+     */
+
+    public User updateMyUser(String token, String newUsername, String newEmail, Boolean newPrivacy) {
+      // 1) Validate token and fetch user
+      User currentUser = authService.getUserByToken(token); // throws 401 if invalid token
+
+      // 2) Validate input
+      if (newUsername == null || newUsername.isBlank() ||
+          newEmail == null || newEmail.isBlank()) {
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or email");
+      }
+
+      // 3) Check conflicts for email/username
+      //    (Make sure any user found with the same email/username is either null or is the current user)
+      User emailCheck = userRepository.findByEmail(newEmail);
+      if (emailCheck != null && !emailCheck.getId().equals(currentUser.getId())) {
+          throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+      }
+      User usernameCheck = userRepository.findByProfile_Username(newUsername);
+      if (usernameCheck != null && !usernameCheck.getId().equals(currentUser.getId())) {
+          throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already registered");
+      }
+
+      // 4) Update fields
+      currentUser.setEmail(newEmail);
+      currentUser.getProfile().setUsername(newUsername);
+      if (newPrivacy != null) {
+          currentUser.getProfile().setStatsPublic(newPrivacy);
+      }
+
+      // 5) Save changes
+      userRepository.save(currentUser);
+      userRepository.flush();
+      log.debug("Updated user: {}", currentUser);
+
+      return currentUser;
+    }
+
 }
+

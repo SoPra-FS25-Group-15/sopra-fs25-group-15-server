@@ -1,117 +1,140 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
-import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
-import ch.uzh.ifi.hase.soprafs24.service.UserService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+
+import static org.hamcrest.Matchers.is;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * UserControllerTest
- * This is a WebMvcTest which allows to test the UserController i.e. GET/POST
- * request without actually sending them over the network.
- * This tests if the UserController works.
- */
+import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.service.UserService;
+
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @MockBean
+    private UserService userService;
+    
+    @MockBean
+    private DTOMapper mapper;
 
-  @MockBean
-  private UserService userService;
-
-  @Test
-  public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
-    // given
-    User user = new User();
-    user.setName("Firstname Lastname");
-    user.setUsername("firstname@lastname");
-    user.setStatus(UserStatus.OFFLINE);
-
-    List<User> allUsers = Collections.singletonList(user);
-
-    // this mocks the UserService -> we define above what the userService should
-    // return when getUsers() is called
-    given(userService.getUsers()).willReturn(allUsers);
-
-    // when
-    MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON);
-
-    // then
-    mockMvc.perform(getRequest).andExpect(status().isOk())
-        .andExpect(jsonPath("$", hasSize(1)))
-        .andExpect(jsonPath("$[0].name", is(user.getName())))
-        .andExpect(jsonPath("$[0].username", is(user.getUsername())))
-        .andExpect(jsonPath("$[0].status", is(user.getStatus().toString())));
-  }
-
-  @Test
-  public void createUser_validInput_userCreated() throws Exception {
-    // given
-    User user = new User();
-    user.setId(1L);
-    user.setName("Test User");
-    user.setUsername("testUsername");
-    user.setToken("1");
-    user.setStatus(UserStatus.ONLINE);
-
-    UserPostDTO userPostDTO = new UserPostDTO();
-    userPostDTO.setName("Test User");
-    userPostDTO.setUsername("testUsername");
-
-    given(userService.createUser(Mockito.any())).willReturn(user);
-
-    // when/then -> do the request + validate the result
-    MockHttpServletRequestBuilder postRequest = post("/users")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(asJsonString(userPostDTO));
-
-    // then
-    mockMvc.perform(postRequest)
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id", is(user.getId().intValue())))
-        .andExpect(jsonPath("$.name", is(user.getName())))
-        .andExpect(jsonPath("$.username", is(user.getUsername())))
-        .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
-  }
-
-  /**
-   * Helper Method to convert userPostDTO into a JSON string such that the input
-   * can be processed
-   * Input will look like this: {"name": "Test User", "username": "testUsername"}
-   * 
-   * @param object
-   * @return string
-   */
-  private String asJsonString(final Object object) {
-    try {
-      return new ObjectMapper().writeValueAsString(object);
-    } catch (JsonProcessingException e) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format("The request body could not be created.%s", e.toString()));
+    // Test for GET /api/users/{userid}
+    @Test
+    public void getPublicProfile_validId_returnsUserPublicDTO() throws Exception {
+        // given
+        User user = new User();
+        // Set ID via reflection because there is no public setId method
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(user, 1L);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        user.setEmail("firstname@lastname.com");
+        user.setStatus(UserStatus.OFFLINE);
+        
+        UserProfile profile = new UserProfile();
+        profile.setUsername("firstnameLastname");
+        profile.setMmr(1500);
+        profile.setAchievements(Arrays.asList("First Win"));
+        user.setProfile(profile);
+        
+        // Expected DTO; note that the mapper converts the entity to a DTO.
+        UserPublicDTO publicDTO = new UserPublicDTO();
+        publicDTO.setUserid(1L);
+        publicDTO.setUsername(profile.getUsername());
+        publicDTO.setMmr(profile.getMmr());
+        publicDTO.setAchievements(profile.getAchievements());
+        
+        given(userService.getPublicProfile(eq(1L))).willReturn(user);
+        given(mapper.toUserPublicDTO(user)).willReturn(publicDTO);
+        
+        // when/then
+        mockMvc.perform(get("/api/users/1")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.userid", is(1)))
+            .andExpect(jsonPath("$.username", is(profile.getUsername())))
+            .andExpect(jsonPath("$.mmr", is(profile.getMmr())))
+            .andExpect(jsonPath("$.achievements[0]", is("First Win")));
     }
-  }
+    
+    // Test for PUT /api/users/me
+    @Test
+    public void updateMyProfile_validInput_returnsUpdatedUser() throws Exception {
+        // given
+        final String token = "Bearer test-token";
+        User user = new User();
+        // Set ID via reflection to 1L
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(user, 1L);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        user.setEmail("updated@example.com");
+        user.setStatus(UserStatus.ONLINE);
+        
+        UserProfile profile = new UserProfile();
+        profile.setUsername("updatedUser");
+        profile.setStatsPublic(false);
+        user.setProfile(profile);
+        
+        // Expected response DTO after update
+        UserUpdateResponseDTO responseDTO = new UserUpdateResponseDTO();
+        responseDTO.setUserid(1L);
+        responseDTO.setUsername(profile.getUsername());
+        responseDTO.setEmail(user.getEmail());
+        
+        // Build update request DTO
+        UserUpdateRequestDTO updateRequestDTO = new UserUpdateRequestDTO();
+        updateRequestDTO.setUsername("updatedUser");
+        updateRequestDTO.setEmail("updated@example.com");
+        updateRequestDTO.setStatsPublic(false);
+        
+        given(userService.updateMyUser(eq(token), eq("updatedUser"), eq("updated@example.com"), eq(false)))
+            .willReturn(user);
+        given(mapper.toUpdateResponse(user)).willReturn(responseDTO);
+        
+        // when/then
+        mockMvc.perform(put("/api/users/me")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", token)
+            .content(asJsonString(updateRequestDTO)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.userid", is(1)))
+            .andExpect(jsonPath("$.username", is("updatedUser")))
+            .andExpect(jsonPath("$.email", is("updated@example.com")));
+    }
+    
+    // Helper Method: converts a Java object into JSON string.
+    private String asJsonString(final Object object) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
