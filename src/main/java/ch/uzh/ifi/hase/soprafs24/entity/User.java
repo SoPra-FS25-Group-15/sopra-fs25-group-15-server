@@ -4,76 +4,98 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Internal User Representation
- * This class composes the internal representation of the user and defines how
- * the user is stored in the database.
- * Every variable will be mapped into a database field with the @Column
- * annotation
- * - nullable = false -> this cannot be left empty
- * - unique = true -> this value must be unqiue across the database -> composes
- * the primary key
- */
 @Entity
 @Table(name = "USER")
 public class User implements Serializable {
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  @Id
-  @GeneratedValue
-  private Long id;
+    @Id
+    @GeneratedValue
+    private Long id;
 
-  @Column(nullable = false)
-  private String name;
+    // Authentication fields
+    @Column(nullable = false, unique = true)
+    private String email;
 
-  @Column(nullable = false, unique = true)
-  private String username;
+    @Column(nullable = false)
+    private String password;
 
-  @Column(nullable = false, unique = true)
-  private String token;
+    // A session token to be issued upon registration/login
+    @Column(unique = true)
+    private String token;
 
-  @Column(nullable = false)
-  private UserStatus status;
+    // Optionally, a status field
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
 
-  public Long getId() {
-    return id;
-  }
+    // Creation timestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 
-  public void setId(Long id) {
-    this.id = id;
-  }
+    // One-to-one relationship with UserProfile
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "profile_id", referencedColumnName = "id")
+    private UserProfile profile;
 
-  public String getName() {
-    return name;
-  }
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    // Getters and setters
 
-  public String getUsername() {
-    return username;
-  }
+    public Long getId() {
+        return id;
+    }
+    // ...
+    public String getEmail() {
+        return email;
+    }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-  public void setUsername(String username) {
-    this.username = username;
-  }
+    public String getPassword() {
+        return password;
+    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-  public String getToken() {
-    return token;
-  }
+    public String getToken() {
+        return token;
+    }
+    public void setToken(String token) {
+        this.token = token;
+    }
 
-  public void setToken(String token) {
-    this.token = token;
-  }
+    public UserStatus getStatus() {
+        return status;
+    }
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
 
-  public UserStatus getStatus() {
-    return status;
-  }
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
 
-  public void setStatus(UserStatus status) {
-    this.status = status;
-  }
+    public UserProfile getProfile() {
+        return profile;
+    }
+    public void setProfile(UserProfile profile) {
+        this.profile = profile;
+    }
+
+    public void generateToken() {
+        this.token = UUID.randomUUID().toString();
+    }
 }
