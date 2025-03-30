@@ -8,6 +8,7 @@ public class UserPublicDTO {
     private int mmr;
     private int points;
     private List<String> achievements;
+    private String email;
 
     // Getters and setters
     public Long getUserid() {
@@ -44,5 +45,13 @@ public class UserPublicDTO {
     }
     public void setAchievements(List<String> achievements) {
         this.achievements = achievements;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
     }
 }
