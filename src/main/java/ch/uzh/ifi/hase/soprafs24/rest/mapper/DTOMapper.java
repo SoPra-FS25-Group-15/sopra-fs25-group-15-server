@@ -1,12 +1,19 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
-import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
+import java.util.ArrayList;
+
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
 
 @Component
 public class DTOMapper {
@@ -67,4 +74,31 @@ public class DTOMapper {
         dto.setUsername(user.getProfile().getUsername());
         dto.setMmr(user.getProfile().getMmr());
         dto.setAchievements(user.getProfile().getAchievements());
-        return dto;}}
+        return dto;}
+        
+    // 5) Update Profile
+    public void updateEntityFromDTO(User user, UserUpdateRequestDTO dto) {
+        user.getProfile().setUsername(dto.getUsername());
+        user.setEmail(dto.getEmail());
+        if(dto.getStatsPublic() != null) {
+            user.getProfile().setStatsPublic(dto.getStatsPublic());
+        }
+    }
+
+    public UserUpdateResponseDTO toUpdateResponse(User user) {
+        UserUpdateResponseDTO dto = new UserUpdateResponseDTO();
+        dto.setUserid(user.getId());
+        dto.setUsername(user.getProfile().getUsername());
+        dto.setEmail(user.getEmail());
+        return dto;
+    }
+
+    // 6) User Stats
+    public UserStatsDTO toUserStatsDTO(User user) {
+        UserStatsDTO dto = new UserStatsDTO();
+        dto.setGamesPlayed(user.getProfile().getGamesPlayed());
+        dto.setWins(user.getProfile().getWins());
+        dto.setMmr(user.getProfile().getMmr());
+        return dto;
+    }
+}
