@@ -14,27 +14,33 @@ import org.springframework.web.server.ResponseStatusException;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
+import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 @WebAppConfiguration
 @SpringBootTest
 public class UserServiceIntegrationTest {
 
-  @Qualifier("userRepository")
   @Autowired
+  @Qualifier("userRepository")
   private UserRepository userRepository;
-
+  
+  @Autowired
+  private LobbyRepository lobbyRepository;
+  
   @Autowired
   private UserService userService;
 
   @BeforeEach
   public void setup() {
+    // Clear both lobbies and users to avoid FK constraint issues (e.g., a lobby referencing a user).
+    lobbyRepository.deleteAll();
     userRepository.deleteAll();
   }
 
   @Test
   public void updateMyUser_validInputs_success() {
-    // Instead of createUser, we simulate user creation by directly persisting a user.
+    // Create a user by directly persisting it.
     User testUser = new User();
     testUser.setEmail("original@example.com");
     testUser.setPassword("password");
@@ -42,23 +48,24 @@ public class UserServiceIntegrationTest {
     
     UserProfile profile = new UserProfile();
     profile.setUsername("originalUsername");
-    // Set any other profile fields as needed.
+    // Set additional fields as needed.
     testUser.setProfile(profile);
     
     // Manually assign a token to simulate authentication.
     testUser.setToken("test-token");
     
-    // Persist the user via the repository
     userRepository.save(testUser);
     userRepository.flush();
     
-    // Now call the updateMyUser service method to update the user.
+    // Make sure there are no lobbies referencing the user.
+    lobbyRepository.deleteAll();
+    
+    // Now update the user.
     String newUsername = "updatedUsername";
     String newEmail = "updated@example.com";
     Boolean newPrivacy = true;
     
     User updatedUser = userService.updateMyUser("test-token", newUsername, newEmail, newPrivacy);
-    
     assertNotNull(updatedUser.getId());
     assertEquals(newEmail, updatedUser.getEmail());
     assertEquals(newUsername, updatedUser.getProfile().getUsername());
@@ -67,7 +74,7 @@ public class UserServiceIntegrationTest {
 
   @Test
   public void updateMyUser_duplicateUsername_throwsException() {
-    // First, create two users directly via repository.
+    // Create first user.
     User user1 = new User();
     user1.setEmail("first@example.com");
     user1.setPassword("password");
@@ -78,6 +85,7 @@ public class UserServiceIntegrationTest {
     user1.setToken("token1");
     userRepository.save(user1);
 
+    // Create second user.
     User user2 = new User();
     user2.setEmail("second@example.com");
     user2.setPassword("password");
@@ -87,13 +95,17 @@ public class UserServiceIntegrationTest {
     user2.setProfile(profile2);
     user2.setToken("token2");
     userRepository.save(user2);
+    
     userRepository.flush();
     
-    // Attempt to update user2's username to a duplicate.
+    // Ensure no lobby exists that might reference user2.
+    lobbyRepository.deleteAll();
+
+    // Attempt to update user2's username to one that is already taken.
     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
       userService.updateMyUser("token2", "duplicateUsername", "newsecond@example.com", null);
     });
-    // Expect a conflict error (HTTP 409)
+    // Expect a conflict error (HTTP 409).
     assertEquals(409, exception.getStatus().value());
   }
 }
