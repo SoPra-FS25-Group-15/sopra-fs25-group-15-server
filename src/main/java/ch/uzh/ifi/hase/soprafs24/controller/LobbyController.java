@@ -33,7 +33,7 @@ import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 
 @RestController
-@RequestMapping("/api/lobbies")
+@RequestMapping("/lobbies")
 public class LobbyController {
 
     private final LobbyService lobbyService;
