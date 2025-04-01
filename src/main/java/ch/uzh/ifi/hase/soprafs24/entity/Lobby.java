@@ -44,12 +44,11 @@ public class Lobby {
     @Column(nullable = false)
     private String gameType;
 
-    // For casual play this should be "private" (non-null) to allow lobbyCode generation.
-    // For ranked play, lobbyType can be null.
+    // Indicates if the lobby is private (true) or public (false)
     @Column(nullable = false)
-    private String lobbyType;
+    private boolean isPrivate;
 
-    // Only for casual lobbies: auto‑generated lobby code.
+    // Only for private lobbies: auto‑generated lobby code.
     private String lobbyCode;
 
     // Allowed values: 1 for solo and 2 for team.
@@ -94,9 +93,11 @@ public class Lobby {
     protected void onCreate() {
         createdAt = Instant.now();
         status = LobbyConstants.LOBBY_STATUS_WAITING;
+        
         if (this.mode == null) {
             this.mode = LobbyConstants.MODE_SOLO;
         }
+        
         if (this.mode.equals(LobbyConstants.MODE_SOLO)) {
             this.maxPlayersPerTeam = 1;
             if (this.maxPlayers == null) {
@@ -108,14 +109,29 @@ public class Lobby {
                 this.maxPlayers = 8;
             }
         }
-        if (lobbyType != null && lobbyType.equalsIgnoreCase(LobbyConstants.LOBBY_TYPE_PRIVATE)) {
+        
+        // Set default privacy based on game type if not explicitly set
+        if (gameType != null && gameType.equals(LobbyConstants.GAME_TYPE_RANKED)) {
+            // For ranked games, the lobby is typically not private unless specified
+            if (!isPrivate) {
+                this.isPrivate = false;
+            }
+        } else {
+            // For casual/unranked games, default to the constant value
+            if (!isPrivate) {
+                this.isPrivate = LobbyConstants.IS_LOBBY_PRIVATE;
+            }
+        }
+        
+        // Generate a lobby code only for private lobbies
+        if (this.isPrivate) {
             lobbyCode = generateLobbyCode();
         }
     }
 
     private String generateLobbyCode() {
-        // Creates an 8-character alphanumeric code.
-        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        // Creates an 5-character alphanumeric code.
+        return UUID.randomUUID().toString().substring(0, 5).toUpperCase();
     }
 
     // Standard getters and setters
@@ -130,8 +146,8 @@ public class Lobby {
     public String getGameType() { return gameType; }
     public void setGameType(String gameType) { this.gameType = gameType; }
     
-    public String getLobbyType() { return lobbyType; }
-    public void setLobbyType(String lobbyType) { this.lobbyType = lobbyType; }
+    public boolean isPrivate() { return isPrivate; }
+    public void setPrivate(boolean isPrivate) { this.isPrivate = isPrivate; }
     
     public String getLobbyCode() { return lobbyCode; }
     public void setLobbyCode(String lobbyCode) { this.lobbyCode = lobbyCode; }
