@@ -99,49 +99,94 @@ public class LobbyService {
         int randomNum = min + random.nextInt(max - min + 1);
         return String.valueOf(randomNum);
     }
-
+    /**
+     * Checks if the specified user is the host of the lobby
+     * @param lobby The lobby to check
+     * @param userId The ID of the user to check
+     * @return true if the user is the host, false otherwise
+     */
+    private boolean isUserHost(Lobby lobby, Long userId) {
+        if (lobby == null || userId == null || lobby.getHost() == null) {
+            return false;
+        }
+        return lobby.getHost().getId().equals(userId);
+    }
     /**
      * Updates lobby configuration (mode, team size, round cards).
      */
     @Transactional
     public Lobby updateLobbyConfig(Long lobbyId, LobbyConfigUpdateRequestDTO config, Long requesterId) {
-        Lobby lobby = getLobbyById(lobbyId);
-        if (!lobby.getHost().getId().equals(requesterId)) {
+        Lobby lobby = lobbyRepository.findById(lobbyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+        
+        // Check if the requester is the host
+        if (!isUserHost(lobby, requesterId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can update lobby configuration");
         }
-        
-        String mode = config.getMode().toLowerCase();
-        if (!mode.equals(LobbyConstants.MODE_SOLO) && !mode.equals(LobbyConstants.MODE_TEAM)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode. Allowed values are 'solo' or 'team'.");
+    
+        // Update mode if provided
+        if (config.getMode() != null) {
+            String mode = config.getMode().toLowerCase();
+            if (!mode.equals(LobbyConstants.MODE_SOLO) && !mode.equals(LobbyConstants.MODE_TEAM)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Invalid mode. Allowed values are 'solo' or 'team'.");
+            }
+            lobby.setMode(mode);
+            
+            // Handle mode-specific settings but DON'T update maxPlayersPerTeam
+            if (mode.equals(LobbyConstants.MODE_TEAM)) {
+                // Initialize teams map if changing to team mode
+                if (lobby.getTeams() == null) {
+                    lobby.setTeams(new HashMap<>());
+                }
+                // Clear solo players list if changing to team mode
+                lobby.setPlayers(null);
+            } else {
+                // Solo mode: initialize players list if changing to solo mode
+                if (lobby.getPlayers() == null) {
+                    lobby.setPlayers(new ArrayList<>());
+                }
+                // Clear teams if changing to solo mode
+                lobby.setTeams(null);
+            }
         }
         
-        lobby.setMode(mode);
-        
-        if (mode.equals(LobbyConstants.MODE_TEAM)) {
-            lobby.setMaxPlayersPerTeam(2);
-            if (lobby.getMaxPlayers() == null) {
-                lobby.setMaxPlayers(8);
+        // Update maxPlayers if provided
+        if (config.getMaxPlayers() != null) {
+            if (config.getMaxPlayers() <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Maximum players must be greater than 0");
             }
-            if (lobby.getTeams() == null) {
-                lobby.setTeams(new HashMap<>());
+            // Check that the new max doesn't kick out current players
+            int currentPlayerCount = getCurrentPlayerCount(lobby);
+            if (config.getMaxPlayers() < currentPlayerCount) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Cannot set maximum players below the current player count (" + currentPlayerCount + ")");
             }
-            // Clear solo players list.
-            lobby.setPlayers(new ArrayList<>());
-        } else {
-            lobby.setMaxPlayersPerTeam(1);
-            if (lobby.getPlayers() == null) {
-                lobby.setPlayers(new ArrayList<>());
-            }
-            if (lobby.getMaxPlayers() == null) {
-                lobby.setMaxPlayers(8);
-            }
-            // Clear teams map.
-            lobby.setTeams(null);
+            lobby.setMaxPlayers(config.getMaxPlayers());
         }
         
-        // Update round cards (hints)
-        lobby.setHintsEnabled(config.getRoundCards());
+        // Update roundCards if provided
+        if (config.getRoundCards() != null) {
+            lobby.setHintsEnabled(config.getRoundCards());
+        }
+        
         return lobbyRepository.save(lobby);
+    }
+    
+    // Helper method to count current players in the lobby
+    private int getCurrentPlayerCount(Lobby lobby) {
+        int count = 0;
+        if (LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
+            // Count players in teams
+            for (List<User> teamMembers : lobby.getTeams().values()) {
+                count += teamMembers.size();
+            }
+        } else {
+            // Count solo players
+            count = lobby.getPlayers() != null ? lobby.getPlayers().size() : 0;
+        }
+        return count;
     }
 
     /**

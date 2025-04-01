@@ -280,7 +280,6 @@ public class DTOMapperTest {
         assertEquals("TEAMCODE", responseDTO.getLobbyCode());
         assertEquals("waiting", responseDTO.getStatus());
     }
-        // ...existing code...
 
     @Test
     public void testToLobbyLeaveResponse_WithValidLobby() {

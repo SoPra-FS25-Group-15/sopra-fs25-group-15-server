@@ -118,7 +118,7 @@ public class LobbyControllerTest {
     public void testUpdateLobbyConfig_Valid() throws Exception {
         LobbyConfigUpdateRequestDTO configDTO = new LobbyConfigUpdateRequestDTO();
         configDTO.setMode(LobbyConstants.MODE_TEAM);
-        configDTO.setMaxPlayersPerTeam(2);
+        configDTO.setMaxPlayers(8);
         configDTO.setRoundCards(Arrays.asList("Card1", "Card2"));
         
         when(authService.getUserByToken(token)).thenReturn(dummyUser);

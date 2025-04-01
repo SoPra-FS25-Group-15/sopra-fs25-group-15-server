@@ -100,7 +100,7 @@ public class LobbyServiceIntegrationTest {
     public void testUpdateLobbyConfig_success() {
         LobbyConfigUpdateRequestDTO configUpdate = new LobbyConfigUpdateRequestDTO();
         configUpdate.setMode(LobbyConstants.MODE_TEAM);
-        configUpdate.setMaxPlayersPerTeam(2);
+        configUpdate.setMaxPlayers(8);
         List<String> roundCards = new ArrayList<>();
         roundCards.add("card1");
         roundCards.add("card2");
@@ -108,7 +108,8 @@ public class LobbyServiceIntegrationTest {
     
         Lobby updatedLobby = lobbyService.updateLobbyConfig(lobby.getId(), configUpdate, hostUser.getId());
         assertEquals(LobbyConstants.MODE_TEAM, updatedLobby.getMode());
-        assertEquals(2, updatedLobby.getMaxPlayersPerTeam());
+        // Change from asserting maxPlayersPerTeam to asserting maxPlayers
+        assertEquals(8, updatedLobby.getMaxPlayers());
         assertEquals(List.of("card1", "card2"), updatedLobby.getHintsEnabled());
     }
 
