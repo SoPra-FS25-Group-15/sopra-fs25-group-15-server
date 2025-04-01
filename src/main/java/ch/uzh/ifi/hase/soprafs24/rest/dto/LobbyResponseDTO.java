@@ -9,7 +9,7 @@ public class LobbyResponseDTO {
     private String lobbyName;
     private String mode;
     private String gameType;
-    private String lobbyType;
+    private boolean isPrivate;
     private String lobbyCode;
     private int maxPlayersPerTeam;
     private Integer maxPlayers; // Added field for solo mode
@@ -48,11 +48,11 @@ public class LobbyResponseDTO {
     public void setGameType(String gameType) {
         this.gameType = gameType;
     }
-    public String getLobbyType() {
-        return lobbyType;
+    public boolean isPrivate() {
+        return isPrivate;
     }
-    public void setLobbyType(String lobbyType) {
-        this.lobbyType = lobbyType;
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
     }
     public String getLobbyCode() {
         return lobbyCode;

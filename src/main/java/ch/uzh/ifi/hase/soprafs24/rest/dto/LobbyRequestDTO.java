@@ -7,9 +7,8 @@ public class LobbyRequestDTO {
     private String lobbyName;
     // "ranked" or "unranked"
     private String gameType;
-    // For casual play, this will be forced to "private"
-    private String lobbyType;
-    // Must be 1 (solo) or 2 (team) – will be overridden based on mode
+    // Indicates if the lobby is private (true) or public (false)
+    private boolean isPrivate;
     private int maxPlayersPerTeam;
     // Optionally, initial round cards (stored in lobby_hints)
     private List<String> hintsEnabled;
@@ -23,8 +22,8 @@ public class LobbyRequestDTO {
     public void setLobbyName(String lobbyName) { this.lobbyName = lobbyName; }
     public String getGameType() { return gameType; }
     public void setGameType(String gameType) { this.gameType = gameType; }
-    public String getLobbyType() { return lobbyType; }
-    public void setLobbyType(String lobbyType) { this.lobbyType = lobbyType; }
+    public boolean isPrivate() { return isPrivate; }
+    public void setPrivate(boolean isPrivate) { this.isPrivate = isPrivate; }
     public int getMaxPlayersPerTeam() { return maxPlayersPerTeam; }
     public void setMaxPlayersPerTeam(int maxPlayersPerTeam) { this.maxPlayersPerTeam = maxPlayersPerTeam; }
     public List<String> getHintsEnabled() { return hintsEnabled; }

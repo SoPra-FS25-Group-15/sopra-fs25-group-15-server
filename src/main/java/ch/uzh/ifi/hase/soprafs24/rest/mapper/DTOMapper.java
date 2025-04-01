@@ -123,12 +123,14 @@ public class DTOMapper {
         Lobby lobby = new Lobby();
         lobby.setLobbyName(dto.getLobbyName());
         lobby.setGameType(dto.getGameType());
-        // For ranked mode, ignore lobby type; for casual, force to "private".
+        
+        // For ranked mode, set to public (isPrivate=false); for casual, use the constant value
         if(dto.getGameType().equalsIgnoreCase("ranked")) {
-            lobby.setLobbyType(null);
+            lobby.setPrivate(false);
         } else {
-            lobby.setLobbyType(LobbyConstants.LOBBY_TYPE_PRIVATE);
+            lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
         }
+        
         // Use the mode from the DTO if provided; otherwise default to solo.
         if(dto.getMode() != null && !dto.getMode().isEmpty()) {
             lobby.setMode(dto.getMode().toLowerCase());
@@ -155,7 +157,7 @@ public class DTOMapper {
         // Send back the actual mode of the lobby ("solo" or "team").
         dto.setMode(lobby.getMode());
         dto.setGameType(lobby.getGameType());
-        dto.setLobbyType(lobby.getLobbyType());
+        dto.setPrivate(lobby.isPrivate());
         dto.setLobbyCode(lobby.getLobbyCode());
         // In solo mode, teams are not used; for free-for-all default to 8 players.
         if(LobbyConstants.MODE_SOLO.equalsIgnoreCase(lobby.getMode())) {

@@ -47,9 +47,9 @@ public class LobbyService {
     @Transactional
     public Lobby createLobby(Lobby lobby) {
         if (lobby.getGameType().equalsIgnoreCase(LobbyConstants.GAME_TYPE_RANKED)) {
-            lobby.setLobbyType(null);
+            lobby.setPrivate(false); // Ranked games are public by default
         } else {
-            lobby.setLobbyType(LobbyConstants.LOBBY_TYPE_PRIVATE);
+            lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE); // Use the boolean constant
             String code = generateNumericLobbyCode();
             lobby.setLobbyCode(code);
             System.out.println("Generated code for new lobby: " + code);
@@ -214,10 +214,10 @@ public class LobbyService {
         // Get lobby by ID
         Lobby lobby = getLobbyById(lobbyId);
         System.out.println("Lobby found: " + lobby.getId() + ", mode=" + lobby.getMode() + 
-                          ", lobbyCode=" + lobby.getLobbyCode());
+                          ", lobbyCode=" + lobby.getLobbyCode() + ", isPrivate=" + lobby.isPrivate());
         
         // For non-friend joins with private lobbies, validate code 
-        if (!friendInvited && LobbyConstants.LOBBY_TYPE_PRIVATE.equals(lobby.getLobbyType())) {
+        if (!friendInvited && lobby.isPrivate()) {
             String actualCode = lobby.getLobbyCode();
             if (lobbyCode == null) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Lobby code is required");
