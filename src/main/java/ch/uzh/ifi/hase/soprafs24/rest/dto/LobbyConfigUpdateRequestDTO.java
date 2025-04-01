@@ -5,15 +5,15 @@ import java.util.List;
 public class LobbyConfigUpdateRequestDTO {
     // Allowed values: "solo" or "team"
     private String mode;
-    // Maximum players per team; must be 1 for solo or 2 for team
-    private int maxPlayersPerTeam;
+    // Maximum total players allowed in the lobby
+    private Integer maxPlayers;
     // The round cards each player starts with (stored in lobby_hints)
     private List<String> roundCards;
 
     public String getMode() { return mode; }
     public void setMode(String mode) { this.mode = mode; }
-    public int getMaxPlayersPerTeam() { return maxPlayersPerTeam; }
-    public void setMaxPlayersPerTeam(int maxPlayersPerTeam) { this.maxPlayersPerTeam = maxPlayersPerTeam; }
+    public Integer getMaxPlayers() { return maxPlayers; }
+    public void setMaxPlayers(Integer maxPlayers) { this.maxPlayers = maxPlayers; }
     public List<String> getRoundCards() { return roundCards; }
     public void setRoundCards(List<String> roundCards) { this.roundCards = roundCards; }
 }
