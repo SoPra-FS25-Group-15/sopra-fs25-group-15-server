@@ -10,9 +10,8 @@ public final class LobbyConstants {
     public static final String GAME_TYPE_UNRANKED = "unranked";
 
     // Lobby types
-    // For casual play, only "private" is allowed.
-    // For ranked play, lobbyType is ignored (set to null).
-    public static final String LOBBY_TYPE_PRIVATE = "private";
+    // For casual play, lobby is private (true); for ranked play, false.
+    public static final boolean IS_LOBBY_PRIVATE = true;
 
     // Lobby statuses
     public static final String LOBBY_STATUS_WAITING = "waiting";
