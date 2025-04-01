@@ -329,14 +329,25 @@ public class LobbyService {
             Map<String, List<User>> teams = lobby.getTeams();
             if (teams != null) {
                 for (Map.Entry<String, List<User>> teamEntry : teams.entrySet()) {
-                    removed |= teamEntry.getValue().removeIf(user -> user.getId().equals(leavingUserId));
+                    // Create mutable copy of the team list before modifying
+                    List<User> mutableTeamList = new ArrayList<>(teamEntry.getValue());
+                    boolean teamRemoved = mutableTeamList.removeIf(user -> user.getId().equals(leavingUserId));
+                    if (teamRemoved) {
+                        teamEntry.setValue(mutableTeamList);
+                        removed = true;
+                    }
                 }
             }
         } else {
             // Remove from players list (solo mode)
             List<User> players = lobby.getPlayers();
             if (players != null) {
-                removed = players.removeIf(user -> user.getId().equals(leavingUserId));
+                // Create mutable copy of the players list before modifying
+                List<User> mutablePlayers = new ArrayList<>(players);
+                removed = mutablePlayers.removeIf(user -> user.getId().equals(leavingUserId));
+                if (removed) {
+                    lobby.setPlayers(mutablePlayers);
+                }
             }
         }
         
@@ -347,7 +358,7 @@ public class LobbyService {
         lobby = lobbyRepository.save(lobby);
         
         try {
-            return new LobbyLeaveResponseDTO("Left lobby successfully.", mapper.lobbyEntityToResponseDTO(lobby));
+            return mapper.toLobbyLeaveResponse(lobby, "Left lobby successfully.");
         } catch (Exception e) {
             System.err.println("Error converting lobby to DTO: " + e.getMessage());
             // Create a simplified response if DTO conversion fails

@@ -12,6 +12,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
@@ -174,5 +175,11 @@ public class DTOMapper {
         dto.setPlayers(playerDTOs);
         
         return dto;
+    }
+    // 9) Lobby Leave mapping: Create a LobbyLeaveResponseDTO from a Lobby entity and message
+    public LobbyLeaveResponseDTO toLobbyLeaveResponse(Lobby lobby, String message) {
+        LobbyResponseDTO lobbyResponseDTO = lobby != null ? 
+            lobbyEntityToResponseDTO(lobby) : null;
+        return new LobbyLeaveResponseDTO(message, lobbyResponseDTO);
     }
 }

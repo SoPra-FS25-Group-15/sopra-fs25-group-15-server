@@ -19,6 +19,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
@@ -278,5 +279,46 @@ public class DTOMapperTest {
         assertEquals("team", responseDTO.getMode());
         assertEquals("TEAMCODE", responseDTO.getLobbyCode());
         assertEquals("waiting", responseDTO.getStatus());
+    }
+        // ...existing code...
+
+    @Test
+    public void testToLobbyLeaveResponse_WithValidLobby() {
+        // Create a dummy lobby
+        Lobby lobby = new Lobby();
+        try {
+            Field idField = Lobby.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(lobby, 500L);
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+        lobby.setLobbyName("Test Lobby");
+        lobby.setMode("solo");
+        lobby.setGameType("unranked");
+        
+        String testMessage = "Left lobby successfully.";
+        
+        // Convert using mapper
+        LobbyLeaveResponseDTO responseDTO = mapper.toLobbyLeaveResponse(lobby, testMessage);
+        
+        // Verify mapping results
+        assertEquals(testMessage, responseDTO.getMessage());
+        assertNotNull(responseDTO.getLobby());
+        assertEquals(lobby.getId(), responseDTO.getLobby().getLobbyId());
+        assertEquals(lobby.getLobbyName(), responseDTO.getLobby().getLobbyName());
+        assertEquals(lobby.getMode(), responseDTO.getLobby().getMode());
+    }
+    
+    @Test
+    public void testToLobbyLeaveResponse_WithNullLobby() {
+        String testMessage = "Lobby was disbanded.";
+        
+        // Test with null lobby
+        LobbyLeaveResponseDTO responseDTO = mapper.toLobbyLeaveResponse(null, testMessage);
+        
+        // Verify mapping results
+        assertEquals(testMessage, responseDTO.getMessage());
+        assertNull(responseDTO.getLobby());
     }
 }

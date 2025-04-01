@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
@@ -26,6 +28,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.InviteLobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyConfigUpdateRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyInviteResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyJoinResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 
@@ -209,5 +212,56 @@ public class LobbyServiceIntegrationTest {
     
         assertNotNull(soloJoinResponse);
         assertEquals("Joined lobby successfully.", soloJoinResponse.getMessage());
+    }
+    
+
+    @Test
+    @Transactional
+    public void testLeaveLobby_soloMode_userLeaves_success() {
+        // Create a lobby with the appropriate service method (handles initialization properly)
+        Lobby soloLobby = new Lobby();
+        soloLobby.setLobbyName("Solo Lobby");
+        soloLobby.setGameType(LobbyConstants.GAME_TYPE_UNRANKED);
+        soloLobby.setHost(hostUser);
+        soloLobby.setMode(LobbyConstants.MODE_SOLO);
+        soloLobby = lobbyService.createLobby(soloLobby);
+        
+        // Create a player
+        User soloPlayer = new User();
+        soloPlayer.setEmail("soloplayer@example.com");
+        soloPlayer.setPassword("password");
+        soloPlayer.setStatus(UserStatus.OFFLINE);
+        UserProfile soloProfile = new UserProfile();
+        soloProfile.setUsername("SoloPlayer");
+        soloProfile.setMmr(0);
+        soloProfile.setAchievements(new ArrayList<>());
+        soloPlayer.setProfile(soloProfile);
+        User savedSoloPlayer = userRepository.save(soloPlayer);
+        
+        // Use the service to join
+        lobbyService.joinLobby(
+            soloLobby.getId(),
+            savedSoloPlayer.getId(),
+            null,
+            soloLobby.getLobbyCode(),
+            false
+        );
+        
+        // Use the service to leave
+        LobbyLeaveResponseDTO response = lobbyService.leaveLobby(
+            soloLobby.getId(),
+            savedSoloPlayer.getId(),
+            savedSoloPlayer.getId()
+        );
+        
+        // Verify with assertions
+        assertNotNull(response);
+        assertEquals("Left lobby successfully.", response.getMessage());
+        
+        // Direct database verification
+        Lobby updatedLobby = lobbyRepository.findById(soloLobby.getId()).get();
+        boolean userStillInLobby = updatedLobby.getPlayers().stream()
+            .anyMatch(p -> p.getId().equals(savedSoloPlayer.getId()));
+        assertFalse(userStillInLobby);
     }
 }

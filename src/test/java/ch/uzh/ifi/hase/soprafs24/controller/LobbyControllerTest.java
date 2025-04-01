@@ -223,16 +223,28 @@ public class LobbyControllerTest {
         when(lobbyService.leaveLobby(eq(10L), eq(dummyUser.getId()), eq(dummyUser.getId())))
             .thenReturn(leaveResponse);
         
-        String leaveJson = "{ \"userId\": " + dummyUser.getId() + " }";
-        
         mockMvc.perform(
-            post("/lobbies/10/leave")
+            delete("/lobbies/10/leave")
                 .header("Authorization", token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(leaveJson)
         )
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.message").value("Left lobby successfully."));
+    }
+    
+    @Test
+    public void testKickFromLobby_Valid() throws Exception {
+        Long kickedUserId = 2L;
+        LobbyLeaveResponseDTO leaveResponse = new LobbyLeaveResponseDTO("User kicked from lobby successfully.", dummyLobbyResponseDTO);
+        when(authService.getUserByToken(token)).thenReturn(dummyUser);
+        when(lobbyService.leaveLobby(eq(10L), eq(dummyUser.getId()), eq(kickedUserId)))
+            .thenReturn(leaveResponse);
+        
+        mockMvc.perform(
+            delete("/lobbies/10/leave?userId=" + kickedUserId)
+                .header("Authorization", token)
+        )
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("User kicked from lobby successfully."));
     }
     
     @Test

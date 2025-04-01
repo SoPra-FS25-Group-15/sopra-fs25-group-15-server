@@ -21,7 +21,6 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GenericMessageResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.InviteLobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.JoinLobbyRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.LeaveLobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyConfigUpdateRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyInviteResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyJoinResponseDTO;
@@ -116,15 +115,15 @@ public class LobbyController {
         );
         return ResponseEntity.ok(response);
     }
-    
 
     // Leave or kick from a lobby.
-    @PostMapping("/{lobbyId}/leave")
+    @DeleteMapping("/{lobbyId}/leave")
     @ResponseStatus(HttpStatus.OK)
     public LobbyLeaveResponseDTO leaveLobby(@RequestHeader("Authorization") String token,
                                             @PathVariable Long lobbyId,
-                                            @RequestBody LeaveLobbyRequestDTO leaveRequest) {
+                                            @RequestParam(required = false) Long userId) {
         User currentUser = authService.getUserByToken(token);
-        return lobbyService.leaveLobby(lobbyId, currentUser.getId(), leaveRequest.getUserId());
+        Long userToRemove = (userId != null) ? userId : currentUser.getId();
+        return lobbyService.leaveLobby(lobbyId, currentUser.getId(), userToRemove);
     }
 }
