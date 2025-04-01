@@ -86,7 +86,7 @@ public class LobbyServiceIntegrationTest {
     public void testCreateLobby_success() {
         // The lobby created in setup should have generated fields.
         assertNotNull(lobby.getId());
-        assertEquals(LobbyConstants.LOBBY_TYPE_PRIVATE, lobby.getLobbyType());
+        assertEquals(LobbyConstants.IS_LOBBY_PRIVATE, lobby.isPrivate());
         assertNotNull(lobby.getLobbyCode());
         assertEquals(LobbyConstants.MODE_TEAM, lobby.getMode());
         assertEquals(LobbyConstants.LOBBY_STATUS_WAITING, lobby.getStatus());
@@ -178,8 +178,8 @@ public class LobbyServiceIntegrationTest {
         soloLobby = lobbyService.createLobby(soloLobby);
     
         // Validate solo lobby creation.
-        assertNotNull(soloLobby.getId());
-        assertEquals(LobbyConstants.LOBBY_TYPE_PRIVATE, soloLobby.getLobbyType());
+        assertNotNull(soloLobby.getId()); 
+        assertEquals(LobbyConstants.IS_LOBBY_PRIVATE, soloLobby.isPrivate());
         assertEquals(LobbyConstants.MODE_SOLO, soloLobby.getMode());
         // Instead of asserting the cleared entity field, verify via DTO conversion.
         LobbyResponseDTO soloResponseDTO = mapper.lobbyEntityToResponseDTO(soloLobby);

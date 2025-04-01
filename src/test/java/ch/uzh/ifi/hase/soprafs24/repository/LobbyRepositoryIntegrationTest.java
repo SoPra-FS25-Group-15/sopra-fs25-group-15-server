@@ -34,7 +34,7 @@ public class LobbyRepositoryIntegrationTest {
         Lobby lobby = new Lobby();
         lobby.setLobbyName("Integration Test Lobby");
         lobby.setGameType("unranked");
-        lobby.setLobbyType("private");
+        lobby.setPrivate(true);
         lobby.setMaxPlayersPerTeam(2);
         lobby.setHintsEnabled(List.of("Hint1", "Hint2"));
         lobby.setHost(hostUser);

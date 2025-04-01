@@ -72,7 +72,7 @@ public class LobbyControllerTest {
         dummyLobby.setLobbyName("Test Lobby");
         dummyLobby.setLobbyCode("ABC12345");
         dummyLobby.setMaxPlayersPerTeam(2);
-        dummyLobby.setLobbyType(LobbyConstants.LOBBY_TYPE_PRIVATE);
+        dummyLobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE); // Updated to boolean
         // Set mode to match incoming DTO – for example, a team lobby.
         dummyLobby.setMode(LobbyConstants.MODE_TEAM);
         
@@ -80,6 +80,7 @@ public class LobbyControllerTest {
         dummyLobbyResponseDTO.setLobbyId(10L);
         dummyLobbyResponseDTO.setLobbyName(dummyLobby.getLobbyName());
         dummyLobbyResponseDTO.setLobbyCode(dummyLobby.getLobbyCode());
+        dummyLobbyResponseDTO.setPrivate(dummyLobby.isPrivate()); // Updated to boolean
         // Reflect the mode in the response.
         dummyLobbyResponseDTO.setMode(dummyLobby.getMode());
     }
@@ -89,7 +90,7 @@ public class LobbyControllerTest {
         LobbyRequestDTO requestDTO = new LobbyRequestDTO();
         requestDTO.setLobbyName("Test Lobby");
         requestDTO.setGameType("unranked");
-        requestDTO.setLobbyType(LobbyConstants.LOBBY_TYPE_PRIVATE);
+        requestDTO.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE); // Updated to boolean
         requestDTO.setMaxPlayersPerTeam(2);
         // Send mode field; if omitted the DTO mapper will default to solo.
         requestDTO.setMode(LobbyConstants.MODE_TEAM);
@@ -100,7 +101,7 @@ public class LobbyControllerTest {
         when(mapper.lobbyEntityToResponseDTO(dummyLobby)).thenReturn(dummyLobbyResponseDTO);
         
         mockMvc.perform(
-            post("/api/lobbies")
+            post("/lobbies")
                 .header("Authorization", token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDTO))
@@ -109,6 +110,7 @@ public class LobbyControllerTest {
         .andExpect(jsonPath("$.lobbyId").value(dummyLobbyResponseDTO.getLobbyId()))
         .andExpect(jsonPath("$.lobbyName").value(dummyLobbyResponseDTO.getLobbyName()))
         .andExpect(jsonPath("$.lobbyCode").value(dummyLobbyResponseDTO.getLobbyCode()))
+        .andExpect(jsonPath("$.private").value(dummyLobbyResponseDTO.isPrivate())) // Updated to check boolean
         .andExpect(jsonPath("$.mode").value(dummyLobby.getMode()));
     }
     
@@ -125,7 +127,7 @@ public class LobbyControllerTest {
         when(mapper.lobbyEntityToResponseDTO(dummyLobby)).thenReturn(dummyLobbyResponseDTO);
         
         mockMvc.perform(
-            put("/api/lobbies/10/config")
+            put("/lobbies/10/config")
                 .header("Authorization", token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(configDTO))
@@ -153,7 +155,7 @@ public class LobbyControllerTest {
             .thenReturn(joinResponse);
         
         mockMvc.perform(
-            post("/api/lobbies/10/join?userId=" + dummyUser.getId())
+            post("/lobbies/10/join?userId=" + dummyUser.getId())
                 .header("Authorization", token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(joinDTO))
@@ -178,7 +180,7 @@ public class LobbyControllerTest {
             .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Invalid lobby code"));
         
         mockMvc.perform(
-            post("/api/lobbies/10/join?userId=" + dummyUser.getId())
+            post("/lobbies/10/join?userId=" + dummyUser.getId())
                 .header("Authorization", token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(joinDTO))
@@ -203,7 +205,7 @@ public class LobbyControllerTest {
             .thenReturn(joinResponse);
         
         mockMvc.perform(
-            post("/api/lobbies/10/join?userId=" + dummyUser.getId())
+            post("/lobbies/10/join?userId=" + dummyUser.getId())
                 .header("Authorization", token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(joinDTO))
@@ -224,7 +226,7 @@ public class LobbyControllerTest {
         String leaveJson = "{ \"userId\": " + dummyUser.getId() + " }";
         
         mockMvc.perform(
-            post("/api/lobbies/10/leave")
+            post("/lobbies/10/leave")
                 .header("Authorization", token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(leaveJson)
@@ -241,7 +243,7 @@ public class LobbyControllerTest {
             .thenReturn(deleteResponse);
         
         mockMvc.perform(
-            delete("/api/lobbies/10")
+            delete("/lobbies/10")
                 .header("Authorization", token)
         )
         .andExpect(status().isOk())

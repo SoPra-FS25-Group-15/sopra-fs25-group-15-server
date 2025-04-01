@@ -178,7 +178,7 @@ public class DTOMapperTest {
         assertEquals("Team Lobby", lobby.getLobbyName());
         assertEquals("unranked", lobby.getGameType());
         // For casual play, lobbyType forced to "private"
-        assertEquals(LobbyConstants.LOBBY_TYPE_PRIVATE, lobby.getLobbyType());
+        assertEquals(LobbyConstants.IS_LOBBY_PRIVATE, lobby.isPrivate());
         // Since mode is team, maxPlayersPerTeam should be set from DTO
         assertEquals(3, lobby.getMaxPlayersPerTeam());
         assertEquals("team", lobby.getMode());
@@ -201,7 +201,7 @@ public class DTOMapperTest {
         // Verify mapping for a solo lobby
         assertEquals("Solo Lobby", lobby.getLobbyName());
         assertEquals("unranked", lobby.getGameType());
-        assertEquals(LobbyConstants.LOBBY_TYPE_PRIVATE, lobby.getLobbyType());
+        assertEquals(LobbyConstants.IS_LOBBY_PRIVATE, lobby.isPrivate());
         // In solo mode, team-related configuration is not set.
         assertNull(lobby.getMaxPlayersPerTeam());
         assertEquals("solo", lobby.getMode());
@@ -222,7 +222,7 @@ public class DTOMapperTest {
         lobby.setLobbyName("Solo Response");
         lobby.setMode("solo");
         lobby.setGameType("unranked");
-        lobby.setLobbyType(LobbyConstants.LOBBY_TYPE_PRIVATE);
+        lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
         lobby.setLobbyCode("CODE1234");
         // Do not set maxPlayers for solo mode: should default to 8 in the DTO.
         List<String> hints = Arrays.asList("R1", "R2");
@@ -256,7 +256,7 @@ public class DTOMapperTest {
         lobby.setLobbyName("Team Response");
         lobby.setMode("team");
         lobby.setGameType("unranked");
-        lobby.setLobbyType(LobbyConstants.LOBBY_TYPE_PRIVATE);
+        lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
         lobby.setLobbyCode("TEAMCODE");
         // For team mode, maxPlayers is not used in the response DTO.
         lobby.setMaxPlayersPerTeam(4);
