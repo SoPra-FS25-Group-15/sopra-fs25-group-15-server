@@ -43,11 +43,15 @@ public class User implements Serializable {
     private UserProfile profile;
 
     @PrePersist
-    protected void onCreate() {
+    public void onCreate() {
         this.createdAt = Instant.now();
     }
 
     // Getters and setters
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public Long getId() {
         return id;

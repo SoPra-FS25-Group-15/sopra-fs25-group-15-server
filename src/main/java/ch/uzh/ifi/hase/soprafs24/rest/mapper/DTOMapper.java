@@ -8,10 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
+import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
@@ -119,7 +122,25 @@ public class DTOMapper {
         return dto;
     }
 
-    // 7) Lobby mapping: Convert a LobbyRequestDTO into a Lobby entity.
+        // 7) Friend requests
+    public FriendRequestDTO toFriendRequestDTO(FriendRequest request) {
+        FriendRequestDTO dto = new FriendRequestDTO();
+        dto.setRequestId(request.getId());
+        dto.setRecipient(request.getRecipient().getId());
+        // You might include the action/status as a string in the DTO:
+        dto.setAction(request.getStatus().name().toLowerCase());
+        return dto;
+    }
+
+    // 8) Friend mapping
+    public FriendDTO toFriendDTO(User user) {
+        FriendDTO dto = new FriendDTO();
+        dto.setFriendId(user.getId());
+        dto.setUsername(user.getProfile().getUsername());
+        return dto;
+    }
+
+    // 9) Lobby mapping: Convert a LobbyRequestDTO into a Lobby entity.
     public Lobby lobbyRequestDTOToEntity(LobbyRequestDTO dto) {
         Lobby lobby = new Lobby();
         lobby.setLobbyName(dto.getLobbyName());
@@ -150,7 +171,7 @@ public class DTOMapper {
         return lobby;
     }
 
-    // 8) Lobby mapping: Convert a Lobby entity into a LobbyResponseDTO.
+    // 10) Lobby mapping: Convert a Lobby entity into a LobbyResponseDTO.
     public LobbyResponseDTO lobbyEntityToResponseDTO(Lobby lobby) {
         LobbyResponseDTO dto = new LobbyResponseDTO();
         dto.setLobbyId(lobby.getId());
