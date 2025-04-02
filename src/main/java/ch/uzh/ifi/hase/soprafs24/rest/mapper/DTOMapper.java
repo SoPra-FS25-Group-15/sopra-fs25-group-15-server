@@ -1,19 +1,12 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
-import java.util.ArrayList;
-
-import org.springframework.stereotype.Component;
-
+import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
 
 @Component
 public class DTOMapper {
@@ -23,7 +16,7 @@ public class DTOMapper {
         User user = new User();
         user.setEmail(dto.getEmail());
         user.setPassword(dto.getPassword());
-        
+
         // Default status assigned in service or here
         user.setStatus(ch.uzh.ifi.hase.soprafs24.constant.UserStatus.OFFLINE);
 
@@ -74,8 +67,9 @@ public class DTOMapper {
         dto.setUsername(user.getProfile().getUsername());
         dto.setMmr(user.getProfile().getMmr());
         dto.setAchievements(user.getProfile().getAchievements());
-        return dto;}
-        
+        return dto;
+    }
+
     // 5) Update Profile
     public void updateEntityFromDTO(User user, UserUpdateRequestDTO dto) {
         user.getProfile().setUsername(dto.getUsername());
@@ -84,6 +78,7 @@ public class DTOMapper {
             user.getProfile().setStatsPublic(dto.getStatsPublic());
         }
     }
+
 
     public UserUpdateResponseDTO toUpdateResponse(User user) {
         UserUpdateResponseDTO dto = new UserUpdateResponseDTO();
@@ -99,6 +94,25 @@ public class DTOMapper {
         dto.setGamesPlayed(user.getProfile().getGamesPlayed());
         dto.setWins(user.getProfile().getWins());
         dto.setMmr(user.getProfile().getMmr());
+        return dto;
+    }
+
+    // 7) Friend requests
+    public FriendRequestDTO toFriendRequestDTO(FriendRequest request) {
+        FriendRequestDTO dto = new FriendRequestDTO();
+        dto.setRequestId(request.getId());
+        dto.setRecipient(request.getRecipient().getId());
+        // You might include the action/status as a string in the DTO:
+        dto.setAction(request.getStatus().name().toLowerCase());
+        return dto;
+    }
+
+    // 8) friend requests
+
+    public FriendDTO toFriendDTO(User user) {
+        FriendDTO dto = new FriendDTO();
+        dto.setFriendId(user.getId());
+        dto.setUsername(user.getProfile().getUsername());
         return dto;
     }
 }
