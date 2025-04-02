@@ -31,13 +31,15 @@ public class FriendRequest {
     private Instant createdAt;
 
     @PrePersist
-    protected void onCreate() {
+    public void onCreate() {
         this.createdAt = Instant.now();
         this.status = FriendRequestStatus.PENDING;
     }
 
     // Getters and setters
-
+    public void setId(Long id) {
+        this.id = id;
+    }
     public Long getId() {
         return id;
     }
