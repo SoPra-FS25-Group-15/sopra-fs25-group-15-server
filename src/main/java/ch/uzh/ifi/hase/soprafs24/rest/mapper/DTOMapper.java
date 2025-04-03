@@ -1,22 +1,48 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
-import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
+import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
+import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
+import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
 
 @Component
 public class DTOMapper {
+
+    private final UserRepository userRepository;
+
+    @Autowired
+    public DTOMapper(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     // 1) Registration
     public User toEntity(UserRegisterRequestDTO dto) {
         User user = new User();
         user.setEmail(dto.getEmail());
         user.setPassword(dto.getPassword());
-
+        
         // Default status assigned in service or here
         user.setStatus(ch.uzh.ifi.hase.soprafs24.constant.UserStatus.OFFLINE);
 
@@ -78,8 +104,7 @@ public class DTOMapper {
             user.getProfile().setStatsPublic(dto.getStatsPublic());
         }
     }
-
-
+  
     public UserUpdateResponseDTO toUpdateResponse(User user) {
         UserUpdateResponseDTO dto = new UserUpdateResponseDTO();
         dto.setUserid(user.getId());
@@ -97,7 +122,7 @@ public class DTOMapper {
         return dto;
     }
 
-    // 7) Friend requests
+        // 7) Friend requests
     public FriendRequestDTO toFriendRequestDTO(FriendRequest request) {
         FriendRequestDTO dto = new FriendRequestDTO();
         dto.setRequestId(request.getId());
@@ -107,12 +132,75 @@ public class DTOMapper {
         return dto;
     }
 
-    // 8) friend requests
-
+    // 8) Friend mapping
     public FriendDTO toFriendDTO(User user) {
         FriendDTO dto = new FriendDTO();
         dto.setFriendId(user.getId());
         dto.setUsername(user.getProfile().getUsername());
         return dto;
+    }
+
+    // 9) Lobby mapping: Convert a LobbyRequestDTO into a Lobby entity.
+    public Lobby lobbyRequestDTOToEntity(LobbyRequestDTO dto) {
+        Lobby lobby = new Lobby();
+        lobby.setLobbyName(dto.getLobbyName());
+        lobby.setGameType(dto.getGameType());
+        
+        // For ranked mode, set to public (isPrivate=false); for casual, use the constant value
+        if(dto.getGameType().equalsIgnoreCase("ranked")) {
+            lobby.setPrivate(false);
+        } else {
+            lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
+        }
+        
+        // Use the mode from the DTO if provided; otherwise default to solo.
+        if(dto.getMode() != null && !dto.getMode().isEmpty()) {
+            lobby.setMode(dto.getMode().toLowerCase());
+        } else {
+            lobby.setMode(LobbyConstants.MODE_SOLO);
+        }
+        // Set team-related configuration only if the lobby is in team mode.
+        if(LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode())) {
+            lobby.setMaxPlayersPerTeam(dto.getMaxPlayersPerTeam());
+        } else {
+            // Ensure that for solo mode maxPlayersPerTeam is explicitly cleared
+            lobby.setMaxPlayersPerTeam(null);
+        }
+        // Set hints.
+        lobby.setHintsEnabled(dto.getHintsEnabled());
+        return lobby;
+    }
+
+    // 10) Lobby mapping: Convert a Lobby entity into a LobbyResponseDTO.
+    public LobbyResponseDTO lobbyEntityToResponseDTO(Lobby lobby) {
+        LobbyResponseDTO dto = new LobbyResponseDTO();
+        dto.setLobbyId(lobby.getId());
+        dto.setLobbyName(lobby.getLobbyName());
+        // Send back the actual mode of the lobby ("solo" or "team").
+        dto.setMode(lobby.getMode());
+        dto.setGameType(lobby.getGameType());
+        dto.setPrivate(lobby.isPrivate());
+        dto.setLobbyCode(lobby.getLobbyCode());
+        // In solo mode, teams are not used; for free-for-all default to 8 players.
+        if(LobbyConstants.MODE_SOLO.equalsIgnoreCase(lobby.getMode())) {
+            dto.setMaxPlayers(lobby.getMaxPlayers() != null ? lobby.getMaxPlayers() : 8);
+        }
+        dto.setRoundCards(lobby.getHintsEnabled());
+        dto.setCreatedAt(lobby.getCreatedAt());
+        dto.setStatus(lobby.getStatus());
+        
+        // Map players.
+        List<UserPublicDTO> playerDTOs = lobby.getPlayers() != null
+            ? lobby.getPlayers().stream().map(this::toUserPublicDTO).collect(Collectors.toList())
+            : new ArrayList<>();
+        dto.setPlayers(playerDTOs);
+        
+        return dto;
+    }
+    // 9) Lobby Leave mapping: Create a LobbyLeaveResponseDTO from a Lobby entity and message
+    public LobbyLeaveResponseDTO toLobbyLeaveResponse(Lobby lobby, String message) {
+        LobbyResponseDTO lobbyResponseDTO = lobby != null ? 
+            lobbyEntityToResponseDTO(lobby) : null;
+        return new LobbyLeaveResponseDTO(message, lobbyResponseDTO);
     }
 }

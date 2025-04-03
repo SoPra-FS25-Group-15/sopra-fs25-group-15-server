@@ -1,12 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
-import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
-import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
-import ch.uzh.ifi.hase.soprafs24.entity.Friendship;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.repository.FriendRequestRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.FriendshipRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,8 +10,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
+import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
+import ch.uzh.ifi.hase.soprafs24.entity.Friendship;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.FriendRequestRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.FriendshipRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 @Service
 @Transactional

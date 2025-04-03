@@ -44,7 +44,7 @@ public class AuthService {
 
         // Generate token, set status
         newUser.generateToken();
-        newUser.setStatus(UserStatus.OFFLINE);
+        newUser.setStatus(UserStatus.ONLINE);
 
         // Save
         newUser = userRepository.save(newUser);
