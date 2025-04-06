@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.repository;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
@@ -30,20 +31,49 @@ public class LobbyRepositoryIntegrationTest {
         hostUser.setStatus(UserStatus.OFFLINE);
         hostUser = userRepository.save(hostUser);
         
-        // given: a new lobby with private=true so that a lobby code is generated on persist.
-        Lobby lobby = new Lobby();
-        lobby.setPrivate(true); // Private = unranked game
-        lobby.setMaxPlayersPerTeam(1); // Solo mode
-        lobby.setMode("solo");
-        lobby.setHintsEnabled(List.of("Hint1", "Hint2"));
-        lobby.setHost(hostUser);
+        // given: a new private lobby (PrePersist will generate a code)
+        Lobby privateLobby = new Lobby();
+        privateLobby.setPrivate(true); // Private = unranked game
+        privateLobby.setMaxPlayersPerTeam(1); // Solo mode
+        privateLobby.setMode("solo");
+        privateLobby.setHintsEnabled(List.of("Hint1", "Hint2"));
+        privateLobby.setHost(hostUser);
+        // Do NOT set a lobby code manually for private lobby
+        privateLobby = lobbyRepository.saveAndFlush(privateLobby);
         
-        // when: saving the lobby
-        Lobby savedLobby = lobbyRepository.save(lobby);
+        // Retrieve the generated lobby code from the saved entity
+        String generatedCode = privateLobby.getLobbyCode();
+        assertNotNull(generatedCode);
         
-        // then: ID and lobby code are generated
-        assertNotNull(savedLobby.getId());
-        assertNotNull(savedLobby.getLobbyCode());
+        // when: finding the private lobby by its generated code
+        Lobby foundPrivateLobby = lobbyRepository.findByLobbyCode(generatedCode);
+        if (foundPrivateLobby == null) {
+            throw new AssertionError("Private lobby not found");
+        }
+        // then: check lobby code is preserved (matches the generated value)
+        assertNotNull(foundPrivateLobby.getId());
+        assertEquals(generatedCode, foundPrivateLobby.getLobbyCode());
+        
+        // given: a new public lobby (PrePersist does not override manually set code)
+        Lobby publicLobby = new Lobby();
+        publicLobby.setPrivate(false); // Public = ranked game
+        publicLobby.setMaxPlayersPerTeam(2); // Team mode
+        publicLobby.setMode("team");
+        publicLobby.setHintsEnabled(List.of("Hint1", "Hint2"));
+        publicLobby.setHost(hostUser);
+        // Set a lobby code manually
+        String testCodePublic = "TEST456";
+        publicLobby.setLobbyCode(testCodePublic);
+        publicLobby = lobbyRepository.saveAndFlush(publicLobby);
+        
+        // when: finding the public lobby by code
+        Lobby foundPublicLobby = lobbyRepository.findByLobbyCode(testCodePublic);
+        if (foundPublicLobby == null) {
+            throw new AssertionError("Public lobby not found");
+        }
+        // then: check lobby code is preserved
+        assertNotNull(foundPublicLobby.getId());
+        assertEquals(testCodePublic, foundPublicLobby.getLobbyCode());
     }
     
     @Test

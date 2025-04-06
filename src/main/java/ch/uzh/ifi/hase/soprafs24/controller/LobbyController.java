@@ -1,5 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -120,5 +123,21 @@ public class LobbyController {
         User currentUser = authService.getUserByToken(token);
         Long userToRemove = (userId != null) ? userId : currentUser.getId();
         return lobbyService.leaveLobby(lobbyId, currentUser.getId(), userToRemove);
+    }
+
+    // List all active lobbies
+    @GetMapping("/all_lobbies")
+    @ResponseStatus(HttpStatus.OK)
+    public List<LobbyResponseDTO> getAllLobbies(@RequestHeader("Authorization") String token) {
+        // Authenticate the user (token validation)
+        authService.getUserByToken(token);
+        
+        // Get all lobbies
+        List<Lobby> lobbies = lobbyService.listLobbies();
+        
+        // Map to DTOs
+        return lobbies.stream()
+                .map(lobby -> mapper.lobbyEntityToResponseDTO(lobby))
+                .collect(Collectors.toList());
     }
 }

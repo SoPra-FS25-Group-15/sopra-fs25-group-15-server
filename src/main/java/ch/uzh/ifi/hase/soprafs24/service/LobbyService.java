@@ -54,15 +54,16 @@ public class LobbyService {
             // Ranked games are public by default
             lobby.setPrivate(false);
         } else {
-            // Unranked games are always private with a generated code
-            lobby.setPrivate(true);
-            String code = generateNumericLobbyCode();
-            lobby.setLobbyCode(code);
-            System.out.println("Generated code for new unranked lobby: " + code);
+            // Unranked games are always private
             
             // Force solo mode for unranked games
             lobby.setMode(LobbyConstants.MODE_SOLO);
         }
+        
+        // Generate lobby code for all lobbies (regardless of type)
+        String code = generateNumericLobbyCode();
+        lobby.setLobbyCode(code);
+        System.out.println("Generated code for new lobby: " + code);
     
         // If mode wasn't set above, default to solo
         if (lobby.getMode() == null) {
@@ -178,10 +179,27 @@ public class LobbyService {
             lobby.setMaxPlayers(config.getMaxPlayers());
         }
         
-        // Update roundCards if provided
-        if (config.getRoundCards() != null) {
-            lobby.setHintsEnabled(config.getRoundCards());
+        // Update maxPlayersPerTeam if provided (only applicable for team mode)
+        if (config.getMaxPlayersPerTeam() != null && LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
+            if (config.getMaxPlayersPerTeam() <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Maximum players per team must be greater than 0");
+            }
+            
+            // Check if reducing maxPlayersPerTeam would kick out existing players
+            if (lobby.getTeams() != null) {
+                for (List<User> teamMembers : lobby.getTeams().values()) {
+                    if (teamMembers.size() > config.getMaxPlayersPerTeam()) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                            "Cannot set maximum players per team below the current team size");
+                    }
+                }
+            }
+            
+            lobby.setMaxPlayersPerTeam(config.getMaxPlayersPerTeam());
         }
+        
+        // Removed: Update roundCards if provided
         
         return lobbyRepository.save(lobby);
     }
@@ -226,6 +244,8 @@ public class LobbyService {
     @Transactional
     public LobbyInviteResponseDTO inviteToLobby(Long lobbyId, Long hostId, InviteLobbyRequestDTO inviteRequest) {
         Lobby lobby = getLobbyById(lobbyId);
+        
+        // Verify that only the host can invite players
         if (!lobby.getHost().getId().equals(hostId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can invite players");
         }
@@ -234,15 +254,23 @@ public class LobbyService {
         if (inviteRequest.getFriendId() != null) {
             User friend = userRepository.findById(inviteRequest.getFriendId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend not found"));
-            // (Optional) Verify that the friend is in the host's friend list.
+            
+            // Verify that the friend is in the host's friend list (if you have a friends system)
+            // This would be the place to add the check if you have a friend system implemented
+            // Example:
+            // if (!isFriend(hostId, inviteRequest.getFriendId())) {
+            //     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only invite friends");
+            // }
+            
+            // Return friend invite response with username
             return new LobbyInviteResponseDTO(null, friend.getProfile().getUsername());
         }
     
-        // Otherwise, return the numeric lobby code for non-friend invites.
+        // Otherwise, return the lobby code for non-friend invites
         String code = lobby.getLobbyCode();
         if (code == null || code.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                "No code available. This might be a ranked lobby or code not generated.");
+                "No lobby code available. This might be a code generation issue.");
         }
         return new LobbyInviteResponseDTO(code, null);
     }
@@ -273,51 +301,52 @@ public class LobbyService {
         System.out.println("Lobby found: " + lobby.getId() + ", mode=" + lobby.getMode() + 
                           ", lobbyCode=" + lobby.getLobbyCode() + ", isPrivate=" + lobby.isPrivate());
         
-        // For non-friend joins with private lobbies, validate code 
-        if (!friendInvited && lobby.isPrivate()) {
-            String actualCode = lobby.getLobbyCode();
-            if (lobbyCode == null) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Lobby code is required");
-            }
-            if (actualCode == null || !lobbyCode.equals(actualCode)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid lobby code");
-            }
-        }
-        
         // Get user by ID
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
+        // Validate join method:
+        // 1. If joining as a friend (invited), no need to check code
+        // 2. If not invited as friend, must provide correct lobby code
+        if (!friendInvited) {
+            // Not a friend invite, so verify lobby code
+            if (lobbyCode == null || !lobbyCode.equals(lobby.getLobbyCode())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid lobby code");
+            }
+        } else {
+            // Friend invite - verify that user is in host's friend list (if you have a friends system)
+            // This would be the place to add the check if you have a friend system implemented
+            // Example:
+            // if (!isFriend(lobby.getHost().getId(), userId)) {
+            //     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only friends can join via invite");
+            // }
+        }
+        
         // Check if this is a team mode lobby or solo mode
         if (LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
-            // TEAM MODE: Add player automatically to a team
-            
-            // Initialize teams map if needed
+            // TEAM MODE: Add player automatically to a team using fixed team names "team1" and "team2"
             Map<String, List<User>> teams = lobby.getTeams();
             if (teams == null) {
                 teams = new HashMap<>();
                 lobby.setTeams(teams);
             }
-            
-            // Automatically assign to "team1" for simplicity
             String teamName = "team1";
-            
-            // Get or create the team
-            List<User> teamMembers = teams.computeIfAbsent(teamName, k -> new ArrayList<>());
-            
-            // Check if team is full
+            List<User> teamMembers = teams.get(teamName);
+            if (teamMembers == null) {
+                teamMembers = new ArrayList<>();
+                teams.put(teamName, teamMembers);
+            }
             if (teamMembers.size() >= lobby.getMaxPlayersPerTeam()) {
-                // Try team2 if team1 is full
                 teamName = "team2";
-                teamMembers = teams.computeIfAbsent(teamName, k -> new ArrayList<>());
-                
-                // If both teams are full, report error
+                teamMembers = teams.get(teamName);
+                if (teamMembers == null) {
+                    teamMembers = new ArrayList<>();
+                    teams.put(teamName, teamMembers);
+                }
                 if (teamMembers.size() >= lobby.getMaxPlayersPerTeam()) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All teams are full");
                 }
             }
-            
-            // Add user to team
             teamMembers.add(user);
             System.out.println("Added user " + user.getId() + " to team " + teamName);
         } 
@@ -354,7 +383,7 @@ public class LobbyService {
         
         if (LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
             // Check if all teams are full in team mode
-            int totalTeamCapacity = lobby.getTeams().size() * lobby.getMaxPlayersPerTeam();
+            int totalTeamCapacity = 2 * lobby.getMaxPlayersPerTeam();
             int totalPlayers = lobby.getTeams().values().stream()
                 .mapToInt(List::size)
                 .sum();
@@ -389,7 +418,7 @@ public class LobbyService {
             return new LobbyJoinResponseDTO("Joined lobby successfully.", simplifiedDTO);
         }
     }
-    
+
     /**
      * Leaves a lobby (or kicks a player if the requester is the host).
      */
@@ -439,12 +468,11 @@ public class LobbyService {
         }
         
         lobby = lobbyRepository.save(lobby);
-        
         try {
             return mapper.toLobbyLeaveResponse(lobby, "Left lobby successfully.");
         } catch (Exception e) {
             System.err.println("Error converting lobby to DTO: " + e.getMessage());
-            // Create a simplified response if DTO conversion fails
+            // Create a simplified response if DTO conversion fails 
             LobbyResponseDTO simplifiedDTO = new LobbyResponseDTO();
             simplifiedDTO.setLobbyId(lobby.getId());
             return new LobbyLeaveResponseDTO("Left lobby successfully.", simplifiedDTO);
@@ -456,13 +484,13 @@ public class LobbyService {
      * These could be extended to include JSON mappings in the future.
      */
     private List<String> generateDefaultRoundCards() {
-        // For now, return simple string placeholders - these will be enhanced with JSON later
-        return List.of(
+        // Wrap immutable list into a modifiable ArrayList to avoid UnsupportedOperationException.
+        return new ArrayList<>(List.of(
             "STANDARD_CARD_1",
             "STANDARD_CARD_2",
             "STANDARD_CARD_3", 
             "STANDARD_CARD_4",
             "STANDARD_CARD_5"
-        );
+        ));
     }
 }
