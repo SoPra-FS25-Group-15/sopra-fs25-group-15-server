@@ -6,9 +6,7 @@ import java.util.Map;
 
 public class LobbyResponseDTO {
     private Long lobbyId;
-    private String lobbyName;
     private String mode;
-    private String gameType;
     private boolean isPrivate;
     private String lobbyCode;
     
@@ -34,23 +32,11 @@ public class LobbyResponseDTO {
     public void setLobbyId(Long lobbyId) {
         this.lobbyId = lobbyId;
     }
-    public String getLobbyName() {
-        return lobbyName;
-    }
-    public void setLobbyName(String lobbyName) {
-        this.lobbyName = lobbyName;
-    }
     public String getMode() {
         return mode;
     }
     public void setMode(String mode) {
         this.mode = mode;
-    }
-    public String getGameType() {
-        return gameType;
-    }
-    public void setGameType(String gameType) {
-        this.gameType = gameType;
     }
     public boolean isPrivate() {
         return isPrivate;

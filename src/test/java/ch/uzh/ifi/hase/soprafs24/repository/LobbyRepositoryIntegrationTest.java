@@ -30,12 +30,11 @@ public class LobbyRepositoryIntegrationTest {
         hostUser.setStatus(UserStatus.OFFLINE);
         hostUser = userRepository.save(hostUser);
         
-        // given: a new lobby with lobbyType "private" so that a lobby code is generated on persist.
+        // given: a new lobby with private=true so that a lobby code is generated on persist.
         Lobby lobby = new Lobby();
-        lobby.setLobbyName("Integration Test Lobby");
-        lobby.setGameType("unranked");
-        lobby.setPrivate(true);
-        lobby.setMaxPlayersPerTeam(2);
+        lobby.setPrivate(true); // Private = unranked game
+        lobby.setMaxPlayersPerTeam(1); // Solo mode
+        lobby.setMode("solo");
         lobby.setHintsEnabled(List.of("Hint1", "Hint2"));
         lobby.setHost(hostUser);
         

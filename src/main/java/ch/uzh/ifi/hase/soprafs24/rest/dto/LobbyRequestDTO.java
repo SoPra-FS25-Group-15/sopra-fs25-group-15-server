@@ -4,9 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 public class LobbyRequestDTO {
-    private String lobbyName;
-    // "ranked" or "unranked"
-    private String gameType;
     // Indicates if the lobby is private (true) or public (false)
     private boolean isPrivate;
     // For team mode: players per team (default 2)
@@ -22,10 +19,6 @@ public class LobbyRequestDTO {
     // Game mode provided by client ("solo" or "team")
     private String mode;
 
-    public String getLobbyName() { return lobbyName; }
-    public void setLobbyName(String lobbyName) { this.lobbyName = lobbyName; }
-    public String getGameType() { return gameType; }
-    public void setGameType(String gameType) { this.gameType = gameType; }
     public boolean isPrivate() { return isPrivate; }
     public void setPrivate(boolean isPrivate) { this.isPrivate = isPrivate; }
     public Integer getMaxPlayersPerTeam() { 

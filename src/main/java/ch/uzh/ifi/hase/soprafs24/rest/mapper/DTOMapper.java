@@ -162,22 +162,15 @@ public class DTOMapper {
     // 9) Lobby mapping: Convert a LobbyRequestDTO into a Lobby entity.
     public Lobby lobbyRequestDTOToEntity(LobbyRequestDTO dto) {
         Lobby lobby = new Lobby();
-        lobby.setLobbyName(dto.getLobbyName());
-        lobby.setGameType(dto.getGameType());
         
-        // For ranked mode, set to public (isPrivate=false); for casual, use the constant value
-        if(dto.getGameType().equalsIgnoreCase("ranked")) {
-            lobby.setPrivate(false);
-        } else {
-            // All casual games are private by default
-            lobby.setPrivate(true);
-        }
+        // Set private flag directly - this determines lobby type (ranked or unranked)
+        lobby.setPrivate(dto.isPrivate());
         
-        // For casual games, force solo mode regardless of what the client sends
-        if (!dto.getGameType().equalsIgnoreCase("ranked")) {
+        // For private (unranked) lobbies, enforce solo mode
+        if (dto.isPrivate()) {
             lobby.setMode(LobbyConstants.MODE_SOLO);
         } else {
-            // For ranked games, use the mode from the DTO if provided; otherwise default to solo
+            // For public (ranked) lobbies, use the mode from the DTO if provided
             if(dto.getMode() != null && !dto.getMode().isEmpty()) {
                 lobby.setMode(dto.getMode().toLowerCase());
             } else {
@@ -205,9 +198,7 @@ public class DTOMapper {
     public LobbyResponseDTO lobbyEntityToResponseDTO(Lobby lobby) {
         LobbyResponseDTO dto = new LobbyResponseDTO();
         dto.setLobbyId(lobby.getId());
-        dto.setLobbyName(lobby.getLobbyName());
         dto.setMode(lobby.getMode());
-        dto.setGameType(lobby.getGameType());
         dto.setPrivate(lobby.isPrivate());
         dto.setLobbyCode(lobby.getLobbyCode());
         

@@ -42,20 +42,25 @@ public class LobbyService {
     }
 
     /**
-     * Creates a lobby. For casual (unranked) lobbies, generates a numeric code.
+     * Creates a lobby. For private (unranked) lobbies, generates a numeric code.
      */
     @Transactional
     public Lobby createLobby(Lobby lobby) {
-        if (lobby.getGameType().equalsIgnoreCase(LobbyConstants.GAME_TYPE_RANKED)) {
-            lobby.setPrivate(false); // Ranked games are public by default
+        // isPrivate flag now determines the lobby type
+        // false = ranked (public lobby)
+        // true = unranked (private lobby with code)
+        
+        if (!lobby.isPrivate()) {
+            // Ranked games are public by default
+            lobby.setPrivate(false);
         } else {
-            // Casual games are always private with a generated code
-            lobby.setPrivate(true); 
+            // Unranked games are always private with a generated code
+            lobby.setPrivate(true);
             String code = generateNumericLobbyCode();
             lobby.setLobbyCode(code);
-            System.out.println("Generated code for new casual lobby: " + code);
+            System.out.println("Generated code for new unranked lobby: " + code);
             
-            // Force solo mode for casual games
+            // Force solo mode for unranked games
             lobby.setMode(LobbyConstants.MODE_SOLO);
         }
     
@@ -88,10 +93,6 @@ public class LobbyService {
             }
             // Clear any teams information.
             lobby.setTeams(null);
-        }
-    
-        if (lobby.getLobbyName() == null || lobby.getGameType() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid lobby settings");
         }
         
         return lobbyRepository.save(lobby);
@@ -372,10 +373,9 @@ public class LobbyService {
         } 
         catch (Exception e) {
             System.err.println("Error converting lobby to DTO: " + e.getMessage());
-            // Create a simplified response if DTO conversion fails
+            // Create a simplified response if DTO conversion fails - Fixed to remove lobbyName reference
             LobbyResponseDTO simplifiedDTO = new LobbyResponseDTO();
             simplifiedDTO.setLobbyId(lobby.getId());
-            simplifiedDTO.setLobbyName(lobby.getLobbyName());
             simplifiedDTO.setMode(lobby.getMode());
             return new LobbyJoinResponseDTO("Joined lobby successfully.", simplifiedDTO);
         }
