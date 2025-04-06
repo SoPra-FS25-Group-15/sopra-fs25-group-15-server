@@ -9,6 +9,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.mock;
@@ -169,8 +170,6 @@ public class DTOMapperTest {
         // Explicitly set mode to "team"
         dto.setMode("team");
         dto.setMaxPlayersPerTeam(3);
-        List<String> hints = Arrays.asList("Hint1", "Hint2");
-        dto.setHintsEnabled(hints);
 
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
 
@@ -179,7 +178,9 @@ public class DTOMapperTest {
         // Since mode is team, maxPlayersPerTeam should be set from DTO
         assertEquals(3, lobby.getMaxPlayersPerTeam());
         assertEquals("team", lobby.getMode());
-        assertEquals(hints, lobby.getHintsEnabled());
+        // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
+        assertNotNull(lobby.getHintsEnabled());
+        assertTrue(lobby.getHintsEnabled().isEmpty());
     }
 
     @Test
@@ -190,17 +191,17 @@ public class DTOMapperTest {
         dto.setMode("solo");
         // Even if provided, maxPlayersPerTeam should be forced to 1 in solo mode
         dto.setMaxPlayersPerTeam(3);
-        List<String> hints = Arrays.asList("HintA", "HintB");
-        dto.setHintsEnabled(hints);
-    
+
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
-    
+
         // Verify mapping for a solo lobby
         assertEquals(true, lobby.isPrivate());
         // In solo mode, maxPlayersPerTeam is always set to 1
         assertEquals(1, lobby.getMaxPlayersPerTeam());
         assertEquals("solo", lobby.getMode());
-        assertEquals(hints, lobby.getHintsEnabled());
+        // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
+        assertNotNull(lobby.getHintsEnabled());
+        assertTrue(lobby.getHintsEnabled().isEmpty());
     }
 
     @Test
@@ -233,6 +234,8 @@ public class DTOMapperTest {
         LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(lobby);
         // Since mode is solo and lobby.getMaxPlayers() is null, default maxPlayers should be 8.
         assertEquals(8, responseDTO.getMaxPlayers());
+        // Server-provided hints should be passed through to the response
+        assertEquals(hints, responseDTO.getRoundCards());
     }
 
     @Test

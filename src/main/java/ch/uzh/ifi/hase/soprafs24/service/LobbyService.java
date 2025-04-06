@@ -95,6 +95,10 @@ public class LobbyService {
             lobby.setTeams(null);
         }
         
+        // Generate default round cards instead of taking them from client
+        List<String> defaultRoundCards = generateDefaultRoundCards();
+        lobby.setHintsEnabled(defaultRoundCards);
+        
         return lobbyRepository.save(lobby);
     }
 
@@ -440,5 +444,20 @@ public class LobbyService {
             simplifiedDTO.setLobbyId(lobby.getId());
             return new LobbyLeaveResponseDTO("Left lobby successfully.", simplifiedDTO);
         }
+    }
+
+    /**
+     * Generates a list of default round cards to be used in the game.
+     * These could be extended to include JSON mappings in the future.
+     */
+    private List<String> generateDefaultRoundCards() {
+        // For now, return simple string placeholders - these will be enhanced with JSON later
+        return List.of(
+            "STANDARD_CARD_1",
+            "STANDARD_CARD_2",
+            "STANDARD_CARD_3", 
+            "STANDARD_CARD_4",
+            "STANDARD_CARD_5"
+        );
     }
 }

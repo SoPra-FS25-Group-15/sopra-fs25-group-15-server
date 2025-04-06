@@ -189,8 +189,7 @@ public class DTOMapper {
         // Set maxPlayers
         lobby.setMaxPlayers(dto.getMaxPlayers());
         
-        // Set hints
-        lobby.setHintsEnabled(dto.getHintsEnabled());
+        // Round cards (hints) will be set by the service, not provided by client
         return lobby;
     }
 

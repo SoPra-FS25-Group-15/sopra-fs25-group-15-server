@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -119,5 +120,29 @@ public class LobbyServiceIntegrationTest {
         assertNull(soloDTO.getMaxPlayersPerTeam()); // Should not expose maxPlayersPerTeam
     }
 
-    // ...existing code...
+    @Test
+    public void testCreateLobby_ProvidesDefaultRoundCards() {
+        // Create a new lobby
+        Lobby newLobby = new Lobby();
+        newLobby.setPrivate(true);  // casual/unranked game
+        newLobby.setMode(LobbyConstants.MODE_SOLO);  // solo mode
+        newLobby.setHost(hostUser);
+        
+        // Create the lobby through the service
+        Lobby createdLobby = lobbyService.createLobby(newLobby);
+        
+        // Verify the lobby has server-generated round cards
+        assertNotNull(createdLobby.getHintsEnabled());
+        assertFalse(createdLobby.getHintsEnabled().isEmpty());
+        assertEquals(5, createdLobby.getHintsEnabled().size());  // Checking for the 5 default cards
+        
+        // Verify the DTO mapper includes these cards in the response
+        LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(createdLobby);
+        assertNotNull(responseDTO.getRoundCards());
+        assertEquals(createdLobby.getHintsEnabled(), responseDTO.getRoundCards());
+        
+        // Verify the expected default card values
+        assertTrue(responseDTO.getRoundCards().contains("STANDARD_CARD_1"));
+        assertTrue(responseDTO.getRoundCards().contains("STANDARD_CARD_5"));
+    }
 }

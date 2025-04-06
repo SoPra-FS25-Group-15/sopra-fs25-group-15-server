@@ -11,8 +11,6 @@ public class LobbyRequestDTO {
     private Integer maxPlayersPerTeam;
     // Maximum total players in the lobby (default 8)
     private Integer maxPlayers;
-    // Optionally, initial round cards (stored in lobby_hints)
-    private List<String> hintsEnabled;
     // Optionally, teams (typically empty at creation)
     private Map<String, List<Long>> teams;
     
@@ -38,8 +36,6 @@ public class LobbyRequestDTO {
     public void setMaxPlayers(Integer maxPlayers) {
         this.maxPlayers = maxPlayers;
     }
-    public List<String> getHintsEnabled() { return hintsEnabled; }
-    public void setHintsEnabled(List<String> hintsEnabled) { this.hintsEnabled = hintsEnabled; }
     public Map<String, List<Long>> getTeams() { return teams; }
     public void setTeams(Map<String, List<Long>> teams) { this.teams = teams; }
     
