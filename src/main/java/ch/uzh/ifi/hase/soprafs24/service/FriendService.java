@@ -12,10 +12,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
-import ch.uzh.ifi.hase.soprafs24.entity.Friendship;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.FriendRequestRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.FriendshipRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 @Service
@@ -25,16 +23,13 @@ public class FriendService {
     private final Logger log = LoggerFactory.getLogger(FriendService.class);
 
     private final FriendRequestRepository friendRequestRepository;
-    private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final AuthService authService; 
 
     public FriendService(FriendRequestRepository friendRequestRepository,
-                         FriendshipRepository friendshipRepository,
                          UserRepository userRepository,
                          AuthService authService) {
         this.friendRequestRepository = friendRequestRepository;
-        this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
         this.authService = authService;
     }
@@ -74,11 +69,6 @@ public class FriendService {
 
         if ("accept".equalsIgnoreCase(action)) {
             request.setStatus(FriendRequestStatus.ACCEPTED);
-            // Create a Friendship record.
-            Friendship friendship = new Friendship();
-            friendship.setUser1(request.getSender());
-            friendship.setUser2(request.getRecipient());
-            friendshipRepository.save(friendship);
             log.debug("Friend request {} accepted", requestId);
         } else if ("deny".equalsIgnoreCase(action)) {
             request.setStatus(FriendRequestStatus.DENIED);
@@ -91,53 +81,51 @@ public class FriendService {
         return request;
     }
     
-    // list all friends
+    // List all friends - now based on accepted friend requests
     public List<User> getFriends(String token) {
         User currentUser = authService.getUserByToken(token);
-        // For demonstration, we retrieve all friendships and filter them.
-        // In production, consider writing a custom query to fetch only relevant friendships.
-        List<Friendship> allFriendships = friendshipRepository.findAll();
+        List<FriendRequest> acceptedRequests = friendRequestRepository.findBySenderOrRecipient(currentUser, currentUser);
         List<User> friends = new ArrayList<>();
         
-        for (Friendship fs : allFriendships) {
-            if (fs.getUser1().getId().equals(currentUser.getId())) {
-                friends.add(fs.getUser2());
-            } else if (fs.getUser2().getId().equals(currentUser.getId())) {
-                friends.add(fs.getUser1());
+        for (FriendRequest request : acceptedRequests) {
+            // Only consider accepted requests
+            if (request.getStatus() == FriendRequestStatus.ACCEPTED) {
+                if (request.getSender().getId().equals(currentUser.getId())) {
+                    friends.add(request.getRecipient());
+                } else if (request.getRecipient().getId().equals(currentUser.getId())) {
+                    friends.add(request.getSender());
+                }
             }
         }
         
         return friends;
     }
 
-
-    //remove friend
+    // Remove friendship by finding and deleting the accepted friend request
     public void unfriend(String token, Long friendId) {
-
         User currentUser = authService.getUserByToken(token);
+        User friend = userRepository.findById(friendId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend not found"));
         
-
-
-        List<Friendship> allFriendships = friendshipRepository.findAll();
-        Friendship friendshipToRemove = null;
+        List<FriendRequest> requests = friendRequestRepository.findBySenderOrRecipient(currentUser, currentUser);
+        FriendRequest friendshipRequest = null;
         
-        for (Friendship fs : allFriendships) {
-            if (fs.getUser1().getId().equals(currentUser.getId()) && fs.getUser2().getId().equals(friendId)) {
-                friendshipToRemove = fs;
-                break;
-            } else if (fs.getUser2().getId().equals(currentUser.getId()) && fs.getUser1().getId().equals(friendId)) {
-                friendshipToRemove = fs;
-                break;
+        for (FriendRequest request : requests) {
+            // Find the accepted request between these two users
+            if (request.getStatus() == FriendRequestStatus.ACCEPTED) {
+                if ((request.getSender().getId().equals(currentUser.getId()) && request.getRecipient().getId().equals(friendId)) ||
+                    (request.getRecipient().getId().equals(currentUser.getId()) && request.getSender().getId().equals(friendId))) {
+                    friendshipRequest = request;
+                    break;
+                }
             }
         }
         
-        if (friendshipToRemove == null) {
+        if (friendshipRequest == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Friendship not found");
         }
         
-
-        friendshipRepository.delete(friendshipToRemove);
-        friendshipRepository.flush();
+        friendRequestRepository.delete(friendshipRequest);
         log.debug("Friendship between user {} and friend {} has been removed", currentUser.getId(), friendId);
     }
 

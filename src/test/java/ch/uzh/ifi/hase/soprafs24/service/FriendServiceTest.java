@@ -23,19 +23,14 @@ import org.springframework.web.server.ResponseStatusException;
 import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
-import ch.uzh.ifi.hase.soprafs24.entity.Friendship;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.FriendRequestRepository;
-import ch.uzh.ifi.hase.soprafs24.repository.FriendshipRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
 class FriendServiceTest {
 
     @Mock
     private FriendRequestRepository friendRequestRepository;
-
-    @Mock
-    private FriendshipRepository friendshipRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -140,20 +135,6 @@ class FriendServiceTest {
         request.setRecipient(recipient);
         request.setStatus(FriendRequestStatus.PENDING);
 
-        // Mock the save method to return the saved entity with an ID
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-            User user = invocation.getArgument(0);
-            // Use reflection to set the ID field directly
-            try {
-                Field idField = User.class.getDeclaredField("id");
-                idField.setAccessible(true);
-                idField.set(user, 1L);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new RuntimeException("Failed to set user ID via reflection", e);
-            }
-            return user;
-        });
-
         when(authService.getUserByToken("token")).thenReturn(recipient);
         when(friendRequestRepository.findById(1L)).thenReturn(Optional.of(request));
 
@@ -162,7 +143,6 @@ class FriendServiceTest {
 
         // Assert
         assertEquals(FriendRequestStatus.ACCEPTED, result.getStatus());
-        verify(friendshipRepository, times(1)).save(any(Friendship.class));
     }
 
     @Test
@@ -280,20 +260,23 @@ class FriendServiceTest {
         friend2.setPassword("password");
         friend2.setStatus(UserStatus.ONLINE);
 
-        Friendship friendship1 = new Friendship();
-        friendship1.setUser1(currentUser);
-        friendship1.setUser2(friend1);
+        // Create accepted friend requests instead of friendships
+        FriendRequest request1 = new FriendRequest();
+        request1.setSender(currentUser);
+        request1.setRecipient(friend1);
+        request1.setStatus(FriendRequestStatus.ACCEPTED);
 
-        Friendship friendship2 = new Friendship();
-        friendship2.setUser1(friend2);
-        friendship2.setUser2(currentUser);
+        FriendRequest request2 = new FriendRequest();
+        request2.setSender(friend2);
+        request2.setRecipient(currentUser);
+        request2.setStatus(FriendRequestStatus.ACCEPTED);
 
-        List<Friendship> friendships = new ArrayList<>();
-        friendships.add(friendship1);
-        friendships.add(friendship2);
+        List<FriendRequest> friendRequests = new ArrayList<>();
+        friendRequests.add(request1);
+        friendRequests.add(request2);
 
         when(authService.getUserByToken("token")).thenReturn(currentUser);
-        when(friendshipRepository.findAll()).thenReturn(friendships);
+        when(friendRequestRepository.findBySenderOrRecipient(currentUser, currentUser)).thenReturn(friendRequests);
 
         // Act
         List<User> friends = friendService.getFriends("token");
@@ -335,21 +318,25 @@ class FriendServiceTest {
         friend.setPassword("password");
         friend.setStatus(UserStatus.ONLINE);
 
-        Friendship friendship = new Friendship();
-        friendship.setUser1(currentUser);
-        friendship.setUser2(friend);
+        // Create an accepted friend request
+        FriendRequest acceptedRequest = new FriendRequest();
+        acceptedRequest.setId(1L);
+        acceptedRequest.setSender(currentUser);
+        acceptedRequest.setRecipient(friend);
+        acceptedRequest.setStatus(FriendRequestStatus.ACCEPTED);
 
-        List<Friendship> friendships = new ArrayList<>();
-        friendships.add(friendship);
+        List<FriendRequest> requests = new ArrayList<>();
+        requests.add(acceptedRequest);
 
         when(authService.getUserByToken("token")).thenReturn(currentUser);
-        when(friendshipRepository.findAll()).thenReturn(friendships);
-        System.out.println(friend.getId());
+        when(userRepository.findById(friend.getId())).thenReturn(Optional.of(friend));
+        when(friendRequestRepository.findBySenderOrRecipient(currentUser, currentUser)).thenReturn(requests);
+
         // Act
         friendService.unfriend("token", friend.getId());
 
         // Assert
-        verify(friendshipRepository, times(1)).delete(friendship);
+        verify(friendRequestRepository, times(1)).delete(acceptedRequest);
     }
 
     @Test
@@ -359,9 +346,27 @@ class FriendServiceTest {
         currentUser.setEmail("current@example.com");
         currentUser.setPassword("password");
         currentUser.setStatus(UserStatus.ONLINE);
+        
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(currentUser, 1L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+        
+        User friend = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(friend, 2L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
 
         when(authService.getUserByToken("token")).thenReturn(currentUser);
-        when(friendshipRepository.findAll()).thenReturn(new ArrayList<>());
+        when(userRepository.findById(2L)).thenReturn(Optional.of(friend));
+        when(friendRequestRepository.findBySenderOrRecipient(currentUser, currentUser)).thenReturn(new ArrayList<>());
 
         // Act & Assert
         assertThrows(ResponseStatusException.class, () -> friendService.unfriend("token", 2L));
