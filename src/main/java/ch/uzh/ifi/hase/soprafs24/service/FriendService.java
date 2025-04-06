@@ -27,7 +27,7 @@ public class FriendService {
     private final FriendRequestRepository friendRequestRepository;
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
-    private final AuthService authService;
+    private final AuthService authService; 
 
     public FriendService(FriendRequestRepository friendRequestRepository,
                          FriendshipRepository friendshipRepository,
@@ -52,7 +52,6 @@ public class FriendService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient not found"));
 
         // Check that a request doesn't already exist.
-        // (You could add more checks here if needed.)
         FriendRequest request = new FriendRequest();
         request.setSender(sender);
         request.setRecipient(recipient);

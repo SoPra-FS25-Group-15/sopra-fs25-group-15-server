@@ -81,7 +81,7 @@ public class FriendControllerTest {
         when(friendService.getIncomingFriendRequests("token")).thenReturn(friendRequests);
         when(mapper.toFriendRequestDTO(friendRequest)).thenReturn(friendRequestDTO);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/friends/requests")
+        mockMvc.perform(MockMvcRequestBuilders.get("/friends/requests")
                         .header("Authorization", "token")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -94,7 +94,7 @@ public class FriendControllerTest {
         when(friendService.sendFriendRequest("token", 2L)).thenReturn(friendRequest);
         when(mapper.toFriendRequestDTO(friendRequest)).thenReturn(friendRequestDTO);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/friends/request")
+        mockMvc.perform(MockMvcRequestBuilders.post("/friends/request")
                         .header("Authorization", "token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"recipient\":2}")) // Use recipient user ID
@@ -107,7 +107,7 @@ public class FriendControllerTest {
         when(friendService.respondToFriendRequest("token", 1L, "accept")).thenReturn(friendRequest);
         when(mapper.toFriendRequestDTO(friendRequest)).thenReturn(friendRequestDTO);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/friends/requests/1")
+        mockMvc.perform(MockMvcRequestBuilders.put("/friends/requests/1")
                         .header("Authorization", "token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"action\":\"accept\"}"))
@@ -120,7 +120,7 @@ public class FriendControllerTest {
         when(friendService.getFriends("token")).thenReturn(List.of(user));
         when(mapper.toFriendDTO(user)).thenReturn(friendDTO);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/friends")
+        mockMvc.perform(MockMvcRequestBuilders.get("/friends")
                         .header("Authorization", "token")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -132,7 +132,7 @@ public class FriendControllerTest {
     public void unfriend_ShouldUnfriendUserAndReturnNoContent() throws Exception {
         doNothing().when(friendService).unfriend("token", 1L);
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/friends/1")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/friends/1")
                         .header("Authorization", "token")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());

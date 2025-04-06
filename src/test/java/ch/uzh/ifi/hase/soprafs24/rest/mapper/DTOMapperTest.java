@@ -166,7 +166,7 @@ public class DTOMapperTest {
     public void testLobbyRequestDTOToEntity_TeamMode() {
         LobbyRequestDTO dto = new LobbyRequestDTO();
         dto.setLobbyName("Team Lobby");
-        dto.setGameType("unranked");
+        dto.setGameType("ranked"); // Changed to "ranked" since team mode is only allowed in ranked games
         // Explicitly set mode to "team"
         dto.setMode("team");
         dto.setMaxPlayersPerTeam(3);
@@ -177,14 +177,15 @@ public class DTOMapperTest {
 
         // Verify mapping for a team lobby
         assertEquals("Team Lobby", lobby.getLobbyName());
-        assertEquals("unranked", lobby.getGameType());
-        // For casual play, lobbyType forced to "private"
-        assertEquals(LobbyConstants.IS_LOBBY_PRIVATE, lobby.isPrivate());
+        assertEquals("ranked", lobby.getGameType());
+        // For ranked play, lobby is public (isPrivate=false)
+        assertEquals(false, lobby.isPrivate());
         // Since mode is team, maxPlayersPerTeam should be set from DTO
         assertEquals(3, lobby.getMaxPlayersPerTeam());
         assertEquals("team", lobby.getMode());
         assertEquals(hints, lobby.getHintsEnabled());
     }
+
     @Test
     public void testLobbyRequestDTOToEntity_SoloMode() {
         LobbyRequestDTO dto = new LobbyRequestDTO();
@@ -192,7 +193,7 @@ public class DTOMapperTest {
         dto.setGameType("unranked");
         // Explicitly set mode to "solo"
         dto.setMode("solo");
-        // Even if provided, maxPlayersPerTeam should be ignored in solo mode
+        // Even if provided, maxPlayersPerTeam should be forced to 1 in solo mode
         dto.setMaxPlayersPerTeam(3);
         List<String> hints = Arrays.asList("HintA", "HintB");
         dto.setHintsEnabled(hints);
@@ -202,9 +203,9 @@ public class DTOMapperTest {
         // Verify mapping for a solo lobby
         assertEquals("Solo Lobby", lobby.getLobbyName());
         assertEquals("unranked", lobby.getGameType());
-        assertEquals(LobbyConstants.IS_LOBBY_PRIVATE, lobby.isPrivate());
-        // In solo mode, team-related configuration is not set.
-        assertNull(lobby.getMaxPlayersPerTeam());
+        assertEquals(true, lobby.isPrivate()); // Unranked games are private
+        // In solo mode, maxPlayersPerTeam is always set to 1
+        assertEquals(1, lobby.getMaxPlayersPerTeam());
         assertEquals("solo", lobby.getMode());
         assertEquals(hints, lobby.getHintsEnabled());
     }
@@ -319,5 +320,142 @@ public class DTOMapperTest {
         // Verify mapping results
         assertEquals(testMessage, responseDTO.getMessage());
         assertNull(responseDTO.getLobby());
+    }
+
+    @Test
+    public void testLobbyRequestDTOToEntity_CasualGame() {
+        LobbyRequestDTO dto = new LobbyRequestDTO();
+        dto.setLobbyName("Casual Lobby");
+        dto.setGameType("unranked"); // Casual game
+        dto.setMode("team"); // This should be overridden to "solo" for casual games
+        dto.setMaxPlayersPerTeam(3); // This should be set to 1 for solo mode
+
+        Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
+
+        // Verify mapping enforces solo mode for casual games regardless of input
+        assertEquals("Casual Lobby", lobby.getLobbyName());
+        assertEquals("unranked", lobby.getGameType());
+        assertEquals(true, lobby.isPrivate()); // Casual games are always private
+        assertEquals(LobbyConstants.MODE_SOLO, lobby.getMode()); // Mode is enforced to solo for casual
+        assertNotNull(lobby.getMaxPlayersPerTeam()); // Set internally
+        assertEquals(1, lobby.getMaxPlayersPerTeam()); // For solo mode, always 1
+    }
+
+    @Test
+    public void testLobbyEntityToResponseDTO_SoloMode() {
+        // Create a casual lobby in solo mode
+        Lobby lobby = new Lobby();
+        try {
+            Field idField = Lobby.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(lobby, 100L);
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+        lobby.setLobbyName("Casual Solo Lobby");
+        lobby.setGameType("unranked");
+        lobby.setMode("solo");
+        lobby.setPrivate(true);
+        lobby.setLobbyCode("12345");
+        lobby.setMaxPlayersPerTeam(1); // Internal value that shouldn't be exposed
+        lobby.setMaxPlayers(8);
+
+        LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
+        
+        // Verify solo mode mappings
+        assertEquals("solo", dto.getMode());
+        assertEquals(8, dto.getMaxPlayers()); // MaxPlayers is exposed for solo mode
+        assertNull(dto.getMaxPlayersPerTeam()); // MaxPlayersPerTeam is not exposed for solo mode
+        assertEquals("12345", dto.getLobbyCode()); // Code is generated and exposed
+    }
+
+    @Test
+    public void testLobbyRequestDTOToEntity_CasualGame_EnforcesSoloMode() {
+        LobbyRequestDTO dto = new LobbyRequestDTO();
+        dto.setLobbyName("Casual Lobby");
+        dto.setGameType("unranked"); // Casual/unranked game
+        dto.setMode("team"); // Client attempts to set team mode
+        dto.setMaxPlayersPerTeam(3); // Client attempts to set team size
+        
+        Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
+        
+        // Verify mapper enforces solo mode for casual games
+        assertEquals("Casual Lobby", lobby.getLobbyName());
+        assertEquals("unranked", lobby.getGameType());
+        assertEquals(true, lobby.isPrivate()); // Casual games are always private
+        assertEquals("solo", lobby.getMode()); // Mode is enforced to solo
+        assertNotNull(lobby.getMaxPlayersPerTeam()); // Should be internally set to 1
+        assertEquals(1, lobby.getMaxPlayersPerTeam());
+    }
+
+    @Test
+    public void testLobbyRequestDTOToEntity_RankedGame_RespectsTeamMode() {
+        LobbyRequestDTO dto = new LobbyRequestDTO();
+        dto.setLobbyName("Ranked Team Lobby");
+        dto.setGameType("ranked"); // Ranked game
+        dto.setMode("team"); // Client sets team mode
+        dto.setMaxPlayersPerTeam(2); // Client sets team size
+        
+        Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
+        
+        // Verify mapper respects mode for ranked games
+        assertEquals("Ranked Team Lobby", lobby.getLobbyName());
+        assertEquals("ranked", lobby.getGameType());
+        assertEquals(false, lobby.isPrivate()); // Ranked games are public
+        assertEquals("team", lobby.getMode()); // Mode is preserved
+        assertNotNull(lobby.getMaxPlayersPerTeam());
+        assertEquals(2, lobby.getMaxPlayersPerTeam());
+    }
+
+    @Test
+    public void testLobbyEntityToResponseDTO_SoloMode_HidesMaxPlayersPerTeam() {
+        // Create a solo mode lobby
+        Lobby lobby = new Lobby();
+        try {
+            Field idField = Lobby.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(lobby, 500L);
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+        lobby.setLobbyName("Solo Lobby");
+        lobby.setMode("solo");
+        lobby.setGameType("unranked");
+        lobby.setPrivate(true);
+        lobby.setLobbyCode("12345");
+        lobby.setMaxPlayersPerTeam(1); // Internal value
+        lobby.setMaxPlayers(8);
+        
+        LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
+        
+        // Verify solo mode mappings
+        assertEquals("solo", dto.getMode());
+        assertEquals(8, dto.getMaxPlayers());
+        assertNull(dto.getMaxPlayersPerTeam()); // Should be hidden for solo mode
+    }
+
+    @Test
+    public void testLobbyEntityToResponseDTO_TeamMode_ShowsMaxPlayersPerTeam() {
+        // Create a team mode lobby
+        Lobby lobby = new Lobby();
+        try {
+            Field idField = Lobby.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(lobby, 600L);
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+        lobby.setLobbyName("Team Lobby");
+        lobby.setMode("team");
+        lobby.setGameType("ranked");
+        lobby.setPrivate(false);
+        lobby.setMaxPlayersPerTeam(2);
+        
+        LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
+        
+        // Verify team mode mappings
+        assertEquals("team", dto.getMode());
+        assertEquals(2, dto.getMaxPlayersPerTeam()); // Should be visible for team mode
+        assertNull(dto.getMaxPlayers()); // Should not expose maxPlayers
     }
 }

@@ -261,4 +261,124 @@ public class LobbyControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.message").value("Lobby disbanded successfully."));
     }
+
+    @Test
+    public void testCreateCasualLobby_ForcesSoloMode() throws Exception {
+        // Create a request for a casual lobby, trying to set team mode
+        LobbyRequestDTO requestDTO = new LobbyRequestDTO();
+        requestDTO.setLobbyName("Casual Lobby");
+        requestDTO.setGameType("unranked");
+        requestDTO.setPrivate(true);
+        requestDTO.setMode("team"); // This should be overridden to solo
+        requestDTO.setMaxPlayersPerTeam(2); // This should be ignored
+        
+        // Configure the Lobby that would be created (with solo mode enforced)
+        Lobby casualLobby = new Lobby();
+        casualLobby.setLobbyName("Casual Lobby");
+        casualLobby.setGameType("unranked");
+        casualLobby.setPrivate(true);
+        casualLobby.setMode("solo"); // Solo mode is enforced
+        casualLobby.setMaxPlayersPerTeam(1); // Always 1 for solo
+        casualLobby.setLobbyCode("12345"); // Generated code
+        
+        LobbyResponseDTO casualResponseDTO = new LobbyResponseDTO();
+        casualResponseDTO.setLobbyId(20L);
+        casualResponseDTO.setLobbyName("Casual Lobby");
+        casualResponseDTO.setMode("solo");
+        casualResponseDTO.setGameType("unranked");
+        casualResponseDTO.setPrivate(true);
+        casualResponseDTO.setLobbyCode("12345");
+        casualResponseDTO.setMaxPlayers(8); // For solo mode, this is set
+        // maxPlayersPerTeam should not appear in the response for solo mode
+        
+        when(authService.getUserByToken(token)).thenReturn(dummyUser);
+        when(mapper.lobbyRequestDTOToEntity(any(LobbyRequestDTO.class))).thenReturn(casualLobby);
+        when(lobbyService.createLobby(any(Lobby.class))).thenReturn(casualLobby);
+        when(mapper.lobbyEntityToResponseDTO(casualLobby)).thenReturn(casualResponseDTO);
+        
+        // Execute request and verify the response
+        mockMvc.perform(
+            post("/lobbies")
+                .header("Authorization", token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDTO))
+        )
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.lobbyId").value(casualResponseDTO.getLobbyId()))
+        .andExpect(jsonPath("$.lobbyName").value(casualResponseDTO.getLobbyName()))
+        .andExpect(jsonPath("$.mode").value("solo")) // Mode is enforced to solo
+        .andExpect(jsonPath("$.lobbyCode").value("12345")) // Has generated code
+        .andExpect(jsonPath("$.maxPlayers").value(8)) // MaxPlayers is shown
+        .andExpect(jsonPath("$.maxPlayersPerTeam").doesNotExist()); // No maxPlayersPerTeam in solo mode
+    }
+    
+    @Test
+    public void testJoinCasualLobby_WithCode() throws Exception {
+        // For casual (solo mode) lobbies, joining with a code
+        JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
+        joinDTO.setMode("solo");
+        joinDTO.setTeam(null); // No team needed for solo mode
+        joinDTO.setLobbyCode("12345");
+        joinDTO.setFriendInvited(false);
+        
+        // Configure response
+        LobbyResponseDTO soloResponseDTO = new LobbyResponseDTO();
+        soloResponseDTO.setLobbyId(20L);
+        soloResponseDTO.setMode("solo");
+        soloResponseDTO.setMaxPlayers(8);
+        
+        LobbyJoinResponseDTO joinResponse = new LobbyJoinResponseDTO("Joined lobby successfully.", soloResponseDTO);
+        
+        when(authService.getUserByToken(token)).thenReturn(dummyUser);
+        when(lobbyService.joinLobby(eq(20L), eq(dummyUser.getId()), eq(null), 
+                eq("12345"), eq(false)))
+            .thenReturn(joinResponse);
+        
+        mockMvc.perform(
+            post("/lobbies/20/join?userId=" + dummyUser.getId())
+                .header("Authorization", token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(joinDTO))
+        )
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("Joined lobby successfully."))
+        .andExpect(jsonPath("$.lobby.lobbyId").value(soloResponseDTO.getLobbyId()))
+        .andExpect(jsonPath("$.lobby.mode").value("solo"))
+        .andExpect(jsonPath("$.lobby.maxPlayers").value(8)) // Solo shows maxPlayers
+        .andExpect(jsonPath("$.lobby.maxPlayersPerTeam").doesNotExist()); // No maxPlayersPerTeam in response
+    }
+    
+    @Test
+    public void testJoinCasualLobby_AsFriend() throws Exception {
+        // For casual (solo mode) lobbies, joining as a friend
+        JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
+        joinDTO.setMode("solo");
+        joinDTO.setTeam(null); // No team needed for solo mode
+        joinDTO.setLobbyCode(null); // No code needed when invited as friend
+        joinDTO.setFriendInvited(true);
+        
+        // Configure response
+        LobbyResponseDTO soloResponseDTO = new LobbyResponseDTO();
+        soloResponseDTO.setLobbyId(20L);
+        soloResponseDTO.setMode("solo");
+        soloResponseDTO.setMaxPlayers(8);
+        
+        LobbyJoinResponseDTO joinResponse = new LobbyJoinResponseDTO("Joined lobby successfully.", soloResponseDTO);
+        
+        when(authService.getUserByToken(token)).thenReturn(dummyUser);
+        when(lobbyService.joinLobby(eq(20L), eq(dummyUser.getId()), eq(null), 
+                eq(null), eq(true))) // Friend invite doesn't require code
+            .thenReturn(joinResponse);
+        
+        mockMvc.perform(
+            post("/lobbies/20/join?userId=" + dummyUser.getId())
+                .header("Authorization", token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(joinDTO))
+        )
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("Joined lobby successfully."))
+        .andExpect(jsonPath("$.lobby.lobbyId").value(soloResponseDTO.getLobbyId()))
+        .andExpect(jsonPath("$.lobby.mode").value("solo"));
+    }
 }

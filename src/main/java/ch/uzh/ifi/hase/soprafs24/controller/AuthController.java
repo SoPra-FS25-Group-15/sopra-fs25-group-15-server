@@ -1,14 +1,25 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;

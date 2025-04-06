@@ -7,11 +7,7 @@ public class FriendRequestDTO {
     // For responding to a request, we need an action: "accept" or "deny".
     private String action;
 
-    // Optionally, include the request id when returning data.
     private Long requestId;
-
-    // And you might include sender/recipient info in responses.
-    // Getters and setters
 
     public Long getRecipient() {
         return recipient;
