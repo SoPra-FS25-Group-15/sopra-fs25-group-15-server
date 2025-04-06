@@ -11,9 +11,13 @@ public class LobbyResponseDTO {
     private String gameType;
     private boolean isPrivate;
     private String lobbyCode;
-    private int maxPlayersPerTeam;
-    private Integer maxPlayers; // Added field for solo mode
-    // The round cards each player starts with.
+    
+    // Used for team mode only
+    private Integer maxPlayersPerTeam;
+    
+    // Used for solo mode only
+    private Integer maxPlayers;
+    
     private List<String> roundCards;
     private Instant createdAt;
     private String status;
@@ -60,18 +64,25 @@ public class LobbyResponseDTO {
     public void setLobbyCode(String lobbyCode) {
         this.lobbyCode = lobbyCode;
     }
-    public int getMaxPlayersPerTeam() {
-        return maxPlayersPerTeam;
+    
+    // Only return maxPlayersPerTeam for team mode
+    public Integer getMaxPlayersPerTeam() {
+        return "team".equals(mode) ? maxPlayersPerTeam : null;
     }
+    
     public void setMaxPlayersPerTeam(int maxPlayersPerTeam) {
         this.maxPlayersPerTeam = maxPlayersPerTeam;
     }
+    
+    // Only return maxPlayers for solo mode
     public Integer getMaxPlayers() {
-        return maxPlayers;
+        return "solo".equals(mode) ? maxPlayers : null;
     }
+    
     public void setMaxPlayers(Integer maxPlayers) {
         this.maxPlayers = maxPlayers;
     }
+    
     public List<String> getRoundCards() {
         return roundCards;
     }

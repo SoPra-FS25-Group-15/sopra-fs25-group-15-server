@@ -49,15 +49,22 @@ public class LobbyService {
         if (lobby.getGameType().equalsIgnoreCase(LobbyConstants.GAME_TYPE_RANKED)) {
             lobby.setPrivate(false); // Ranked games are public by default
         } else {
-            lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE); // Use the boolean constant
+            // Casual games are always private with a generated code
+            lobby.setPrivate(true); 
             String code = generateNumericLobbyCode();
             lobby.setLobbyCode(code);
-            System.out.println("Generated code for new lobby: " + code);
+            System.out.println("Generated code for new casual lobby: " + code);
+            
+            // Force solo mode for casual games
+            lobby.setMode(LobbyConstants.MODE_SOLO);
         }
     
-        // Determine mode from client input; default is solo.
-        String mode = (lobby.getMode() != null) ? lobby.getMode().toLowerCase() : LobbyConstants.MODE_SOLO;
-        lobby.setMode(mode);
+        // If mode wasn't set above, default to solo
+        if (lobby.getMode() == null) {
+            lobby.setMode(LobbyConstants.MODE_SOLO);
+        }
+        
+        String mode = lobby.getMode().toLowerCase();
     
         if (mode.equals(LobbyConstants.MODE_TEAM)) {
             // For team mode, each team is limited to 2 players.
@@ -72,7 +79,7 @@ public class LobbyService {
             }
         } else {
             // Solo mode: enforce solo settings.
-            lobby.setMaxPlayersPerTeam(1);
+            lobby.setMaxPlayersPerTeam(1); // Set internally but don't expose in UI
             if (lobby.getPlayers() == null) {
                 lobby.setPlayers(new ArrayList<>());
             }
@@ -330,6 +337,28 @@ public class LobbyService {
                 players.add(user);
                 System.out.println("Added user " + user.getId() + " to solo players list");
             }
+        }
+        
+        // After adding the player, check if lobby is full
+        boolean isLobbyFull = false;
+        
+        if (LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
+            // Check if all teams are full in team mode
+            int totalTeamCapacity = lobby.getTeams().size() * lobby.getMaxPlayersPerTeam();
+            int totalPlayers = lobby.getTeams().values().stream()
+                .mapToInt(List::size)
+                .sum();
+                
+            isLobbyFull = totalPlayers >= totalTeamCapacity;
+        } else {
+            // Check if solo lobby is full
+            isLobbyFull = lobby.getPlayers().size() >= lobby.getMaxPlayers();
+        }
+        
+        // If lobby is full, change status to in-progress
+        if (isLobbyFull) {
+            lobby.setStatus(LobbyConstants.LOBBY_STATUS_IN_PROGRESS);
+            // Here you would also trigger any game initialization logic
         }
         
         // Save the updated lobby
