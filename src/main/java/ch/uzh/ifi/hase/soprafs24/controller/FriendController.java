@@ -20,6 +20,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.FriendService;
 
 @RestController
@@ -28,10 +29,12 @@ public class FriendController {
 
     private final FriendService friendService;
     private final DTOMapper mapper;
+    private final AuthService authService;
 
-    public FriendController(FriendService friendService, DTOMapper mapper) {
+    public FriendController(FriendService friendService, DTOMapper mapper, AuthService authService) {
         this.friendService = friendService;
         this.mapper = mapper;
+        this.authService = authService;
     }
 
     // GET /api/friends/requests - get incoming friend requests for the authenticated user
@@ -78,6 +81,25 @@ public class FriendController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unfriend(@RequestHeader("Authorization") String token,
                      @PathVariable Long friendId) {
-    friendService.unfriend(token, friendId);
-}
+        friendService.unfriend(token, friendId);
+    }
+    
+    // GET /api/friends/all-requests - get all friend requests (sent and received)
+    @GetMapping("/all-requests")
+    @ResponseStatus(HttpStatus.OK)
+    public List<FriendRequestDTO> getAllFriendRequests(@RequestHeader("Authorization") String token) {
+        List<FriendRequest> requests = friendService.getOutgoingFriendRequests(token);
+        User currentUser = authService.getUserByToken(token);
+        return requests.stream()
+                .map(request -> mapper.toFriendRequestDTO(request, currentUser))
+                .collect(Collectors.toList());
+    }
+    
+    // DELETE /api/friends/requests/{requestId} - cancel a sent friend request
+    @DeleteMapping("/requests/{requestId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelFriendRequest(@RequestHeader("Authorization") String token,
+                                  @PathVariable Long requestId) {
+        friendService.cancelFriendRequest(token, requestId);
+    }
 }

@@ -25,6 +25,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
@@ -124,12 +125,28 @@ public class DTOMapper {
         return dto;
     }
 
-        // 7) Friend requests
+    // Enhanced friend request mapping 
+    public FriendRequestDTO toFriendRequestDTO(FriendRequest request, User currentUser) {
+        FriendRequestDTO dto = new FriendRequestDTO();
+        dto.setRequestId(request.getId());
+        dto.setSender(request.getSender().getId());
+        dto.setSenderUsername(request.getSender().getProfile().getUsername());
+        dto.setRecipient(request.getRecipient().getId());
+        dto.setRecipientUsername(request.getRecipient().getProfile().getUsername());
+        dto.setStatus(request.getStatus().name().toLowerCase());
+        dto.setCreatedAt(request.getCreatedAt().toString());
+        
+        // Determine if this is an incoming request for the current user
+        dto.setIncoming(request.getRecipient().getId().equals(currentUser.getId()));
+        
+        return dto;
+    }
+    
+    // Basic friend request mapping (for backward compatibility)
     public FriendRequestDTO toFriendRequestDTO(FriendRequest request) {
         FriendRequestDTO dto = new FriendRequestDTO();
         dto.setRequestId(request.getId());
         dto.setRecipient(request.getRecipient().getId());
-        // You might include the action/status as a string in the DTO:
         dto.setAction(request.getStatus().name().toLowerCase());
         return dto;
     }
@@ -238,5 +255,14 @@ public class DTOMapper {
         LobbyResponseDTO lobbyResponseDTO = lobby != null ? 
             lobbyEntityToResponseDTO(lobby) : null;
         return new LobbyLeaveResponseDTO(message, lobbyResponseDTO);
+    }
+
+    // Search result mapping
+    public UserSearchResponseDTO toUserSearchResponseDTO(User user) {
+        UserSearchResponseDTO dto = new UserSearchResponseDTO();
+        dto.setUserid(user.getId());
+        dto.setUsername(user.getProfile().getUsername());
+        dto.setEmail(user.getEmail());
+        return dto;
     }
 }
