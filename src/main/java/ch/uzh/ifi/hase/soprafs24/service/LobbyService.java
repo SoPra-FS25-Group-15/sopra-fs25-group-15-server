@@ -266,7 +266,7 @@ public class LobbyService {
     @Transactional
     public LobbyJoinResponseDTO joinLobby(Long lobbyId, Long userId, String team, String lobbyCode, boolean friendInvited) {
         System.out.println("Join lobby request: lobbyId=" + lobbyId + ", userId=" + userId + 
-                          ", team=" + team + ", lobbyCode=" + lobbyCode + ", friendInvited=" + friendInvited);
+                          ", lobbyCode=" + lobbyCode + ", friendInvited=" + friendInvited);
         
         // Get lobby by ID
         Lobby lobby = getLobbyById(lobbyId);
@@ -290,12 +290,7 @@ public class LobbyService {
         
         // Check if this is a team mode lobby or solo mode
         if (LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
-            // TEAM MODE: Add player to specific team
-            
-            // Validate team parameter
-            if (team == null || team.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Team name is required for team mode");
-            }
+            // TEAM MODE: Add player automatically to a team
             
             // Initialize teams map if needed
             Map<String, List<User>> teams = lobby.getTeams();
@@ -304,17 +299,27 @@ public class LobbyService {
                 lobby.setTeams(teams);
             }
             
+            // Automatically assign to "team1" for simplicity
+            String teamName = "team1";
+            
             // Get or create the team
-            List<User> teamMembers = teams.computeIfAbsent(team, k -> new ArrayList<>());
+            List<User> teamMembers = teams.computeIfAbsent(teamName, k -> new ArrayList<>());
             
             // Check if team is full
             if (teamMembers.size() >= lobby.getMaxPlayersPerTeam()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Team is full");
+                // Try team2 if team1 is full
+                teamName = "team2";
+                teamMembers = teams.computeIfAbsent(teamName, k -> new ArrayList<>());
+                
+                // If both teams are full, report error
+                if (teamMembers.size() >= lobby.getMaxPlayersPerTeam()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All teams are full");
+                }
             }
             
             // Add user to team
             teamMembers.add(user);
-            System.out.println("Added user " + user.getId() + " to team " + team);
+            System.out.println("Added user " + user.getId() + " to team " + teamName);
         } 
         else {
             // SOLO MODE: Add player to general players list

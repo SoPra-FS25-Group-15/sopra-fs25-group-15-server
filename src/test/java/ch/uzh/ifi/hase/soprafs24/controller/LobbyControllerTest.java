@@ -180,15 +180,14 @@ public class LobbyControllerTest {
         JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
         // Set mode to "team" so the controller will pass the team name.
         joinDTO.setMode(LobbyConstants.MODE_TEAM);
-        joinDTO.setTeam("blue");
         joinDTO.setLobbyCode(dummyLobby.getLobbyCode());
         joinDTO.setFriendInvited(false);
         
         LobbyJoinResponseDTO joinResponse = new LobbyJoinResponseDTO("Joined lobby successfully.", dummyLobbyResponseDTO);
         
         when(authService.getUserByToken(token)).thenReturn(dummyUser);
-        // Expect the team parameter "blue" for a team join.
-        when(lobbyService.joinLobby(eq(10L), eq(dummyUser.getId()), eq("blue"), 
+        // No team parameter is passed anymore
+        when(lobbyService.joinLobby(eq(10L), eq(dummyUser.getId()), eq(null), 
                 eq(dummyLobby.getLobbyCode()), eq(false)))
             .thenReturn(joinResponse);
         
@@ -208,12 +207,11 @@ public class LobbyControllerTest {
     public void testJoinLobby_InvalidLobbyCode() throws Exception {
         JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
         joinDTO.setMode(LobbyConstants.MODE_TEAM);
-        joinDTO.setTeam("blue");
         joinDTO.setLobbyCode("WRONG");
         joinDTO.setFriendInvited(false);
         
         when(authService.getUserByToken(token)).thenReturn(dummyUser);
-        when(lobbyService.joinLobby(eq(10L), eq(dummyUser.getId()), eq("blue"), 
+        when(lobbyService.joinLobby(eq(10L), eq(dummyUser.getId()), eq(null), 
                 eq("WRONG"), eq(false)))
             .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Invalid lobby code"));
         
@@ -231,14 +229,14 @@ public class LobbyControllerTest {
         JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
         // For friend invited joins the lobby code is not required.
         joinDTO.setMode(LobbyConstants.MODE_TEAM);
-        joinDTO.setTeam("blue");
         joinDTO.setLobbyCode(null);
         joinDTO.setFriendInvited(true);
         
         LobbyJoinResponseDTO joinResponse = new LobbyJoinResponseDTO("Joined lobby successfully.", dummyLobbyResponseDTO);
         
         when(authService.getUserByToken(token)).thenReturn(dummyUser);
-        when(lobbyService.joinLobby(eq(10L), eq(dummyUser.getId()), eq("blue"), 
+        // No team parameter is passed anymore
+        when(lobbyService.joinLobby(eq(10L), eq(dummyUser.getId()), eq(null), 
                 eq(null), eq(true)))
             .thenReturn(joinResponse);
         
@@ -305,7 +303,7 @@ public class LobbyControllerTest {
         // For casual (solo mode) lobbies, joining as a friend
         JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
         joinDTO.setMode("solo");
-        joinDTO.setTeam(null); // No team needed for solo mode
+        // Removed team field setting since it was removed from the DTO
         joinDTO.setLobbyCode(null); // No code needed when invited as friend
         joinDTO.setFriendInvited(true);
         

@@ -20,6 +20,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.JoinLobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
@@ -431,5 +432,19 @@ public class DTOMapperTest {
         assertEquals("team", dto.getMode());
         assertEquals(2, dto.getMaxPlayersPerTeam()); // Should be visible for team mode
         assertNull(dto.getMaxPlayers()); // Should not expose maxPlayers
+    }
+
+    @Test
+    public void testJoinLobbyRequestDTO() {
+        // Create a JoinLobbyRequestDTO
+        JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
+        joinDTO.setMode("solo");
+        joinDTO.setLobbyCode("12345");
+        joinDTO.setFriendInvited(true);
+        
+        // Verify the DTO has the expected properties
+        assertEquals("solo", joinDTO.getMode());
+        assertEquals("12345", joinDTO.getLobbyCode());
+        assertTrue(joinDTO.isFriendInvited());
     }
 }
