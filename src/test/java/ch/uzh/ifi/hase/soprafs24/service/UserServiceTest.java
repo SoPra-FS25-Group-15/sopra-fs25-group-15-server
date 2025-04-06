@@ -4,12 +4,14 @@ import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
@@ -116,5 +118,48 @@ public class UserServiceTest {
         assertThrows(ResponseStatusException.class, () ->
             userService.updateMyUser("test-token", "duplicateUsername", "updated@example.com", null)
         );
+    }
+    
+    @Test
+    public void searchUserByEmail_validEmail_returnsUser() {
+        // Arrange: Define test data and configure mocks
+        String testEmail = "search@example.com";
+        Mockito.when(userRepository.findByEmail(testEmail)).thenReturn(testUser);
+        
+        // Act: Call the method to be tested
+        User foundUser = userService.searchUserByEmail(testEmail);
+        
+        // Assert: Verify the results
+        assertEquals(testUser.getId(), foundUser.getId());
+        assertEquals(testUser.getEmail(), foundUser.getEmail());
+        assertEquals(testUser.getProfile().getUsername(), foundUser.getProfile().getUsername());
+    }
+    
+    @Test
+    public void searchUserByEmail_invalidEmail_throwsException() {
+        // Arrange: Configure mock to return null for non-existent email
+        String nonExistentEmail = "nonexistent@example.com";
+        Mockito.when(userRepository.findByEmail(nonExistentEmail)).thenReturn(null);
+        
+        // Act & Assert: Verify that exception is thrown
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            userService.searchUserByEmail(nonExistentEmail);
+        });
+        
+        // Verify exception details
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertTrue(exception.getReason().contains("No user found"));
+    }
+    
+    @Test
+    public void searchUserByEmail_emptyEmail_throwsException() {
+        // Act & Assert: Verify that exception is thrown for blank email
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            userService.searchUserByEmail("");
+        });
+        
+        // Verify exception details
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("Email cannot be empty"));
     }
 }

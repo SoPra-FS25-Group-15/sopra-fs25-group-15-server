@@ -25,6 +25,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
@@ -238,5 +239,14 @@ public class DTOMapper {
         LobbyResponseDTO lobbyResponseDTO = lobby != null ? 
             lobbyEntityToResponseDTO(lobby) : null;
         return new LobbyLeaveResponseDTO(message, lobbyResponseDTO);
+    }
+
+    // Search result mapping
+    public UserSearchResponseDTO toUserSearchResponseDTO(User user) {
+        UserSearchResponseDTO dto = new UserSearchResponseDTO();
+        dto.setUserid(user.getId());
+        dto.setUsername(user.getProfile().getUsername());
+        dto.setEmail(user.getEmail());
+        return dto;
     }
 }
