@@ -90,4 +90,13 @@ public class AuthService {
         }
         return user;
     }
+
+    //verify user password
+    public boolean verifyPassword(User user, String password) {
+        if (user == null || password == null) {
+            return false;
+        }
+        return user.getPassword().equals(password);
+    }
 }
+

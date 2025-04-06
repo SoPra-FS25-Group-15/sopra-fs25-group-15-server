@@ -7,6 +7,7 @@ import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -37,4 +38,16 @@ public class UserController {
         User updatedUser = userService.updateMyUser(token, updateDTO.getUsername(), updateDTO.getEmail(), updateDTO.getStatsPublic());
         return mapper.toUpdateResponse(updatedUser);
     }
+
+    // 3) DELETE /api/users/me => delete user account
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMyAccount(
+            @RequestHeader("Authorization") String token,
+            @RequestBody UserDeleteRequestDTO deleteDTO
+    ) {
+        userService.deleteMyAccount(token, deleteDTO.getPassword());
+    }
   }
+
+

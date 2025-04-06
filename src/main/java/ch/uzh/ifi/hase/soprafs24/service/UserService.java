@@ -111,5 +111,29 @@ public class UserService {
       return currentUser;
     }
 
+    /**
+     * delete current user account
+     */
+    public void deleteMyAccount(String token, String password) {
+        // 1) Verify user identity and obtain user information through token
+        User currentUser = authService.getUserByToken(token); // If the token is invalid, a 401 error will be thrown.
+
+        // 2) Verify the entered password
+        if (password == null || password.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "the password is required");
+        }
+
+        // 3) check the password is right or not
+        if (!authService.verifyPassword(currentUser, password)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Password verification failed, unable to delete account");
+        }
+
+        // 4) delete the user account
+        userRepository.delete(currentUser);
+        userRepository.flush();
+
+        log.info("the user account has been deleted: ID={}, Email={}", currentUser.getId(), currentUser.getEmail());
+    }
+
 }
 
