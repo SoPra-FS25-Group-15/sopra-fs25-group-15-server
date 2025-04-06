@@ -140,4 +140,37 @@ public class FriendService {
         friendshipRepository.flush();
         log.debug("Friendship between user {} and friend {} has been removed", currentUser.getId(), friendId);
     }
+
+    // Get all friend requests for the authenticated user (both sent and received)
+    public List<FriendRequest> getAllFriendRequests(String token) {
+        User currentUser = authService.getUserByToken(token);
+        return friendRequestRepository.findBySenderOrRecipient(currentUser, currentUser);
+    }
+
+    // Cancel a friend request that was sent by the authenticated user
+    public void cancelFriendRequest(String token, Long requestId) {
+        User sender = authService.getUserByToken(token);
+        FriendRequest request = friendRequestRepository.findById(requestId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend request not found"));
+        
+        // Only the sender can cancel the request
+        if (!request.getSender().getId().equals(sender.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only cancel requests you have sent");
+        }
+        
+        // Only pending requests can be canceled
+        if (request.getStatus() != FriendRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Cannot cancel a request that has already been " + request.getStatus().name().toLowerCase());
+        }
+        
+        friendRequestRepository.delete(request);
+        log.debug("Friend request {} canceled by sender {}", requestId, sender.getId());
+    }
+
+    // Get outgoing friend requests for the authenticated user (only sent requests)
+    public List<FriendRequest> getOutgoingFriendRequests(String token) {
+        User currentUser = authService.getUserByToken(token);
+        return friendRequestRepository.findBySender(currentUser);
+    }
 }
