@@ -1,5 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GenericMessageResponseDTO;
@@ -101,15 +103,11 @@ public class LobbyController {
     public ResponseEntity<LobbyJoinResponseDTO> joinLobby(@PathVariable Long lobbyId,
                                                         @RequestParam Long userId,
                                                         @RequestBody JoinLobbyRequestDTO joinRequest) {
-        String team = null;
-        // Check if mode is team, then use team field; otherwise, solo
-        if (joinRequest.getMode() != null && joinRequest.getMode().equalsIgnoreCase(LobbyConstants.MODE_TEAM)) {
-            team = joinRequest.getTeam();
-        }
+        // No longer extract team name - pass null for team parameter
         LobbyJoinResponseDTO response = lobbyService.joinLobby(
             lobbyId,
             userId,
-            team,
+            null, // No team name parameter
             joinRequest.getLobbyCode(),
             joinRequest.isFriendInvited()
         );
@@ -125,5 +123,21 @@ public class LobbyController {
         User currentUser = authService.getUserByToken(token);
         Long userToRemove = (userId != null) ? userId : currentUser.getId();
         return lobbyService.leaveLobby(lobbyId, currentUser.getId(), userToRemove);
+    }
+
+    // List all active lobbies
+    @GetMapping("/all_lobbies")
+    @ResponseStatus(HttpStatus.OK)
+    public List<LobbyResponseDTO> getAllLobbies(@RequestHeader("Authorization") String token) {
+        // Authenticate the user (token validation)
+        authService.getUserByToken(token);
+        
+        // Get all lobbies
+        List<Lobby> lobbies = lobbyService.listLobbies();
+        
+        // Map to DTOs
+        return lobbies.stream()
+                .map(lobby -> mapper.lobbyEntityToResponseDTO(lobby))
+                .collect(Collectors.toList());
     }
 }

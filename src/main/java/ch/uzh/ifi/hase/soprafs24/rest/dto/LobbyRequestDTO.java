@@ -4,9 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 public class LobbyRequestDTO {
-    private String lobbyName;
-    // "ranked" or "unranked"
-    private String gameType;
     // Indicates if the lobby is private (true) or public (false)
     private boolean isPrivate;
     // For team mode: players per team (default 2)
@@ -14,18 +11,12 @@ public class LobbyRequestDTO {
     private Integer maxPlayersPerTeam;
     // Maximum total players in the lobby (default 8)
     private Integer maxPlayers;
-    // Optionally, initial round cards (stored in lobby_hints)
-    private List<String> hintsEnabled;
     // Optionally, teams (typically empty at creation)
     private Map<String, List<Long>> teams;
     
     // Game mode provided by client ("solo" or "team")
     private String mode;
 
-    public String getLobbyName() { return lobbyName; }
-    public void setLobbyName(String lobbyName) { this.lobbyName = lobbyName; }
-    public String getGameType() { return gameType; }
-    public void setGameType(String gameType) { this.gameType = gameType; }
     public boolean isPrivate() { return isPrivate; }
     public void setPrivate(boolean isPrivate) { this.isPrivate = isPrivate; }
     public Integer getMaxPlayersPerTeam() { 
@@ -45,8 +36,6 @@ public class LobbyRequestDTO {
     public void setMaxPlayers(Integer maxPlayers) {
         this.maxPlayers = maxPlayers;
     }
-    public List<String> getHintsEnabled() { return hintsEnabled; }
-    public void setHintsEnabled(List<String> hintsEnabled) { this.hintsEnabled = hintsEnabled; }
     public Map<String, List<Long>> getTeams() { return teams; }
     public void setTeams(Map<String, List<Long>> teams) { this.teams = teams; }
     

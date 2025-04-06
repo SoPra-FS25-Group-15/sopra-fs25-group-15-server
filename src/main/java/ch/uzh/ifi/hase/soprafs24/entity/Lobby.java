@@ -34,15 +34,7 @@ public class Lobby {
     private Long id;
 
     @Column(nullable = false)
-    private String lobbyName;
-
-    // Mode can be "solo" or "team". If not set explicitly,
-    // it will be derived from maxPlayersPerTeam in onCreate.
-    @Column(nullable = false)
     private String mode;
-
-    @Column(nullable = false)
-    private String gameType;
 
     // Indicates if the lobby is private (true) or public (false)
     @Column(nullable = false)
@@ -51,7 +43,6 @@ public class Lobby {
     // Only for private lobbies: auto‑generated lobby code.
     private String lobbyCode;
 
-    // Allowed values: 1 for solo and 2 for team.
     @Column(nullable = false)
     private Integer maxPlayersPerTeam;
     
@@ -110,20 +101,7 @@ public class Lobby {
             }
         }
         
-        // Set default privacy based on game type if not explicitly set
-        if (gameType != null && gameType.equals(LobbyConstants.GAME_TYPE_RANKED)) {
-            // For ranked games, the lobby is typically not private unless specified
-            if (!isPrivate) {
-                this.isPrivate = false;
-            }
-        } else {
-            // For casual/unranked games, default to the constant value
-            if (!isPrivate) {
-                this.isPrivate = LobbyConstants.IS_LOBBY_PRIVATE;
-            }
-        }
-        
-        // Generate a lobby code only for private lobbies
+        // Generate a lobby code only for private lobbies (unranked)
         if (this.isPrivate) {
             lobbyCode = generateLobbyCode();
         }
@@ -137,14 +115,9 @@ public class Lobby {
     // Standard getters and setters
 
     public Long getId() { return id; }
-    public String getLobbyName() { return lobbyName; }
-    public void setLobbyName(String lobbyName) { this.lobbyName = lobbyName; }
     
     public String getMode() { return mode; }
     public void setMode(String mode) { this.mode = mode; }
-    
-    public String getGameType() { return gameType; }
-    public void setGameType(String gameType) { this.gameType = gameType; }
     
     public boolean isPrivate() { return isPrivate; }
     public void setPrivate(boolean isPrivate) { this.isPrivate = isPrivate; }

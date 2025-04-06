@@ -1,13 +1,13 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +22,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.InviteLobbyRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyConfigUpdateRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyInviteResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyJoinResponseDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 
@@ -80,18 +76,16 @@ public class LobbyServiceIntegrationTest {
         // Save the host user first
         hostUser = userRepository.saveAndFlush(hostUser);
         
-        // Create a team lobby (for ranked games)
+        // Create a team lobby (public - ranked)
         teamLobby = new Lobby();
-        teamLobby.setLobbyName("Team Lobby");
-        teamLobby.setGameType(LobbyConstants.GAME_TYPE_RANKED);
+        teamLobby.setPrivate(false); // Ranked games are public
         teamLobby.setMode(LobbyConstants.MODE_TEAM);
         teamLobby.setHost(hostUser);
         teamLobby = lobbyService.createLobby(teamLobby);
         
-        // Create a casual lobby - should enforce solo mode
+        // Create a casual lobby (private - unranked) - should enforce solo mode
         soloLobby = new Lobby();
-        soloLobby.setLobbyName("Casual Lobby");
-        soloLobby.setGameType(LobbyConstants.GAME_TYPE_UNRANKED);
+        soloLobby.setPrivate(true); // Unranked games are private
         // Attempt to set team mode - should be overridden to solo
         soloLobby.setMode(LobbyConstants.MODE_TEAM);
         soloLobby.setHost(hostUser);
@@ -110,6 +104,8 @@ public class LobbyServiceIntegrationTest {
         assertEquals(2, teamLobby.getMaxPlayersPerTeam()); // Team size is preserved
         assertEquals(LobbyConstants.LOBBY_STATUS_WAITING, teamLobby.getStatus());
         assertNotNull(teamLobby.getCreatedAt());
+        // Verify lobby code is generated for ranked lobby too
+        assertNotNull(teamLobby.getLobbyCode());
     }
     
     @Test
@@ -129,224 +125,214 @@ public class LobbyServiceIntegrationTest {
     }
 
     @Test
-    public void testUpdateLobbyConfig_success() {
-        LobbyConfigUpdateRequestDTO configUpdate = new LobbyConfigUpdateRequestDTO();
-        configUpdate.setMode(LobbyConstants.MODE_TEAM);
-        configUpdate.setMaxPlayers(6);
-        List<String> roundCards = new ArrayList<>();
-        roundCards.add("card1");
-        roundCards.add("card2");
-        configUpdate.setRoundCards(roundCards);
-    
-        Lobby updatedLobby = lobbyService.updateLobbyConfig(teamLobby.getId(), configUpdate, hostUser.getId());
-        assertEquals(LobbyConstants.MODE_TEAM, updatedLobby.getMode());
-        assertEquals(6, updatedLobby.getMaxPlayers());
-        assertEquals(List.of("card1", "card2"), updatedLobby.getHintsEnabled());
+    public void testCreateLobby_ProvidesDefaultRoundCards() {
+        // Create a new lobby
+        Lobby newLobby = new Lobby();
+        newLobby.setPrivate(true);  // casual/unranked game
+        newLobby.setMode(LobbyConstants.MODE_SOLO);  // solo mode
+        newLobby.setHost(hostUser);
+        
+        // Create the lobby through the service
+        Lobby createdLobby = lobbyService.createLobby(newLobby);
+        
+        // Verify the lobby has server-generated round cards
+        assertNotNull(createdLobby.getHintsEnabled());
+        assertFalse(createdLobby.getHintsEnabled().isEmpty());
+        assertEquals(5, createdLobby.getHintsEnabled().size());  // Checking for the 5 default cards
+        
+        // Verify the DTO mapper includes these cards in the response
+        LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(createdLobby);
+        assertNotNull(responseDTO.getRoundCards());
+        assertEquals(createdLobby.getHintsEnabled(), responseDTO.getRoundCards());
+        
+        // Verify the expected default card values
+        assertTrue(responseDTO.getRoundCards().contains("STANDARD_CARD_1"));
+        assertTrue(responseDTO.getRoundCards().contains("STANDARD_CARD_5"));
     }
 
     @Test
-    public void testInviteToLobby_WithCode() {
-        // Testing code-based invitation (non-friend)
-        InviteLobbyRequestDTO inviteRequest = new InviteLobbyRequestDTO();
-        inviteRequest.setLobbyCode(null); // Indicates we want the lobby code
-    
-        LobbyInviteResponseDTO inviteDTO = lobbyService.inviteToLobby(soloLobby.getId(), hostUser.getId(), inviteRequest);
-        assertNotNull(inviteDTO.getLobbyCode()); // Should return the generated code
-        assertNull(inviteDTO.getInvitedFriend());
-    }
-    
-    @Test
-    public void testInviteFriendToLobby() {
-        // Create a friend user with all required fields
-        User friendUser = new User();
-        friendUser.setEmail("friend@example.com");
-        friendUser.setPassword("password");
-        friendUser.setStatus(UserStatus.OFFLINE);
-        UserProfile friendProfile = new UserProfile();
-        friendProfile.setUsername("FriendUser");
-        friendProfile.setMmr(0);
-        friendProfile.setStatsPublic(true);
-        friendProfile.setAchievements(new ArrayList<>());
-        friendUser.setProfile(friendProfile);
-        friendUser = userRepository.saveAndFlush(friendUser);
+    public void testCreateLobby_GeneratesLobbyCodeForAllTypes() {
+        // Create a ranked lobby (public)
+        Lobby rankedLobby = new Lobby();
+        rankedLobby.setPrivate(false);  // ranked/public game
+        rankedLobby.setMode(LobbyConstants.MODE_TEAM);
+        rankedLobby.setHost(hostUser);
         
-        // Create friend invitation
-        InviteLobbyRequestDTO inviteRequest = new InviteLobbyRequestDTO();
-        inviteRequest.setFriendId(friendUser.getId()); // Invite by friend ID
-    
-        LobbyInviteResponseDTO inviteDTO = lobbyService.inviteToLobby(soloLobby.getId(), hostUser.getId(), inviteRequest);
-        assertEquals("FriendUser", inviteDTO.getInvitedFriend());
-        assertNull(inviteDTO.getLobbyCode()); // No code for direct friend invites
-    }
-    
-    @Test
-    public void testJoinLobby_WithCodeInSoloMode() {
-        // Create a player user with all required fields
-        User playerUser = createAndSaveUser("player@example.com", "PlayerUser");
+        // Create the ranked lobby through the service
+        Lobby createdRankedLobby = lobbyService.createLobby(rankedLobby);
         
-        // Join with code for solo lobby
-        LobbyJoinResponseDTO joinResponse = lobbyService.joinLobby(
-            soloLobby.getId(),
-            playerUser.getId(),
-            null, // No team needed for solo mode
-            soloLobby.getLobbyCode(),
-            false
-        );
-    
-        assertNotNull(joinResponse);
-        assertEquals("Joined lobby successfully.", joinResponse.getMessage());
-        assertEquals("solo", joinResponse.getLobby().getMode());
+        // Verify lobby code is generated for ranked lobby
+        assertNotNull(createdRankedLobby.getLobbyCode());
         
-        // Verify player was added to the players list - using direct DB query within transaction
-        Lobby updatedLobby = lobbyRepository.findById(soloLobby.getId()).orElse(null);
-        assertNotNull(updatedLobby);
-        assertNotNull(updatedLobby.getPlayers());
+        // Create an unranked lobby (private)
+        Lobby unrankedLobby = new Lobby();
+        unrankedLobby.setPrivate(true);  // unranked/private game
+        unrankedLobby.setHost(hostUser);
         
-        boolean playerFound = false;
-        for (User player : updatedLobby.getPlayers()) {
-            if (player.getId().equals(playerUser.getId())) {
-                playerFound = true;
-                break;
-            }
-        }
-        assertTrue(playerFound, "Player should be in the players list");
-    }
-    
-    @Test
-    public void testJoinLobby_AsFriendInSoloMode() {
-        // Create a friend user with all required fields
-        User friendUser = createAndSaveUser("friend@example.com", "FriendUser");
+        // Create the unranked lobby through the service
+        Lobby createdUnrankedLobby = lobbyService.createLobby(unrankedLobby);
         
-        // Join as a friend for solo lobby (no code needed)
-        LobbyJoinResponseDTO joinResponse = lobbyService.joinLobby(
-            soloLobby.getId(),
-            friendUser.getId(),
-            null, // No team needed for solo mode
-            null, // No code needed for friend invite
-            true // Joining as friend
-        );
-    
-        assertNotNull(joinResponse);
-        assertEquals("Joined lobby successfully.", joinResponse.getMessage());
-        
-        // Verify friend was added to the players list - using direct DB query within transaction
-        Lobby updatedLobby = lobbyRepository.findById(soloLobby.getId()).orElse(null);
-        assertNotNull(updatedLobby);
-        assertNotNull(updatedLobby.getPlayers());
-        
-        boolean friendFound = false;
-        for (User player : updatedLobby.getPlayers()) {
-            if (player.getId().equals(friendUser.getId())) {
-                friendFound = true;
-                break;
-            }
-        }
-        assertTrue(friendFound, "Friend should be in the players list");
-    }
-    
-    @Test
-    public void testJoinLobby_WithTeamInTeamMode() {
-        // Create a player user with all required fields
-        User playerUser = createAndSaveUser("player@example.com", "TeamPlayer");
-        
-        // Join with team name for team lobby
-        LobbyJoinResponseDTO joinResponse = lobbyService.joinLobby(
-            teamLobby.getId(),
-            playerUser.getId(),
-            "blue", // Team name is required for team mode
-            null, // No code needed for public ranked lobbies
-            false
-        );
-    
-        assertNotNull(joinResponse);
-        assertEquals("Joined lobby successfully.", joinResponse.getMessage());
-        assertEquals("team", joinResponse.getLobby().getMode());
-        
-        // Verify player was added to the correct team - using direct DB query within transaction
-        Lobby updatedLobby = lobbyRepository.findById(teamLobby.getId()).orElse(null);
-        assertNotNull(updatedLobby);
-        assertNotNull(updatedLobby.getTeams());
-        assertTrue(updatedLobby.getTeams().containsKey("blue"), "Blue team should exist");
-        
-        boolean playerInTeam = false;
-        for (User player : updatedLobby.getTeams().get("blue")) {
-            if (player.getId().equals(playerUser.getId())) {
-                playerInTeam = true;
-                break;
-            }
-        }
-        assertTrue(playerInTeam, "Player should be in the blue team");
+        // Verify lobby code is also generated for unranked lobby
+        assertNotNull(createdUnrankedLobby.getLobbyCode());
     }
 
     @Test
-    public void testLeaveLobby_soloMode_userLeaves_success() {
-        // Create a player with all required fields
-        User soloPlayer = createAndSaveUser("soloplayer@example.com", "SoloPlayer");
+    public void testJoinLobby_WithCode_Success() {
+        // Create a new user who will join
+        User joiningUser = new User();
+        joiningUser.setEmail("joiner@example.com");
+        joiningUser.setPassword("password");
+        joiningUser.setStatus(UserStatus.OFFLINE);
         
-        // Join the solo lobby first
-        lobbyService.joinLobby(
-            soloLobby.getId(),
-            soloPlayer.getId(),
-            null,
-            soloLobby.getLobbyCode(),
+        // Create and set a profile for the joining user
+        UserProfile joinerProfile = new UserProfile();
+        joinerProfile.setUsername("JoiningUser");
+        joinerProfile.setStatsPublic(true);
+        joinerProfile.setMmr(0);
+        joinerProfile.setAchievements(new ArrayList<>());
+        joiningUser.setProfile(joinerProfile);
+        
+        // Generate token
+        joiningUser.setToken("joiner-test-token");
+        
+        // Save the joining user
+        joiningUser = userRepository.saveAndFlush(joiningUser);
+        
+        // Get the lobby code from the team lobby
+        String lobbyCode = teamLobby.getLobbyCode();
+        assertNotNull(lobbyCode);
+        
+        // User tries to join using lobby code (not as friend)
+        LobbyJoinResponseDTO response = lobbyService.joinLobby(
+            teamLobby.getId(), 
+            joiningUser.getId(), 
+            null, 
+            lobbyCode,
             false
         );
         
-        // Verify the player was added
-        Lobby lobbyBeforeLeaving = lobbyRepository.findById(soloLobby.getId()).orElse(null);
-        assertNotNull(lobbyBeforeLeaving);
-        assertNotNull(lobbyBeforeLeaving.getPlayers());
-        
-        boolean playerAddedInitially = false;
-        for (User player : lobbyBeforeLeaving.getPlayers()) {
-            if (player.getId().equals(soloPlayer.getId())) {
-                playerAddedInitially = true;
-                break;
-            }
-        }
-        assertTrue(playerAddedInitially, "Player should be initially added to the lobby");
-        
-        // Use the service to leave
-        LobbyLeaveResponseDTO response = lobbyService.leaveLobby(
-            soloLobby.getId(),
-            soloPlayer.getId(), // player leaving themselves
-            soloPlayer.getId()
-        );
-        
-        // Verify with assertions
+        // Verify the join was successful
         assertNotNull(response);
-        assertEquals("Left lobby successfully.", response.getMessage());
-        
-        // Direct database verification - should be within same transaction
-        Lobby updatedLobby = lobbyRepository.findById(soloLobby.getId()).orElse(null);
-        assertNotNull(updatedLobby);
-        assertNotNull(updatedLobby.getPlayers());
-        
-        boolean userStillInLobby = false;
-        for (User player : updatedLobby.getPlayers()) {
-            if (player.getId().equals(soloPlayer.getId())) {
-                userStillInLobby = true;
-                break;
-            }
-        }
-        assertFalse(userStillInLobby, "Player should be removed from the lobby");
+        assertNotNull(response.getLobby());
+        assertEquals(teamLobby.getId(), response.getLobby().getLobbyId());
     }
     
-    // Helper method to create and save a user with all required fields
-    private User createAndSaveUser(String email, String username) {
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword("password");
-        user.setStatus(UserStatus.OFFLINE);
-        user.setToken("token-" + username); // Add token for authentication
+    @Test
+    public void testJoinLobby_AssumedFriendButWrongCode_Success() {
+        // Create a new user who will join
+        User joiningUser = new User();
+        joiningUser.setEmail("friend@example.com");
+        joiningUser.setPassword("password");
+        joiningUser.setStatus(UserStatus.OFFLINE);
         
-        UserProfile profile = new UserProfile();
-        profile.setUsername(username);
-        profile.setMmr(0);
-        profile.setStatsPublic(true); // Required field
-        profile.setAchievements(new ArrayList<>());
-        user.setProfile(profile);
+        // Create and set a profile for the joining user
+        UserProfile joinerProfile = new UserProfile();
+        joinerProfile.setUsername("FriendUser");
+        joinerProfile.setStatsPublic(true);
+        joinerProfile.setMmr(0);
+        joinerProfile.setAchievements(new ArrayList<>());
+        joiningUser.setProfile(joinerProfile);
         
-        return userRepository.saveAndFlush(user); // Use saveAndFlush to ensure immediate persistence
+        // Generate token
+        joiningUser.setToken("friend-test-token");
+        
+        // Save the joining user
+        joiningUser = userRepository.saveAndFlush(joiningUser);
+        
+        // User tries to join as a friend (no code needed)
+        LobbyJoinResponseDTO response = lobbyService.joinLobby(
+            teamLobby.getId(), 
+            joiningUser.getId(), 
+            null, 
+            "WRONG_CODE", // Wrong code shouldn't matter since joining as friend
+            true  // Joining as friend
+        );
+        
+        // Verify the join was successful even with wrong code
+        assertNotNull(response);
+        assertNotNull(response.getLobby());
+        assertEquals(teamLobby.getId(), response.getLobby().getLobbyId());
+    }
+    
+    @Test
+    public void testJoinLobby_WithWrongCode_Fails() {
+        // Create a new user who will join
+        User joiningUser = new User();
+        joiningUser.setEmail("joiner2@example.com");
+        joiningUser.setPassword("password");
+        joiningUser.setStatus(UserStatus.OFFLINE);
+        
+        // Create and set a profile for the joining user
+        UserProfile joinerProfile = new UserProfile();
+        joinerProfile.setUsername("JoiningUser2");
+        joinerProfile.setStatsPublic(true);
+        joinerProfile.setMmr(0);
+        joinerProfile.setAchievements(new ArrayList<>());
+        joiningUser.setProfile(joinerProfile);
+        
+        // Generate token
+        joiningUser.setToken("joiner2-test-token");
+        
+        // Save the joining user
+        joiningUser = userRepository.saveAndFlush(joiningUser);
+        
+        // User tries to join using an incorrect lobby code (not as friend)
+        try {
+            lobbyService.joinLobby(
+                teamLobby.getId(), 
+                joiningUser.getId(), 
+                null, 
+                "WRONG_CODE", // Wrong code
+                false // Not joining as friend
+            );
+            
+            // If we get here, no exception was thrown - fail the test
+            fail("Expected exception for wrong lobby code was not thrown");
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            // Verify the exception was for the correct reason
+            assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, e.getStatus());
+            assertTrue(e.getReason().contains("Invalid lobby code"));
+        }
+    }
+    
+    @Test
+    public void testJoinLobby_NoCode_Fails() {
+        // Create a new user who will join
+        User joiningUser = new User();
+        joiningUser.setEmail("joiner3@example.com");
+        joiningUser.setPassword("password");
+        joiningUser.setStatus(UserStatus.OFFLINE);
+        
+        // Create and set a profile for the joining user
+        UserProfile joinerProfile = new UserProfile();
+        joinerProfile.setUsername("JoiningUser3");
+        joinerProfile.setStatsPublic(true);
+        joinerProfile.setMmr(0);
+        joinerProfile.setAchievements(new ArrayList<>());
+        joiningUser.setProfile(joinerProfile);
+        
+        // Generate token
+        joiningUser.setToken("joiner3-test-token");
+        
+        // Save the joining user
+        joiningUser = userRepository.saveAndFlush(joiningUser);
+        
+        // User tries to join without providing a lobby code (not as friend)
+        try {
+            lobbyService.joinLobby(
+                teamLobby.getId(), 
+                joiningUser.getId(), 
+                null, 
+                null, // No code
+                false // Not joining as friend
+            );
+            
+            // If we get here, no exception was thrown - fail the test
+            fail("Expected exception for missing lobby code was not thrown");
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            // Verify the exception was for the correct reason
+            assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, e.getStatus());
+            assertTrue(e.getReason().contains("Invalid lobby code"));
+        }
     }
 }

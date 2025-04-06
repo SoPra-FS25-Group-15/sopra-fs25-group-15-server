@@ -4,7 +4,6 @@ public class JoinLobbyRequestDTO {
     private String lobbyCode;
     private boolean friendInvited;
     private String mode;
-    private String team;
     
     public String getLobbyCode() {
         return lobbyCode;
@@ -28,13 +27,5 @@ public class JoinLobbyRequestDTO {
     
     public void setMode(String mode) {
         this.mode = mode;
-    }
-    
-    public String getTeam() {
-        return team;
-    }
-    
-    public void setTeam(String team) {
-        this.team = team;
     }
 }

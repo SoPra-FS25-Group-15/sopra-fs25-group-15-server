@@ -9,6 +9,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.mock;
@@ -19,6 +20,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.JoinLobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
@@ -165,49 +167,42 @@ public class DTOMapperTest {
     @Test
     public void testLobbyRequestDTOToEntity_TeamMode() {
         LobbyRequestDTO dto = new LobbyRequestDTO();
-        dto.setLobbyName("Team Lobby");
-        dto.setGameType("ranked"); // Changed to "ranked" since team mode is only allowed in ranked games
+        dto.setPrivate(false); // Ranked game (public)
         // Explicitly set mode to "team"
         dto.setMode("team");
         dto.setMaxPlayersPerTeam(3);
-        List<String> hints = Arrays.asList("Hint1", "Hint2");
-        dto.setHintsEnabled(hints);
 
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
 
         // Verify mapping for a team lobby
-        assertEquals("Team Lobby", lobby.getLobbyName());
-        assertEquals("ranked", lobby.getGameType());
-        // For ranked play, lobby is public (isPrivate=false)
         assertEquals(false, lobby.isPrivate());
         // Since mode is team, maxPlayersPerTeam should be set from DTO
         assertEquals(3, lobby.getMaxPlayersPerTeam());
         assertEquals("team", lobby.getMode());
-        assertEquals(hints, lobby.getHintsEnabled());
+        // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
+        assertNotNull(lobby.getHintsEnabled());
+        assertTrue(lobby.getHintsEnabled().isEmpty());
     }
 
     @Test
     public void testLobbyRequestDTOToEntity_SoloMode() {
         LobbyRequestDTO dto = new LobbyRequestDTO();
-        dto.setLobbyName("Solo Lobby");
-        dto.setGameType("unranked");
+        dto.setPrivate(true); // Unranked game (private)
         // Explicitly set mode to "solo"
         dto.setMode("solo");
         // Even if provided, maxPlayersPerTeam should be forced to 1 in solo mode
         dto.setMaxPlayersPerTeam(3);
-        List<String> hints = Arrays.asList("HintA", "HintB");
-        dto.setHintsEnabled(hints);
-    
+
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
-    
+
         // Verify mapping for a solo lobby
-        assertEquals("Solo Lobby", lobby.getLobbyName());
-        assertEquals("unranked", lobby.getGameType());
-        assertEquals(true, lobby.isPrivate()); // Unranked games are private
+        assertEquals(true, lobby.isPrivate());
         // In solo mode, maxPlayersPerTeam is always set to 1
         assertEquals(1, lobby.getMaxPlayersPerTeam());
         assertEquals("solo", lobby.getMode());
-        assertEquals(hints, lobby.getHintsEnabled());
+        // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
+        assertNotNull(lobby.getHintsEnabled());
+        assertTrue(lobby.getHintsEnabled().isEmpty());
     }
 
     @Test
@@ -221,9 +216,7 @@ public class DTOMapperTest {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        lobby.setLobbyName("Solo Response");
         lobby.setMode("solo");
-        lobby.setGameType("unranked");
         lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
         lobby.setLobbyCode("CODE1234");
         // Do not set maxPlayers for solo mode: should default to 8 in the DTO.
@@ -242,6 +235,8 @@ public class DTOMapperTest {
         LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(lobby);
         // Since mode is solo and lobby.getMaxPlayers() is null, default maxPlayers should be 8.
         assertEquals(8, responseDTO.getMaxPlayers());
+        // Server-provided hints should be passed through to the response
+        assertEquals(hints, responseDTO.getRoundCards());
     }
 
     @Test
@@ -255,9 +250,7 @@ public class DTOMapperTest {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        lobby.setLobbyName("Team Response");
         lobby.setMode("team");
-        lobby.setGameType("unranked");
         lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
         lobby.setLobbyCode("TEAMCODE");
         // For team mode, maxPlayers is not used in the response DTO.
@@ -293,9 +286,8 @@ public class DTOMapperTest {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        lobby.setLobbyName("Test Lobby");
         lobby.setMode("solo");
-        lobby.setGameType("unranked");
+        lobby.setPrivate(true); // Private = unranked
         
         String testMessage = "Left lobby successfully.";
         
@@ -306,8 +298,6 @@ public class DTOMapperTest {
         assertEquals(testMessage, responseDTO.getMessage());
         assertNotNull(responseDTO.getLobby());
         assertEquals(lobby.getId(), responseDTO.getLobby().getLobbyId());
-        assertEquals(lobby.getLobbyName(), responseDTO.getLobby().getLobbyName());
-        assertEquals(lobby.getMode(), responseDTO.getLobby().getMode());
     }
     
     @Test
@@ -325,16 +315,13 @@ public class DTOMapperTest {
     @Test
     public void testLobbyRequestDTOToEntity_CasualGame() {
         LobbyRequestDTO dto = new LobbyRequestDTO();
-        dto.setLobbyName("Casual Lobby");
-        dto.setGameType("unranked"); // Casual game
+        dto.setPrivate(true); // Unranked game (private)
         dto.setMode("team"); // This should be overridden to "solo" for casual games
         dto.setMaxPlayersPerTeam(3); // This should be set to 1 for solo mode
 
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
 
         // Verify mapping enforces solo mode for casual games regardless of input
-        assertEquals("Casual Lobby", lobby.getLobbyName());
-        assertEquals("unranked", lobby.getGameType());
         assertEquals(true, lobby.isPrivate()); // Casual games are always private
         assertEquals(LobbyConstants.MODE_SOLO, lobby.getMode()); // Mode is enforced to solo for casual
         assertNotNull(lobby.getMaxPlayersPerTeam()); // Set internally
@@ -352,10 +339,8 @@ public class DTOMapperTest {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        lobby.setLobbyName("Casual Solo Lobby");
-        lobby.setGameType("unranked");
         lobby.setMode("solo");
-        lobby.setPrivate(true);
+        lobby.setPrivate(true); // Private = unranked
         lobby.setLobbyCode("12345");
         lobby.setMaxPlayersPerTeam(1); // Internal value that shouldn't be exposed
         lobby.setMaxPlayers(8);
@@ -372,16 +357,13 @@ public class DTOMapperTest {
     @Test
     public void testLobbyRequestDTOToEntity_CasualGame_EnforcesSoloMode() {
         LobbyRequestDTO dto = new LobbyRequestDTO();
-        dto.setLobbyName("Casual Lobby");
-        dto.setGameType("unranked"); // Casual/unranked game
+        dto.setPrivate(true); // Casual/unranked game is private
         dto.setMode("team"); // Client attempts to set team mode
         dto.setMaxPlayersPerTeam(3); // Client attempts to set team size
         
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
         
         // Verify mapper enforces solo mode for casual games
-        assertEquals("Casual Lobby", lobby.getLobbyName());
-        assertEquals("unranked", lobby.getGameType());
         assertEquals(true, lobby.isPrivate()); // Casual games are always private
         assertEquals("solo", lobby.getMode()); // Mode is enforced to solo
         assertNotNull(lobby.getMaxPlayersPerTeam()); // Should be internally set to 1
@@ -391,16 +373,13 @@ public class DTOMapperTest {
     @Test
     public void testLobbyRequestDTOToEntity_RankedGame_RespectsTeamMode() {
         LobbyRequestDTO dto = new LobbyRequestDTO();
-        dto.setLobbyName("Ranked Team Lobby");
-        dto.setGameType("ranked"); // Ranked game
+        dto.setPrivate(false); // Ranked game
         dto.setMode("team"); // Client sets team mode
         dto.setMaxPlayersPerTeam(2); // Client sets team size
         
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
         
         // Verify mapper respects mode for ranked games
-        assertEquals("Ranked Team Lobby", lobby.getLobbyName());
-        assertEquals("ranked", lobby.getGameType());
         assertEquals(false, lobby.isPrivate()); // Ranked games are public
         assertEquals("team", lobby.getMode()); // Mode is preserved
         assertNotNull(lobby.getMaxPlayersPerTeam());
@@ -418,9 +397,7 @@ public class DTOMapperTest {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        lobby.setLobbyName("Solo Lobby");
         lobby.setMode("solo");
-        lobby.setGameType("unranked");
         lobby.setPrivate(true);
         lobby.setLobbyCode("12345");
         lobby.setMaxPlayersPerTeam(1); // Internal value
@@ -445,9 +422,7 @@ public class DTOMapperTest {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
-        lobby.setLobbyName("Team Lobby");
         lobby.setMode("team");
-        lobby.setGameType("ranked");
         lobby.setPrivate(false);
         lobby.setMaxPlayersPerTeam(2);
         
@@ -457,5 +432,19 @@ public class DTOMapperTest {
         assertEquals("team", dto.getMode());
         assertEquals(2, dto.getMaxPlayersPerTeam()); // Should be visible for team mode
         assertNull(dto.getMaxPlayers()); // Should not expose maxPlayers
+    }
+
+    @Test
+    public void testJoinLobbyRequestDTO() {
+        // Create a JoinLobbyRequestDTO
+        JoinLobbyRequestDTO joinDTO = new JoinLobbyRequestDTO();
+        joinDTO.setMode("solo");
+        joinDTO.setLobbyCode("12345");
+        joinDTO.setFriendInvited(true);
+        
+        // Verify the DTO has the expected properties
+        assertEquals("solo", joinDTO.getMode());
+        assertEquals("12345", joinDTO.getLobbyCode());
+        assertTrue(joinDTO.isFriendInvited());
     }
 }
