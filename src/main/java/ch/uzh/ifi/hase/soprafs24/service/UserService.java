@@ -29,8 +29,9 @@ public class UserService {
         this.userRepository = userRepository;
         this.authService = authService;
     }
+
     // Public profile
-      public User getPublicProfile(Long userId) {
+    public User getPublicProfile(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
@@ -46,7 +47,7 @@ public class UserService {
 
         // 2) Validate input
         if (newUsername == null || newUsername.isBlank() ||
-            newEmail == null || newEmail.isBlank()) {
+                newEmail == null || newEmail.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or email");
         }
 
@@ -76,43 +77,43 @@ public class UserService {
      */
 
     public User updateMyUser(String token, String newUsername, String newEmail, Boolean newPrivacy) {
-      // 1) Validate token and fetch user
-      User currentUser = authService.getUserByToken(token); // throws 401 if invalid token
+        // 1) Validate token and fetch user
+        User currentUser = authService.getUserByToken(token); // throws 401 if invalid token
 
-      // 2) Validate input
-      if (newUsername == null || newUsername.isBlank() ||
-          newEmail == null || newEmail.isBlank()) {
-          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or email");
-      }
+        // 2) Validate input
+        if (newUsername == null || newUsername.isBlank() ||
+                newEmail == null || newEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid username or email");
+        }
 
-      // 3) Check conflicts for email/username
-      //    (Make sure any user found with the same email/username is either null or is the current user)
-      User emailCheck = userRepository.findByEmail(newEmail);
-      if (emailCheck != null && !emailCheck.getId().equals(currentUser.getId())) {
-          throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
-      }
-      User usernameCheck = userRepository.findByProfile_Username(newUsername);
-      if (usernameCheck != null && !usernameCheck.getId().equals(currentUser.getId())) {
-          throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already registered");
-      }
+        // 3) Check conflicts for email/username
+        //    (Make sure any user found with the same email/username is either null or is the current user)
+        User emailCheck = userRepository.findByEmail(newEmail);
+        if (emailCheck != null && !emailCheck.getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+        }
+        User usernameCheck = userRepository.findByProfile_Username(newUsername);
+        if (usernameCheck != null && !usernameCheck.getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already registered");
+        }
 
-      // 4) Update fields
-      currentUser.setEmail(newEmail);
-      currentUser.getProfile().setUsername(newUsername);
-      if (newPrivacy != null) {
-          currentUser.getProfile().setStatsPublic(newPrivacy);
-      }
+        // 4) Update fields
+        currentUser.setEmail(newEmail);
+        currentUser.getProfile().setUsername(newUsername);
+        if (newPrivacy != null) {
+            currentUser.getProfile().setStatsPublic(newPrivacy);
+        }
 
-      // 5) Save changes
-      userRepository.save(currentUser);
-      userRepository.flush();
-      log.debug("Updated user: {}", currentUser);
+        // 5) Save changes
+        userRepository.save(currentUser);
+        userRepository.flush();
+        log.debug("Updated user: {}", currentUser);
 
-      return currentUser;
+        return currentUser;
     }
 
-    /**
-     * Search for a user by email
+
+    /* Search for a user by email
      * @param email the email to search for
      * @return the found user
      * @throws ResponseStatusException if user is not found
@@ -121,15 +122,40 @@ public class UserService {
         if (email == null || email.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email cannot be empty");
         }
-        
+
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No user found with this email");
         }
-        
+
         log.debug("Found user by email search: {}", user.getEmail());
         return user;
+
     }
 
+    /**
+     * delete current user account
+     */
+    public void deleteMyAccount(String token, String password) {
+        // 1) Verify user identity and obtain user information through token
+        User currentUser = authService.getUserByToken(token); // If the token is invalid, a 401 error will be thrown.
+
+        // 2) Verify the entered password
+        if (password == null || password.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "the password is required");
+        }
+
+        // 3) check the password is right or not
+        if (!authService.verifyPassword(currentUser, password)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Password verification failed, unable to delete account");
+        }
+
+        // 4) delete the user account
+        userRepository.delete(currentUser);
+        userRepository.flush();
+
+        log.info("the user account has been deleted: ID={}, Email={}", currentUser.getId(), currentUser.getEmail());
+
+    }
 }
 
