@@ -214,7 +214,7 @@ public class UserControllerTest {
         // For now, just assume it works without throwing
 
         // when/then
-        mockMvc.perform(delete("/api/users/me")
+        mockMvc.perform(delete("/users/me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", token)
                         .content(asJsonString(deleteRequestDTO)))
