@@ -111,7 +111,28 @@ public class UserService {
       return currentUser;
     }
 
-    /**
+
+     * Search for a user by email
+     * @param email the email to search for
+     * @return the found user
+     * @throws ResponseStatusException if user is not found
+     */
+    public User searchUserByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email cannot be empty");
+        }
+        
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No user found with this email");
+        }
+        
+        log.debug("Found user by email search: {}", user.getEmail());
+        return user;
+
+    }
+    
+     /**
      * delete current user account
      */
     public void deleteMyAccount(String token, String password) {
@@ -133,7 +154,6 @@ public class UserService {
         userRepository.flush();
 
         log.info("the user account has been deleted: ID={}, Email={}", currentUser.getId(), currentUser.getEmail());
-    }
 
 }
 

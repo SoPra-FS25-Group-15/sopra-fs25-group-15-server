@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -27,7 +28,10 @@ import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 
 @WebMvcTest(UserController.class)
@@ -39,6 +43,9 @@ public class UserControllerTest {
     @MockBean
     private UserService userService;
 
+    @MockBean
+    private AuthService authService;
+    
     @MockBean
     private DTOMapper mapper;
 
@@ -76,13 +83,15 @@ public class UserControllerTest {
         given(mapper.toUserPublicDTO(user)).willReturn(publicDTO);
 
         // when/then
-        mockMvc.perform(get("/api/users/1")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userid", is(1)))
-                .andExpect(jsonPath("$.username", is(profile.getUsername())))
-                .andExpect(jsonPath("$.mmr", is(profile.getMmr())))
-                .andExpect(jsonPath("$.achievements[0]", is("First Win")));
+
+        mockMvc.perform(get("/users/1")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.userid", is(1)))
+            .andExpect(jsonPath("$.username", is(profile.getUsername())))
+            .andExpect(jsonPath("$.mmr", is(profile.getMmr())))
+            .andExpect(jsonPath("$.achievements[0]", is("First Win")));
+
     }
 
     // Test for PUT /api/users/me
@@ -125,17 +134,71 @@ public class UserControllerTest {
         given(mapper.toUpdateResponse(user)).willReturn(responseDTO);
 
         // when/then
-        mockMvc.perform(put("/api/users/me")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", token)
-                        .content(asJsonString(updateRequestDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userid", is(1)))
-                .andExpect(jsonPath("$.username", is("updatedUser")))
-                .andExpect(jsonPath("$.email", is("updated@example.com")));
-    }
 
-    // Test for DELETE /api/users/me
+        mockMvc.perform(put("/users/me")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", token)
+            .content(asJsonString(updateRequestDTO)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.userid", is(1)))
+            .andExpect(jsonPath("$.username", is("updatedUser")))
+            .andExpect(jsonPath("$.email", is("updated@example.com")));
+    }
+    
+    @Test
+    public void searchUsers_validEmail_returnsFoundUser() throws Exception {
+        // given
+        final String token = "Bearer test-token";
+        String searchEmail = "search@example.com";
+        
+        User userToFind = new User();
+        // Set ID via reflection
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(userToFind, 2L);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        userToFind.setEmail(searchEmail);
+        userToFind.setStatus(UserStatus.ONLINE);
+        
+        UserProfile profile = new UserProfile();
+        profile.setUsername("searchUser");
+        userToFind.setProfile(profile);
+        
+        // Create search request DTO
+        UserSearchRequestDTO searchRequestDTO = new UserSearchRequestDTO();
+        searchRequestDTO.setEmail(searchEmail);
+        
+        // Create expected response DTO
+        UserSearchResponseDTO searchResponseDTO = new UserSearchResponseDTO();
+        searchResponseDTO.setUserid(2L);
+        searchResponseDTO.setUsername("searchUser");
+        searchResponseDTO.setEmail(searchEmail);
+        
+        // Mock authentication service to return valid user for token verification
+        User authUser = new User();
+        given(authService.getUserByToken(eq(token))).willReturn(authUser);
+        
+        // Mock user service to return the found user
+        given(userService.searchUserByEmail(eq(searchEmail))).willReturn(userToFind);
+        
+        // Mock mapper to return the expected DTO
+        given(mapper.toUserSearchResponseDTO(userToFind)).willReturn(searchResponseDTO);
+        
+        // when/then
+        mockMvc.perform(post("/users/search")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", token)
+            .content(asJsonString(searchRequestDTO)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.userid", is(2)))
+            .andExpect(jsonPath("$.username", is("searchUser")))
+            .andExpect(jsonPath("$.email", is(searchEmail)));
+    }
+  
+        // Test for DELETE /api/users/me
     @Test
     public void deleteMyAccount_validInput_deletesUserAccount() throws Exception {
         // given
@@ -158,6 +221,7 @@ public class UserControllerTest {
                 .andExpect(status().isNoContent());
     }
 
+ 
     // Helper Method: converts a Java object into JSON string.
     private String asJsonString(final Object object) {
         try {

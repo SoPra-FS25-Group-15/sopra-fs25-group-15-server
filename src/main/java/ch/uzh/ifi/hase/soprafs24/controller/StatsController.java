@@ -16,7 +16,7 @@ import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/users")
 public class StatsController {
 
     private final UserService userService;
@@ -34,7 +34,7 @@ public class StatsController {
      * Returns the public stats for a user. If the user's stats are set to private,
      * this endpoint will throw a 403 Forbidden.
      */
-    @GetMapping("/users/{userid}/stats")
+    @GetMapping("/{userid}/stats")
     @ResponseStatus(HttpStatus.OK)
     public UserStatsDTO getUserStats(@PathVariable Long userid) {
         User user = userService.getPublicProfile(userid);
@@ -48,7 +48,7 @@ public class StatsController {
      * GET /api/users/me/stats
      * Returns the stats for the authenticated user. Requires a valid session token.
      */
-    @GetMapping("/users/me/stats")
+    @GetMapping("/me/stats")
     @ResponseStatus(HttpStatus.OK)
     public UserStatsDTO getMyStats(@RequestHeader("Authorization") String token) {
         User user = authService.getUserByToken(token);

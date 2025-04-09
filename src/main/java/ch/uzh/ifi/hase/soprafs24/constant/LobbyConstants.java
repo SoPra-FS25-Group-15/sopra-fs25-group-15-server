@@ -5,12 +5,9 @@ public final class LobbyConstants {
     public static final String MODE_SOLO = "solo";
     public static final String MODE_TEAM = "team";
 
-    // Game types
-    public static final String GAME_TYPE_RANKED = "ranked";
-    public static final String GAME_TYPE_UNRANKED = "unranked";
-
-    // Lobby types
-    // For casual play, lobby is private (true); for ranked play, false.
+    // Lobby types - isPrivate flag determines the lobby type
+    // false = ranked (public lobbies)
+    // true = unranked (private lobbies)
     public static final boolean IS_LOBBY_PRIVATE = true;
 
     // Lobby statuses
