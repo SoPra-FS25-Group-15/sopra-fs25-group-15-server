@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,14 +31,17 @@ public class FriendController {
     private final FriendService friendService;
     private final DTOMapper mapper;
     private final AuthService authService;
+    private final SimpMessagingTemplate messagingTemplate; // NEW
 
-    public FriendController(FriendService friendService, DTOMapper mapper, AuthService authService) {
+    public FriendController(FriendService friendService, DTOMapper mapper, 
+                            AuthService authService, SimpMessagingTemplate messagingTemplate) {
         this.friendService = friendService;
         this.mapper = mapper;
         this.authService = authService;
+        this.messagingTemplate = messagingTemplate;
     }
 
-    // GET /api/friends/requests - get incoming friend requests for the authenticated user
+    // GET /friends/requests
     @GetMapping("/requests")
     @ResponseStatus(HttpStatus.OK)
     public List<FriendRequestDTO> getFriendRequests(@RequestHeader("Authorization") String token) {
@@ -47,23 +51,47 @@ public class FriendController {
                 .collect(Collectors.toList());
     }
 
-    // POST /api/friends/request - send a friend request
+    // POST /friends/request - send a friend request and notify recipient via WS
     @PostMapping("/request")
     @ResponseStatus(HttpStatus.CREATED)
     public FriendRequestDTO sendFriendRequest(@RequestHeader("Authorization") String token,
                                               @RequestBody FriendRequestDTO requestDTO) {
         FriendRequest request = friendService.sendFriendRequest(token, requestDTO.getRecipient());
-        return mapper.toFriendRequestDTO(request);
+        FriendRequestDTO responseDTO = mapper.toFriendRequestDTO(request);
+
+        // Use the session token (or unique identifier) from the recipient to send the WS message.
+        User recipient = request.getRecipient();
+        if (recipient != null && recipient.getToken() != null) {
+            messagingTemplate.convertAndSendToUser(
+                    recipient.getToken(),      // user identifier
+                    "/queue/friendRequest",    // destination
+                    responseDTO                // payload
+            );
+        }
+
+        return responseDTO;
     }
 
-    // PUT /api/friends/requests/{requestId} - respond to a friend request (accept or deny)
+    // PUT /friends/requests/{requestId} - respond to a friend request and notify sender
     @PutMapping("/requests/{requestId}")
     @ResponseStatus(HttpStatus.OK)
     public FriendRequestDTO respondToFriendRequest(@RequestHeader("Authorization") String token,
                                                    @PathVariable Long requestId,
                                                    @RequestBody FriendRequestDTO requestDTO) {
         FriendRequest request = friendService.respondToFriendRequest(token, requestId, requestDTO.getAction());
-        return mapper.toFriendRequestDTO(request);
+        FriendRequestDTO responseDTO = mapper.toFriendRequestDTO(request);
+
+        // Notify the sender about the response (accept/deny)
+        User sender = request.getSender();
+        if (sender != null && sender.getToken() != null) {
+            messagingTemplate.convertAndSendToUser(
+                    sender.getToken(),
+                    "/queue/friendRequestResponse",
+                    responseDTO
+            );
+        }
+
+        return responseDTO;
     }
     
     // GET /api/friends - list friends for the authenticated user
