@@ -182,6 +182,7 @@ public class DTOMapperTest {
         // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
         assertNotNull(lobby.getHintsEnabled());
         assertTrue(lobby.getHintsEnabled().isEmpty());
+        assertEquals(8, lobby.getMaxPlayers());
     }
 
     @Test
@@ -203,6 +204,7 @@ public class DTOMapperTest {
         // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
         assertNotNull(lobby.getHintsEnabled());
         assertTrue(lobby.getHintsEnabled().isEmpty());
+        assertEquals(8, lobby.getMaxPlayers());
     }
 
     @Test
@@ -213,8 +215,8 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 300L);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set lobby ID via reflection", e);
         }
         lobby.setMode("solo");
         lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
@@ -228,15 +230,20 @@ public class DTOMapperTest {
             Field createdAtField = Lobby.class.getDeclaredField("createdAt");
             createdAtField.setAccessible(true);
             createdAtField.set(lobby, now);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set createdAt via reflection", e);
         }
 
         LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(lobby);
-        // Since mode is solo and lobby.getMaxPlayers() is null, default maxPlayers should be 8.
-        assertEquals(8, responseDTO.getMaxPlayers());
-        // Server-provided hints should be passed through to the response
+
+        // Verify default maxPlayers is "8" (as String) for solo mode
+        assertEquals("8", responseDTO.getMaxPlayers());
+        assertNull(responseDTO.getPlayersPerTeam()); // Ensure playersPerTeam is null for solo mode
+        assertEquals("CODE1234", responseDTO.getCode());
+        assertEquals(2, responseDTO.getRoundCardsStartAmount());
         assertEquals(hints, responseDTO.getRoundCards());
+        assertEquals("waiting", responseDTO.getStatus());
+        assertEquals(now, responseDTO.getCreatedAt());
     }
 
     @Test
@@ -247,13 +254,12 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 400L);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set lobby ID via reflection", e);
         }
         lobby.setMode("team");
-        lobby.setPrivate(LobbyConstants.IS_LOBBY_PRIVATE);
+        lobby.setPrivate(false);
         lobby.setLobbyCode("TEAMCODE");
-        // For team mode, maxPlayers is not used in the response DTO.
         lobby.setMaxPlayersPerTeam(4);
         List<String> hints = Arrays.asList("H1", "H2");
         lobby.setHintsEnabled(hints);
@@ -263,16 +269,21 @@ public class DTOMapperTest {
             Field createdAtField = Lobby.class.getDeclaredField("createdAt");
             createdAtField.setAccessible(true);
             createdAtField.set(lobby, now);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set createdAt via reflection", e);
         }
 
         LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(lobby);
-        // For team mode, maxPlayers is not set in the DTO (only for solo mode).
-        assertEquals(null, responseDTO.getMaxPlayers());
+
+        // Verify team mode mappings
+        assertNull(responseDTO.getMaxPlayers()); // Ensure maxPlayers is null for team mode
+        assertEquals(4, responseDTO.getPlayersPerTeam());
         assertEquals("team", responseDTO.getMode());
-        assertEquals("TEAMCODE", responseDTO.getLobbyCode());
+        assertEquals("TEAMCODE", responseDTO.getCode());
+        assertEquals(2, responseDTO.getRoundCardsStartAmount());
+        assertEquals(hints, responseDTO.getRoundCards());
         assertEquals("waiting", responseDTO.getStatus());
+        assertEquals(now, responseDTO.getCreatedAt());
     }
 
     @Test
@@ -283,8 +294,11 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 500L);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch(IllegalArgumentException | NullPointerException e) {
+            // Handle specific exceptions
+            e.printStackTrace();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set lobby ID via reflection", e);
         }
         lobby.setMode("solo");
         lobby.setPrivate(true); // Private = unranked
@@ -336,8 +350,11 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 100L);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch(IllegalArgumentException | NullPointerException e) {
+            // Handle specific exceptions
+            e.printStackTrace();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set lobby ID via reflection", e);
         }
         lobby.setMode("solo");
         lobby.setPrivate(true); // Private = unranked
@@ -349,9 +366,10 @@ public class DTOMapperTest {
         
         // Verify solo mode mappings
         assertEquals("solo", dto.getMode());
-        assertEquals(8, dto.getMaxPlayers()); // MaxPlayers is exposed for solo mode
-        assertNull(dto.getMaxPlayersPerTeam()); // MaxPlayersPerTeam is not exposed for solo mode
-        assertEquals("12345", dto.getLobbyCode()); // Code is generated and exposed
+        assertEquals("8", dto.getMaxPlayers()); // MaxPlayers is now a String
+        assertEquals("12345", dto.getCode()); // Check new field name
+        assertEquals("12345", dto.getLobbyCode()); // Check backward compatibility
+        assertNull(dto.getPlayersPerTeam()); // MaxPlayersPerTeam renamed to playersPerTeam
     }
 
     @Test
@@ -394,8 +412,11 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 500L);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch(IllegalArgumentException | NullPointerException e) {
+            // Handle specific exceptions
+            e.printStackTrace();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set lobby ID via reflection", e);
         }
         lobby.setMode("solo");
         lobby.setPrivate(true);
@@ -407,8 +428,9 @@ public class DTOMapperTest {
         
         // Verify solo mode mappings
         assertEquals("solo", dto.getMode());
-        assertEquals(8, dto.getMaxPlayers());
-        assertNull(dto.getMaxPlayersPerTeam()); // Should be hidden for solo mode
+        assertEquals("8", dto.getMaxPlayers()); // Now a String
+        assertNull(dto.getPlayersPerTeam()); // Renamed field
+        assertEquals("12345", dto.getCode()); // Check new field
     }
 
     @Test
@@ -419,8 +441,8 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 600L);
-        } catch(Exception e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set lobby ID via reflection", e);
         }
         lobby.setMode("team");
         lobby.setPrivate(false);
@@ -430,8 +452,34 @@ public class DTOMapperTest {
         
         // Verify team mode mappings
         assertEquals("team", dto.getMode());
-        assertEquals(2, dto.getMaxPlayersPerTeam()); // Should be visible for team mode
+        assertEquals(2, dto.getPlayersPerTeam()); // This line was failing - ensure it's correctly mapped
         assertNull(dto.getMaxPlayers()); // Should not expose maxPlayers
+    }
+
+    @Test
+    public void testLobbyEntityToResponseDTO_RoundCardsStartAmount() {
+        // Create a lobby with round cards/hints
+        Lobby lobby = new Lobby();
+        try {
+            Field idField = Lobby.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(lobby, 700L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set lobby ID via reflection", e);
+        }
+        lobby.setMode("solo");
+        lobby.setPrivate(true);
+        
+        // Set 5 round cards/hints
+        List<String> hints = Arrays.asList("C1", "C2", "C3", "C4", "C5");
+        lobby.setHintsEnabled(hints);
+        
+        LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
+        
+        // Verify roundCardsStartAmount is set correctly
+        assertEquals(5, dto.getRoundCardsStartAmount());
+        // Verify backward compatibility
+        assertEquals(hints, dto.getRoundCards());
     }
 
     @Test

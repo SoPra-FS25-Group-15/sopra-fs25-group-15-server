@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,7 @@ public class LobbyService {
     private final UserRepository userRepository;
     private final DTOMapper mapper;
     private final Random random = new Random();
+    private final Map<String, LobbyInvite> pendingInvites = new ConcurrentHashMap<>();
 
     @Autowired
     public LobbyService(LobbyRepository lobbyRepository, UserRepository userRepository, DTOMapper mapper) {
@@ -492,5 +494,216 @@ public class LobbyService {
             "STANDARD_CARD_4",
             "STANDARD_CARD_5"
         ));
+    }
+
+    /**
+     * Find a lobby by its code
+     */
+    public Lobby getLobbyByCode(String code) {
+        if (code == null || code.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby code is required");
+        }
+        
+        Lobby lobby = lobbyRepository.findByLobbyCode(code);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+        }
+        
+        return lobby;
+    }
+
+    /**
+     * Get current lobby for a user
+     */
+    public Lobby getCurrentLobbyForUser(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        
+        // Find lobbies where this user is present
+        List<Lobby> allLobbies = lobbyRepository.findAll();
+        
+        for (Lobby lobby : allLobbies) {
+            // Check team mode lobbies
+            if (LobbyConstants.MODE_TEAM.equals(lobby.getMode()) && lobby.getTeams() != null) {
+                for (List<User> teamMembers : lobby.getTeams().values()) {
+                    if (teamMembers.stream().anyMatch(member -> member.getId().equals(userId))) {
+                        return lobby;
+                    }
+                }
+            } 
+            // Check solo mode lobbies
+            else if (lobby.getPlayers() != null) {
+                if (lobby.getPlayers().stream().anyMatch(player -> player.getId().equals(userId))) {
+                    return lobby;
+                }
+            }
+            
+            // Also check if user is the host
+            if (lobby.getHost() != null && lobby.getHost().getId().equals(userId)) {
+                return lobby;
+            }
+        }
+        
+        // User is not in any lobby
+        return null;
+    }
+
+    /**
+     * Get pending lobby invites for a user
+     */
+    public List<LobbyInvite> getPendingInvitesForUser(Long userId) {
+        // This is a placeholder - you would need to implement a LobbyInvite entity and repository
+        // For now, we return an empty list
+        return new ArrayList<>();
+    }
+
+    // Add the LobbyInvite inner class for the method above
+    public static class LobbyInvite {
+        private User sender;
+        private String lobbyCode;
+        
+        public User getSender() {
+            return sender;
+        }
+        
+        public void setSender(User sender) {
+            this.sender = sender;
+        }
+        
+        public String getLobbyCode() {
+            return lobbyCode;
+        }
+        
+        public void setLobbyCode(String lobbyCode) {
+            this.lobbyCode = lobbyCode;
+        }
+    }
+
+    /**
+     * Create a lobby invite from one user to another
+     */
+    public LobbyInvite createLobbyInvite(User sender, User recipient, String lobbyCode) {
+        // Check if the sender actually has access to the lobby with the given code
+        Lobby lobby = getLobbyByCode(lobbyCode);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+        }
+        
+        // Verify sender is in the lobby (host or participant)
+        boolean senderInLobby = isUserInLobby(sender, lobby);
+        if (!senderInLobby) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You must be in the lobby to send invites");
+        }
+        
+        // Create invite
+        LobbyInvite invite = new LobbyInvite();
+        invite.setSender(sender);
+        invite.setLobbyCode(lobbyCode);
+        
+        // Store the invite with a unique key
+        String inviteKey = sender.getId() + "-" + recipient.getId();
+        pendingInvites.put(inviteKey, invite);
+        
+        return invite;
+    }
+
+    /**
+     * Cancel a lobby invite
+     * @return true if an invite was canceled, false if no invite was found
+     */
+    public boolean cancelLobbyInvite(User sender, User recipient) {
+        String inviteKey = sender.getId() + "-" + recipient.getId();
+        LobbyInvite removed = pendingInvites.remove(inviteKey);
+        return removed != null;
+    }
+
+    /**
+     * Verify if a lobby invite exists with the specified details
+     * 
+     * @param sender The user who sent the invite
+     * @param recipient The user who received the invite
+     * @param lobbyCode The lobby code
+     * @return true if a valid invite exists, false otherwise
+     */
+    public boolean verifyLobbyInvite(User sender, User recipient, String lobbyCode) {
+        String inviteKey = sender.getId() + "-" + recipient.getId();
+        LobbyInvite invite = pendingInvites.get(inviteKey);
+        
+        return invite != null && invite.getLobbyCode().equals(lobbyCode);
+    }
+
+    /**
+     * Check if a user is in a lobby (either as host or participant)
+     */
+    private boolean isUserInLobby(User user, Lobby lobby) {
+        // Check if user is host
+        if (lobby.getHost().getId().equals(user.getId())) {
+            return true;
+        }
+        
+        // Check if user is in players list (solo mode)
+        if (lobby.getPlayers() != null && lobby.getPlayers().stream()
+                .anyMatch(player -> player.getId().equals(user.getId()))) {
+            return true;
+        }
+        
+        // Check if user is in teams (team mode)
+        if (lobby.getTeams() != null) {
+            for (List<User> teamMembers : lobby.getTeams().values()) {
+                if (teamMembers.stream().anyMatch(member -> member.getId().equals(user.getId()))) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if a user is the host of a lobby
+     *
+     * @param lobbyId The lobby ID
+     * @param userId The user ID
+     * @return true if the user is the host, false otherwise
+     */
+    public boolean isUserHost(Long lobbyId, Long userId) {
+        try {
+            Lobby lobby = getLobbyById(lobbyId);
+            return isUserHost(lobby, userId);
+        } catch (ResponseStatusException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if a user is in a lobby (either as host or participant)
+     * 
+     * @param userId The user ID
+     * @param lobbyId The lobby ID
+     * @return true if the user is in the lobby, false otherwise
+     */
+    public boolean isUserInLobby(Long userId, Long lobbyId) {
+        try {
+            Lobby lobby = getLobbyById(lobbyId);
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                
+            return isUserInLobby(user, lobby);
+        } catch (ResponseStatusException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if a user has any pending invite from another user, regardless of lobby code
+     * This is useful for friend invites where the lobby code might not be known
+     * 
+     * @param sender The user who sent the invite
+     * @param recipient The user who received the invite
+     * @return true if any invite exists from the sender to the recipient
+     */
+    public boolean hasAnyPendingInviteFrom(User sender, User recipient) {
+        String inviteKey = sender.getId() + "-" + recipient.getId();
+        return pendingInvites.containsKey(inviteKey);
     }
 }

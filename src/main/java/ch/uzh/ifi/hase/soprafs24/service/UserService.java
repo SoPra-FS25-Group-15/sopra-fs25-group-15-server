@@ -134,6 +134,22 @@ public class UserService {
     }
 
     /**
+     * Find a user by username
+     */
+    public User findByUsername(String username) {
+        if (username == null || username.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be empty");
+        }
+        
+        User user = userRepository.findByProfile_Username(username);
+        if (user == null) {
+            return null; // Return null to let the caller handle the not-found case
+        }
+        
+        return user;
+    }
+
+    /**
      * delete current user account
      */
     public void deleteMyAccount(String token, String password) {
