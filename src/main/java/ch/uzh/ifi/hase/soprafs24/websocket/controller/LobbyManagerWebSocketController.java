@@ -71,15 +71,12 @@ public class LobbyManagerWebSocketController {
      */
     @SubscribeMapping("/lobby-manager/lobbies")
     public WebSocketMessage<List<LobbyResponseDTO>> getAllLobbies(Principal principal) {
-        // Add validation for authentication even on subscription methods
         validateAuthentication(principal);
-        
         try {
             List<Lobby> lobbies = lobbyService.listLobbies();
             List<LobbyResponseDTO> lobbyDTOs = lobbies.stream()
                 .map(mapper::lobbyEntityToResponseDTO)
                 .collect(Collectors.toList());
-            
             return new WebSocketMessage<>("LOBBIES_LIST", lobbyDTOs);
         } catch (Exception e) {
             log.error("Error retrieving lobbies: {}", e.getMessage());
@@ -116,12 +113,7 @@ public class LobbyManagerWebSocketController {
                 "/topic/lobby-manager/join/result",
                 new WebSocketMessage<>("JOIN_SUCCESS", response)
             );
-            
-            // Register this user's session with the lobby
-            String sessionId = StompHeaderAccessor.create().getSessionId();
-            if (sessionId != null) {
-                webSocketEventListener.registerSessionWithLobby(sessionId, lobby.getId());
-            }
+            log.info("User {} successfully joined lobby {}", principal.getName(), code);
             
         } catch (ResponseStatusException e) {
             log.error("Error joining lobby: {}", e.getMessage());
@@ -150,19 +142,16 @@ public class LobbyManagerWebSocketController {
     @SubscribeMapping("/lobby-manager/state")
     public WebSocketMessage<LobbyManagementDTO> getLobbyManagementState(Principal principal) {
         Long userId = validateAuthentication(principal);
-        
+
         try {
-            // Create the DTO for the response
             LobbyManagementDTO state = new LobbyManagementDTO();
-            
-            // Get the user's current lobby code if they're in one
             Lobby currentLobby = lobbyService.getCurrentLobbyForUser(userId);
+
             if (currentLobby != null) {
                 state.setCurrentLobbyCode(currentLobby.getLobbyCode());
             }
-            
-            // Get pending invites if there are any
-            List<LobbyManagementDTO.PendingInvite> pendingInvites = 
+
+            List<LobbyManagementDTO.PendingInvite> pendingInvites =
                 lobbyService.getPendingInvitesForUser(userId).stream()
                 .map(invite -> {
                     LobbyManagementDTO.PendingInvite pendingInvite = new LobbyManagementDTO.PendingInvite();
@@ -171,11 +160,12 @@ public class LobbyManagerWebSocketController {
                     return pendingInvite;
                 })
                 .collect(Collectors.toList());
-            
+
             state.setPendingInvites(pendingInvites);
-            
+
             return new WebSocketMessage<>("LOBBY_MANAGEMENT_STATE", state);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("Error getting lobby management state: {}", e.getMessage());
             return new WebSocketMessage<>("LOBBY_MANAGEMENT_ERROR", null);
         }
@@ -185,31 +175,14 @@ public class LobbyManagerWebSocketController {
      * Get detailed status of a specific lobby
      */
     @SubscribeMapping("/lobby-manager/lobby/{lobbyId}")
-    public WebSocketMessage<?> getLobbyStatus(
-            @DestinationVariable Long lobbyId,
-            Principal principal,
-            StompHeaderAccessor headerAccessor) {
-        
+    public WebSocketMessage<?> getLobbyStatus(@DestinationVariable Long lobbyId,
+                                              Principal principal) {
         try {
-            // Validate authentication and get user ID
             Long userId = validateAuthentication(principal);
             log.info("User {} requesting status for lobby {}", userId, lobbyId);
-            
-            // Additional check for session information
-            String sessionId = headerAccessor.getSessionId();
-            if (sessionId == null) {
-                log.error("Invalid session for lobby status request");
-                return new WebSocketMessage<>("LOBBY_STATUS_ERROR", Map.of(
-                    "code", HttpStatus.UNAUTHORIZED.value(),
-                    "message", "Invalid session"
-                ));
-            }
-            
-            // Get lobby details
+
             Lobby lobby = lobbyService.getLobbyById(lobbyId);
-            
-            // Additional security: Check if user is permitted to view this lobby
-            // For public lobbies or if user is a member/host, this would be allowed
+
             if (!lobbyService.isUserInLobby(userId, lobbyId) && lobby.isPrivate()) {
                 log.warn("User {} attempted to access private lobby {} they're not a member of", userId, lobbyId);
                 return new WebSocketMessage<>("LOBBY_STATUS_ERROR", Map.of(
@@ -217,18 +190,18 @@ public class LobbyManagerWebSocketController {
                     "message", "You don't have permission to view this lobby"
                 ));
             }
-            
-            // Convert to DTO with all status information
+
             LobbyResponseDTO lobbyDTO = mapper.lobbyEntityToResponseDTO(lobby);
-            
             return new WebSocketMessage<>("LOBBY_STATUS", lobbyDTO);
-        } catch (ResponseStatusException e) {
+        }
+        catch (ResponseStatusException e) {
             log.error("Error retrieving lobby status: {} - {}", e.getStatus(), e.getMessage());
             return new WebSocketMessage<>("LOBBY_STATUS_ERROR", Map.of(
                 "code", e.getStatus().value(),
                 "message", e.getReason()
             ));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("Unexpected error retrieving lobby status: {}", e.getMessage());
             return new WebSocketMessage<>("LOBBY_STATUS_ERROR", Map.of(
                 "code", HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -236,6 +209,7 @@ public class LobbyManagerWebSocketController {
             ));
         }
     }
+
 
     /**
      * Send a lobby invite

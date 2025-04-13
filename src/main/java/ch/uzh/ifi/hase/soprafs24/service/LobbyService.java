@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -316,12 +317,8 @@ public class LobbyService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid lobby code");
             }
         } else {
-            // Friend invite - verify that user is in host's friend list (if you have a friends system)
-            // This would be the place to add the check if you have a friend system implemented
-            // Example:
-            // if (!isFriend(lobby.getHost().getId(), userId)) {
-            //     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only friends can join via invite");
-            // }
+            // Friend invite - verify that user is in host's friend list (if implemented)
+            // ...
         }
         
         // Check if this is a team mode lobby or solo mode
@@ -351,8 +348,7 @@ public class LobbyService {
             }
             teamMembers.add(user);
             System.out.println("Added user " + user.getId() + " to team " + teamName);
-        } 
-        else {
+        } else {
             // SOLO MODE: Add player to general players list
             
             // Initialize players list if needed
@@ -382,14 +378,12 @@ public class LobbyService {
         
         // After adding the player, check if lobby is full
         boolean isLobbyFull = false;
-        
         if (LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
             // Check if all teams are full in team mode
             int totalTeamCapacity = 2 * lobby.getMaxPlayersPerTeam();
             int totalPlayers = lobby.getTeams().values().stream()
                 .mapToInt(List::size)
                 .sum();
-                
             isLobbyFull = totalPlayers >= totalTeamCapacity;
         } else {
             // Check if solo lobby is full
@@ -399,27 +393,49 @@ public class LobbyService {
         // If lobby is full, change status to in-progress
         if (isLobbyFull) {
             lobby.setStatus(LobbyConstants.LOBBY_STATUS_IN_PROGRESS);
-            // Here you would also trigger any game initialization logic
+            // Trigger game initialization logic if necessary
         }
         
         // Save the updated lobby
         lobby = lobbyRepository.save(lobby);
         System.out.println("Saved lobby with ID: " + lobby.getId());
         
+        // ----- Eagerly initialize lazy collections before mapping to DTO -----
+        if (LobbyConstants.MODE_TEAM.equals(lobby.getMode())) {
+            // For team mode, iterate through each team and initialize achievements
+            for (List<User> teamMembers : lobby.getTeams().values()) {
+                for (User player : teamMembers) {
+                    if (player.getProfile() != null && player.getProfile().getAchievements() != null) {
+                        Hibernate.initialize(player.getProfile().getAchievements());
+                    }
+                }
+            }
+        } else {
+            // For solo mode, iterate over the players list
+            if (lobby.getPlayers() != null) {
+                for (User player : lobby.getPlayers()) {
+                    if (player.getProfile() != null && player.getProfile().getAchievements() != null) {
+                        Hibernate.initialize(player.getProfile().getAchievements());
+                    }
+                }
+            }
+        }
+        // -------------------------------------------------------------------------
+        
         // Create response DTO
         try {
             LobbyResponseDTO lobbyResponseDTO = mapper.lobbyEntityToResponseDTO(lobby);
             return new LobbyJoinResponseDTO("Joined lobby successfully.", lobbyResponseDTO);
-        } 
-        catch (Exception e) {
+        } catch (Exception e) {
             System.err.println("Error converting lobby to DTO: " + e.getMessage());
-            // Create a simplified response if DTO conversion fails - Fixed to remove lobbyName reference
+            // Create a simplified response if DTO conversion fails
             LobbyResponseDTO simplifiedDTO = new LobbyResponseDTO();
             simplifiedDTO.setLobbyId(lobby.getId());
             simplifiedDTO.setMode(lobby.getMode());
             return new LobbyJoinResponseDTO("Joined lobby successfully.", simplifiedDTO);
         }
     }
+    
 
     /**
      * Leaves a lobby (or kicks a player if the requester is the host).
@@ -582,35 +598,49 @@ public class LobbyService {
     /**
      * Create a lobby invite from one user to another
      */
+    @Transactional
     public LobbyInvite createLobbyInvite(User sender, User recipient, String lobbyCode) {
-        // Check if the sender actually has access to the lobby with the given code
         Lobby lobby = getLobbyByCode(lobbyCode);
-        if (lobby == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+
+        // Force-load the relevant collection before checking membership
+        if (LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode()) && lobby.getTeams() != null) {
+            Hibernate.initialize(lobby.getTeams());
+            // Also initialize each team list
+            for (List<User> teamMembers : lobby.getTeams().values()) {
+                Hibernate.initialize(teamMembers);
+            }
         }
-        
-        // Verify sender is in the lobby (host or participant)
+        else {
+            // Solo mode => load players
+            if (lobby.getPlayers() != null) {
+                Hibernate.initialize(lobby.getPlayers());
+            }
+        }
+
+        // Now we won't get lazy init errors in isUserInLobby
         boolean senderInLobby = isUserInLobby(sender, lobby);
         if (!senderInLobby) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You must be in the lobby to send invites");
         }
-        
-        // Create invite
+
+        // Create the invite
         LobbyInvite invite = new LobbyInvite();
         invite.setSender(sender);
         invite.setLobbyCode(lobbyCode);
-        
-        // Store the invite with a unique key
+
+        // Put in the map
         String inviteKey = sender.getId() + "-" + recipient.getId();
         pendingInvites.put(inviteKey, invite);
-        
+
         return invite;
     }
+
 
     /**
      * Cancel a lobby invite
      * @return true if an invite was canceled, false if no invite was found
      */
+    @Transactional
     public boolean cancelLobbyInvite(User sender, User recipient) {
         String inviteKey = sender.getId() + "-" + recipient.getId();
         LobbyInvite removed = pendingInvites.remove(inviteKey);
@@ -625,6 +655,7 @@ public class LobbyService {
      * @param lobbyCode The lobby code
      * @return true if a valid invite exists, false otherwise
      */
+    @Transactional
     public boolean verifyLobbyInvite(User sender, User recipient, String lobbyCode) {
         String inviteKey = sender.getId() + "-" + recipient.getId();
         LobbyInvite invite = pendingInvites.get(inviteKey);
@@ -702,6 +733,7 @@ public class LobbyService {
      * @param recipient The user who received the invite
      * @return true if any invite exists from the sender to the recipient
      */
+    @Transactional
     public boolean hasAnyPendingInviteFrom(User sender, User recipient) {
         String inviteKey = sender.getId() + "-" + recipient.getId();
         return pendingInvites.containsKey(inviteKey);
