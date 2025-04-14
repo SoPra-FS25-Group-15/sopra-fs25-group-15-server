@@ -16,7 +16,7 @@ public interface ActionCardMapper {
     @Mapping(source = "name", target = "name")
     @Mapping(source = "type", target = "type")
     @Mapping(source = "effect", target = "effect")
-    @Mapping(source = "isActive", target = "isActive")
+    @Mapping(source = "active", target = "active")
     @Mapping(source = "owner.id", target = "ownerId")
     ActionCardDTO convertEntityToActionCardDTO(ActionCard actionCard);
 }

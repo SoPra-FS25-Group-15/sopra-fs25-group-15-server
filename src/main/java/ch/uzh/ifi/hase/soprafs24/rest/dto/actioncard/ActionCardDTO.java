@@ -13,12 +13,4 @@ public class ActionCardDTO {
     private Long ownerId;
 
 
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean active) {
-        isActive = active;
-    }
-
 }
