@@ -4,17 +4,21 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
+
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserDeleteRequestDTO;
 import org.junit.jupiter.api.Test;
+
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -35,10 +39,10 @@ public class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    
+
     @MockBean
     private UserService userService;
-    
+
     @MockBean
     private AuthService authService;
     
@@ -55,29 +59,31 @@ public class UserControllerTest {
             Field idField = User.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(user, 1L);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
         user.setEmail("firstname@lastname.com");
         user.setStatus(UserStatus.OFFLINE);
-        
+
         UserProfile profile = new UserProfile();
         profile.setUsername("firstnameLastname");
         profile.setMmr(1500);
         profile.setAchievements(Arrays.asList("First Win"));
         user.setProfile(profile);
-        
+
         // Expected DTO; note that the mapper converts the entity to a DTO.
         UserPublicDTO publicDTO = new UserPublicDTO();
         publicDTO.setUserid(1L);
         publicDTO.setUsername(profile.getUsername());
         publicDTO.setMmr(profile.getMmr());
         publicDTO.setAchievements(profile.getAchievements());
-        
+
         given(userService.getPublicProfile(eq(1L))).willReturn(user);
         given(mapper.toUserPublicDTO(user)).willReturn(publicDTO);
-        
+
         // when/then
+
         mockMvc.perform(get("/users/1")
             .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -85,8 +91,9 @@ public class UserControllerTest {
             .andExpect(jsonPath("$.username", is(profile.getUsername())))
             .andExpect(jsonPath("$.mmr", is(profile.getMmr())))
             .andExpect(jsonPath("$.achievements[0]", is("First Win")));
+
     }
-    
+
     // Test for PUT /api/users/me
     @Test
     public void updateMyProfile_validInput_returnsUpdatedUser() throws Exception {
@@ -98,34 +105,36 @@ public class UserControllerTest {
             Field idField = User.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(user, 1L);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
         user.setEmail("updated@example.com");
         user.setStatus(UserStatus.ONLINE);
-        
+
         UserProfile profile = new UserProfile();
         profile.setUsername("updatedUser");
         profile.setStatsPublic(false);
         user.setProfile(profile);
-        
+
         // Expected response DTO after update
         UserUpdateResponseDTO responseDTO = new UserUpdateResponseDTO();
         responseDTO.setUserid(1L);
         responseDTO.setUsername(profile.getUsername());
         responseDTO.setEmail(user.getEmail());
-        
+
         // Build update request DTO
         UserUpdateRequestDTO updateRequestDTO = new UserUpdateRequestDTO();
         updateRequestDTO.setUsername("updatedUser");
         updateRequestDTO.setEmail("updated@example.com");
         updateRequestDTO.setStatsPublic(false);
-        
+
         given(userService.updateMyUser(eq(token), eq("updatedUser"), eq("updated@example.com"), eq(false)))
-            .willReturn(user);
+                .willReturn(user);
         given(mapper.toUpdateResponse(user)).willReturn(responseDTO);
-        
+
         // when/then
+
         mockMvc.perform(put("/users/me")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", token)
@@ -188,12 +197,37 @@ public class UserControllerTest {
             .andExpect(jsonPath("$.username", is("searchUser")))
             .andExpect(jsonPath("$.email", is(searchEmail)));
     }
-    
+  
+        // Test for DELETE /api/users/me
+    @Test
+    public void deleteMyAccount_validInput_deletesUserAccount() throws Exception {
+        // given
+        final String token = "Bearer test-token";
+        String password = "correct-password";
+
+        // Create delete request DTO
+        UserDeleteRequestDTO deleteRequestDTO = new UserDeleteRequestDTO();
+        deleteRequestDTO.setPassword(password);
+
+        // Mock service call: nothing to return since it’s void
+        // We can verify interaction in advanced cases using Mockito.verify
+        // For now, just assume it works without throwing
+
+        // when/then
+        mockMvc.perform(delete("/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", token)
+                        .content(asJsonString(deleteRequestDTO)))
+                .andExpect(status().isNoContent());
+    }
+
+ 
     // Helper Method: converts a Java object into JSON string.
     private String asJsonString(final Object object) {
         try {
             return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(object);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

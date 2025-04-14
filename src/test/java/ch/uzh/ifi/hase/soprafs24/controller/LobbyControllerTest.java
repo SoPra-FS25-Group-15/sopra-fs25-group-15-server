@@ -130,8 +130,8 @@ public class LobbyControllerTest {
         casualResponseDTO.setMode("solo");
         casualResponseDTO.setPrivate(true);
         casualResponseDTO.setLobbyCode("12345");
-        casualResponseDTO.setMaxPlayers(8); // For solo mode, this is set
-        // maxPlayersPerTeam should not appear in the response for solo mode
+        casualResponseDTO.setMaxPlayers("8"); // Changed to String
+        casualResponseDTO.setRoundCardsStartAmount(5); // New field
         
         when(authService.getUserByToken(token)).thenReturn(dummyUser);
         when(mapper.lobbyRequestDTOToEntity(any(LobbyRequestDTO.class))).thenReturn(casualLobby);
@@ -148,9 +148,10 @@ public class LobbyControllerTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.lobbyId").value(casualResponseDTO.getLobbyId()))
         .andExpect(jsonPath("$.mode").value("solo")) // Mode is enforced to solo
-        .andExpect(jsonPath("$.lobbyCode").value("12345")) // Has generated code
-        .andExpect(jsonPath("$.maxPlayers").value(8)) // MaxPlayers is shown
-        .andExpect(jsonPath("$.maxPlayersPerTeam").doesNotExist()); // No maxPlayersPerTeam in solo mode
+        .andExpect(jsonPath("$.code").value("12345")) // Updated field name
+        .andExpect(jsonPath("$.maxPlayers").value("8")) // Changed to String
+        .andExpect(jsonPath("$.roundCardsStartAmount").value(5)) // New field
+        .andExpect(jsonPath("$.playersPerTeam").doesNotExist()); // Updated field name
     }
     
     @Test

@@ -120,8 +120,9 @@ public class LobbyServiceIntegrationTest {
         // Check that the DTO correctly maps the solo mode lobby
         LobbyResponseDTO soloDTO = mapper.lobbyEntityToResponseDTO(soloLobby);
         assertEquals("solo", soloDTO.getMode());
-        assertEquals(8, soloDTO.getMaxPlayers()); // Default maxPlayers is 8
-        assertNull(soloDTO.getMaxPlayersPerTeam()); // Should not expose maxPlayersPerTeam
+        assertEquals("8", soloDTO.getMaxPlayers()); // MaxPlayers is now a String
+        assertNull(soloDTO.getPlayersPerTeam()); // Renamed from maxPlayersPerTeam
+        assertEquals(soloLobby.getLobbyCode(), soloDTO.getCode()); // Check new field name
     }
 
     @Test
@@ -142,12 +143,18 @@ public class LobbyServiceIntegrationTest {
         
         // Verify the DTO mapper includes these cards in the response
         LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(createdLobby);
+        
+        // Verify both fields are set properly for compatibility
         assertNotNull(responseDTO.getRoundCards());
         assertEquals(createdLobby.getHintsEnabled(), responseDTO.getRoundCards());
         
-        // Verify the expected default card values
-        assertTrue(responseDTO.getRoundCards().contains("STANDARD_CARD_1"));
-        assertTrue(responseDTO.getRoundCards().contains("STANDARD_CARD_5"));
+        // Verify new field is also set correctly
+        assertNotNull(responseDTO.getRoundCardsStartAmount());
+        assertEquals(5, responseDTO.getRoundCardsStartAmount().intValue());
+        
+        // Verify the expected default card values still exist in the entity
+        assertTrue(createdLobby.getHintsEnabled().contains("STANDARD_CARD_1"));
+        assertTrue(createdLobby.getHintsEnabled().contains("STANDARD_CARD_5"));
     }
 
     @Test
@@ -215,6 +222,8 @@ public class LobbyServiceIntegrationTest {
         assertNotNull(response);
         assertNotNull(response.getLobby());
         assertEquals(teamLobby.getId(), response.getLobby().getLobbyId());
+        // Check the code field is present in the response
+        assertEquals(lobbyCode, response.getLobby().getCode());
     }
     
     @Test

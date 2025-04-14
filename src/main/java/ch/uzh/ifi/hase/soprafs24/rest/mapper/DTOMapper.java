@@ -162,34 +162,21 @@ public class DTOMapper {
     // 9) Lobby mapping: Convert a LobbyRequestDTO into a Lobby entity.
     public Lobby lobbyRequestDTOToEntity(LobbyRequestDTO dto) {
         Lobby lobby = new Lobby();
-        
-        // Set private flag directly - this determines lobby type (ranked or unranked)
         lobby.setPrivate(dto.isPrivate());
-        
-        // For private (unranked) lobbies, enforce solo mode
+
         if (dto.isPrivate()) {
             lobby.setMode(LobbyConstants.MODE_SOLO);
+            lobby.setMaxPlayersPerTeam(1);
         } else {
-            // For public (ranked) lobbies, use the mode from the DTO if provided
-            if(dto.getMode() != null && !dto.getMode().isEmpty()) {
-                lobby.setMode(dto.getMode().toLowerCase());
+            lobby.setMode(dto.getMode() != null ? dto.getMode().toLowerCase() : LobbyConstants.MODE_SOLO);
+            if (LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode())) {
+                lobby.setMaxPlayersPerTeam(dto.getMaxPlayersPerTeam() != null ? dto.getMaxPlayersPerTeam() : 2);
             } else {
-                lobby.setMode(LobbyConstants.MODE_SOLO);
+                lobby.setMaxPlayersPerTeam(1);
             }
         }
 
-        // Set maxPlayersPerTeam based on mode
-        if(LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode())) {
-            lobby.setMaxPlayersPerTeam(dto.getMaxPlayersPerTeam());
-        } else {
-            // For solo mode, always set to 1
-            lobby.setMaxPlayersPerTeam(1);
-        }
-        
-        // Set maxPlayers
-        lobby.setMaxPlayers(dto.getMaxPlayers());
-        
-        // Round cards (hints) will be set by the service, not provided by client
+        lobby.setMaxPlayers(dto.getMaxPlayers() != null ? dto.getMaxPlayers() : 8);
         return lobby;
     }
 
@@ -199,27 +186,29 @@ public class DTOMapper {
         dto.setLobbyId(lobby.getId());
         dto.setMode(lobby.getMode());
         dto.setPrivate(lobby.isPrivate());
+        dto.setCode(lobby.getLobbyCode());
         dto.setLobbyCode(lobby.getLobbyCode());
-        
-        // Handle mode-specific fields
-        if(LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode())) {
-            // For team mode, set maxPlayersPerTeam
-            dto.setMaxPlayersPerTeam(lobby.getMaxPlayersPerTeam() != null ? 
-                lobby.getMaxPlayersPerTeam() : 2);
-            // Don't set maxPlayers for team mode to hide it in the UI
+
+        if (LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode())) {
+            dto.setPlayersPerTeam(lobby.getMaxPlayersPerTeam() != null ? lobby.getMaxPlayersPerTeam() : 2);
+            dto.setMaxPlayers((String) null); // Explicitly set to null for team mode
         } else {
-            // For solo mode, set maxPlayers but not maxPlayersPerTeam
-            dto.setMaxPlayers(lobby.getMaxPlayers() != null ? lobby.getMaxPlayers() : 8);
+            dto.setMaxPlayers(String.valueOf(lobby.getMaxPlayers() != null ? lobby.getMaxPlayers() : 8)); // Explicitly convert to String
+            dto.setPlayersPerTeam(null);
         }
-        
-        dto.setRoundCards(lobby.getHintsEnabled());
+
+        if (lobby.getHintsEnabled() != null) {
+            dto.setRoundCardsStartAmount(lobby.getHintsEnabled().size());
+            dto.setRoundCards(lobby.getHintsEnabled());
+        } else {
+            dto.setRoundCardsStartAmount(0);
+        }
+
         dto.setCreatedAt(lobby.getCreatedAt());
         dto.setStatus(lobby.getStatus());
-        
-        // Map players based on mode
-        if(LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode())) {
-            // For team mode, map teams if available
-            if(lobby.getTeams() != null && !lobby.getTeams().isEmpty()) {
+
+        if (LobbyConstants.MODE_TEAM.equalsIgnoreCase(lobby.getMode())) {
+            if (lobby.getTeams() != null && !lobby.getTeams().isEmpty()) {
                 Map<String, List<UserPublicDTO>> teamDTOs = new HashMap<>();
                 lobby.getTeams().forEach((teamName, teamMembers) -> {
                     List<UserPublicDTO> memberDTOs = teamMembers.stream()
@@ -230,13 +219,12 @@ public class DTOMapper {
                 dto.setTeams(teamDTOs);
             }
         } else {
-            // For solo mode, map players list
             List<UserPublicDTO> playerDTOs = lobby.getPlayers() != null
                 ? lobby.getPlayers().stream().map(this::toUserPublicDTO).collect(Collectors.toList())
                 : new ArrayList<>();
             dto.setPlayers(playerDTOs);
         }
-        
+
         return dto;
     }
     
