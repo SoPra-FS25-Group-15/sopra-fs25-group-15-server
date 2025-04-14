@@ -102,7 +102,37 @@ public class LobbyService {
         // Generate default round cards instead of taking them from client
         List<String> defaultRoundCards = generateDefaultRoundCards();
         lobby.setHintsEnabled(defaultRoundCards);
-        
+        //Automatically add the host to the lobby 
+        User host = lobby.getHost();
+        if (host != null) {
+            if (mode.equalsIgnoreCase(LobbyConstants.MODE_TEAM)) {
+                // For team mode, add the host to a default team (e.g., "team1")
+                Map<String, List<User>> teams = lobby.getTeams();
+                if (teams == null) {
+                    teams = new HashMap<>();
+                    lobby.setTeams(teams);
+                }
+                String defaultTeam = "team1";
+                List<User> teamMembers = teams.get(defaultTeam);
+                if (teamMembers == null) {
+                    teamMembers = new ArrayList<>();
+                    teams.put(defaultTeam, teamMembers);
+                }
+                if (!teamMembers.contains(host)) {
+                    teamMembers.add(host);
+                }
+            } else {
+                // For solo mode, add the host to the players list.
+                List<User> players = lobby.getPlayers();
+                if (players == null) {
+                    players = new ArrayList<>();
+                    lobby.setPlayers(players);
+                }
+                if (!players.contains(host)) {
+                    players.add(host);
+                }
+            }
+        }
         return lobbyRepository.save(lobby);
     }
 
@@ -201,8 +231,6 @@ public class LobbyService {
             
             lobby.setMaxPlayersPerTeam(config.getMaxPlayersPerTeam());
         }
-        
-        // Removed: Update roundCards if provided
         
         return lobbyRepository.save(lobby);
     }
@@ -531,6 +559,7 @@ public class LobbyService {
     /**
      * Get current lobby for a user
      */
+    @Transactional(readOnly = true)
     public Lobby getCurrentLobbyForUser(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));

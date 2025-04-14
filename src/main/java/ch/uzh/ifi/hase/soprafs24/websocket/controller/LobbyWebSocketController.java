@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.websocket.controller;
 import java.security.Principal;
 import java.util.Map;
 
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
@@ -140,11 +142,12 @@ public class LobbyWebSocketController {
      * Handle lobby update settings
      * Type "UPDATE"
      */
+    @Transactional
     @MessageMapping("/lobby/{lobbyId}/update")
     public void updateLobbySettings(@DestinationVariable Long lobbyId, 
-                                  @Payload WebSocketMessage<LobbyDTO> message,
-                                  Principal principal,
-                                  StompHeaderAccessor headerAccessor) {
+                                    @Payload WebSocketMessage<LobbyDTO> message,
+                                    Principal principal,
+                                    StompHeaderAccessor headerAccessor) {
         Long userId = validateAuthentication(principal);
         log.info("User {} attempting to update lobby {}", userId, lobbyId);
         
@@ -178,11 +181,18 @@ public class LobbyWebSocketController {
                 updateRequest.setMaxPlayersPerTeam(lobbyData.getPlayersPerTeam());
             }
             
-            // Update the lobby
+            // Update the lobby configuration
             Lobby updatedLobby = lobbyService.updateLobbyConfig(lobbyId, updateRequest, userId);
+            
+            // Eagerly initialize the lazy hintsEnabled collection before mapping to DTO
+            if (updatedLobby.getHintsEnabled() != null) {
+                Hibernate.initialize(updatedLobby.getHintsEnabled());
+            }
+            
+            // Convert updated lobby to response DTO
             LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(updatedLobby);
             
-            // Convert to the required Lobby format
+            // Convert to the required LobbyDTO format for WebSocket response
             LobbyDTO responseLobbyDTO = convertToLobbyDTO(responseDTO);
             
             // Send success message to everyone in the lobby
@@ -221,6 +231,7 @@ public class LobbyWebSocketController {
             );
         }
     }
+    
     
     /**
      * Handle leave lobby

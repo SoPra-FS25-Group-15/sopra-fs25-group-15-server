@@ -96,6 +96,7 @@ public class DTOMapper {
         dto.setUsername(user.getProfile().getUsername());
         dto.setMmr(user.getProfile().getMmr());
         dto.setAchievements(user.getProfile().getAchievements());
+        dto.setEmail(user.getEmail());
         return dto;
     }
 
