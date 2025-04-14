@@ -57,7 +57,12 @@ public class LobbyController {
         Lobby lobby = mapper.lobbyRequestDTOToEntity(lobbyRequestDTO);
         lobby.setHost(currentUser);
         Lobby createdLobby = lobbyService.createLobby(lobby);
-        return mapper.lobbyEntityToResponseDTO(createdLobby);
+        LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(createdLobby);
+        // Ensure we have roundCardsStartAmount set
+        if (responseDTO.getRoundCardsStartAmount() == null && createdLobby.getHintsEnabled() != null) {
+            responseDTO.setRoundCardsStartAmount(createdLobby.getHintsEnabled().size());
+        }
+        return responseDTO;
     }
 
     // Retrieve lobby details.

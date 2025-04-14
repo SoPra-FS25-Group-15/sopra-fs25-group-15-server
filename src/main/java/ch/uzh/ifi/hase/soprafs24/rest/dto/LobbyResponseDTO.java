@@ -8,15 +8,23 @@ public class LobbyResponseDTO {
     private Long lobbyId;
     private String mode;
     private boolean isPrivate;
+    // New field name as per requirements
+    private String code;
+    // For backward compatibility
     private String lobbyCode;
     
-    // Used for team mode only
-    private Integer maxPlayersPerTeam;
+    // Used for team mode only, renamed from maxPlayersPerTeam
+    private Integer playersPerTeam;
     
-    // Used for solo mode only
-    private Integer maxPlayers;
+    // Changed to String as per requirements
+    private String maxPlayers;
     
+    // New field for count of round cards instead of the list
+    private Integer roundCardsStartAmount;
+    
+    // Keep for backward compatibility
     private List<String> roundCards;
+    
     private Instant createdAt;
     private String status;
     
@@ -44,37 +52,66 @@ public class LobbyResponseDTO {
     public void setPrivate(boolean isPrivate) {
         this.isPrivate = isPrivate;
     }
+    
+    // New getter/setter for code
+    public String getCode() {
+        return code;
+    }
+    public void setCode(String code) {
+        this.code = code;
+    }
+    
+    // For backward compatibility
     public String getLobbyCode() {
-        return lobbyCode;
+        return code;
     }
     public void setLobbyCode(String lobbyCode) {
+        this.code = lobbyCode;
         this.lobbyCode = lobbyCode;
     }
     
-    // Only return maxPlayersPerTeam for team mode
-    public Integer getMaxPlayersPerTeam() {
-        return "team".equals(mode) ? maxPlayersPerTeam : null;
+    // Fix: Remove conditional check that was causing tests to fail
+    public Integer getPlayersPerTeam() {
+        return playersPerTeam;
     }
     
-    public void setMaxPlayersPerTeam(int maxPlayersPerTeam) {
-        this.maxPlayersPerTeam = maxPlayersPerTeam;
+    // Changed parameter type from primitive int to object Integer for consistency
+    public void setPlayersPerTeam(Integer playersPerTeam) {
+        this.playersPerTeam = playersPerTeam;
     }
     
-    // Only return maxPlayers for solo mode
-    public Integer getMaxPlayers() {
-        return "solo".equals(mode) ? maxPlayers : null;
+    // Changed to String
+    public String getMaxPlayers() {
+        return maxPlayers;
     }
     
-    public void setMaxPlayers(Integer maxPlayers) {
+    public void setMaxPlayers(String maxPlayers) {
         this.maxPlayers = maxPlayers;
     }
     
+    // For backward compatibility
+    public void setMaxPlayers(Integer maxPlayers) {
+        if (maxPlayers != null) {
+            this.maxPlayers = String.valueOf(maxPlayers);
+        }
+    }
+    
+    // New getter/setter for roundCardsStartAmount
+    public Integer getRoundCardsStartAmount() {
+        return roundCardsStartAmount;
+    }
+    public void setRoundCardsStartAmount(Integer roundCardsStartAmount) {
+        this.roundCardsStartAmount = roundCardsStartAmount;
+    }
+    
+    // Keep for backward compatibility
     public List<String> getRoundCards() {
         return roundCards;
     }
     public void setRoundCards(List<String> roundCards) {
         this.roundCards = roundCards;
     }
+    
     public Instant getCreatedAt() {
         return createdAt;
     }

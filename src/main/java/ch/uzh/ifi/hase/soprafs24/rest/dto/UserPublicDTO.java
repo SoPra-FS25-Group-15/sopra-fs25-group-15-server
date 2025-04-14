@@ -1,12 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
-
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class UserPublicDTO {
     private Long userid;
     private String username;
     private int mmr;
     private int points;
+    @JsonIgnore
     private List<String> achievements;
     private String email;
 

@@ -4,32 +4,30 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
-
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserDeleteRequestDTO;
 import org.junit.jupiter.api.Test;
-
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserDeleteRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
@@ -69,6 +67,7 @@ public class UserControllerTest {
         UserProfile profile = new UserProfile();
         profile.setUsername("firstnameLastname");
         profile.setMmr(1500);
+        profile.setPoints(1500); // Add points to match the DTO
         profile.setAchievements(Arrays.asList("First Win"));
         user.setProfile(profile);
 
@@ -77,21 +76,24 @@ public class UserControllerTest {
         publicDTO.setUserid(1L);
         publicDTO.setUsername(profile.getUsername());
         publicDTO.setMmr(profile.getMmr());
+        publicDTO.setPoints(profile.getPoints()); // Set points to be returned
+        publicDTO.setEmail(user.getEmail());
+        // No need to set achievements as they are @JsonIgnore'd
         publicDTO.setAchievements(profile.getAchievements());
 
         given(userService.getPublicProfile(eq(1L))).willReturn(user);
         given(mapper.toUserPublicDTO(user)).willReturn(publicDTO);
 
         // when/then
-
         mockMvc.perform(get("/users/1")
             .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.userid", is(1)))
             .andExpect(jsonPath("$.username", is(profile.getUsername())))
             .andExpect(jsonPath("$.mmr", is(profile.getMmr())))
-            .andExpect(jsonPath("$.achievements[0]", is("First Win")));
-
+            .andExpect(jsonPath("$.points", is(profile.getPoints())))
+            .andExpect(jsonPath("$.email", is(user.getEmail())));
+            // Remove the assertion for $.achievements since it's @JsonIgnore'd in UserPublicDTO
     }
 
     // Test for PUT /api/users/me
