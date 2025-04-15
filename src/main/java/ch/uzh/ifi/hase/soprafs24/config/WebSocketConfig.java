@@ -148,10 +148,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             }
         };
         
-        logger.info("Registering STOMP endpoints: /ws/lobby, /ws/lobby-manager, /ws/user");
+        logger.info("Registering STOMP endpoints: /ws/lobby, /ws/lobby-manager, /ws/user", "/ws/friend");
         
         // Register endpoints with SockJS for browser clients
-        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user")
+        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend")
                .setAllowedOrigins("*") // Allow from all origins (change as needed)
                .addInterceptors(authInterceptor)
                .setHandshakeHandler(handshakeHandler)
@@ -161,7 +161,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                .setDisconnectDelay(5000); // Set disconnect delay for testing
         
         // Also register endpoints without SockJS for Postman testing
-        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user")
+        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend")
                .setAllowedOrigins("*") // Allow from any origin for testing
                .addInterceptors(authInterceptor)
                .setHandshakeHandler(handshakeHandler);
