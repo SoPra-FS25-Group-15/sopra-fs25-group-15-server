@@ -12,11 +12,6 @@ public interface ActionCardMapper {
     ActionCardMapper INSTANCE = Mappers.getMapper(ActionCardMapper.class);
 
     // Here is the newly added action card conversion method
-    @Mapping(source = "id", target = "id")
-    @Mapping(source = "name", target = "name")
-    @Mapping(source = "type", target = "type")
-    @Mapping(source = "effect", target = "effect")
-    @Mapping(source = "active", target = "active")
     @Mapping(source = "owner.id", target = "ownerId")
     ActionCardDTO convertEntityToActionCardDTO(ActionCard actionCard);
 }

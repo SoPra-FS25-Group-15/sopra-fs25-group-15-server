@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 
 
 import ch.uzh.ifi.hase.soprafs24.constant.ActionCardType;
+import lombok.Data;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -14,6 +15,7 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "ACTION_CARD")
+@Data
 public class ActionCard implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -33,69 +35,13 @@ public class ActionCard implements Serializable {
     private String effect;
 
     @Column(nullable = false)
-    private boolean isActive;
+    private boolean activeFlag;
 
     @ManyToOne
     private User owner;
 
     @ManyToOne
     private Game game;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public ActionCardType getType() {
-        return type;
-    }
-
-    public void setType(ActionCardType type) {
-        this.type = type;
-    }
-
-    public String getEffect() {
-        return effect;
-    }
-
-    public void setEffect(String effect) {
-        this.effect = effect;
-    }
-
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean active) {
-        isActive = active;
-    }
-
-    public User getOwner() {
-        return owner;
-    }
-
-    public void setOwner(User owner) {
-        this.owner = owner;
-    }
-
-    public Game getGame() {
-        return game;
-    }
-
-    public void setGame(Game game) {
-        this.game = game;
-    }
 
     @Override
     public boolean equals(Object o) {

@@ -107,7 +107,7 @@ public class ActionCardService {
         ActionCard newCard = createRandomActionCard();
         newCard.setOwner(user);
         newCard.setGame(game);
-        newCard.setActive(false);
+        newCard.setActiveFlag(false);
 
         // Save and return the new card
         ActionCard savedCard = actionCardRepository.save(newCard);
@@ -176,7 +176,7 @@ public class ActionCardService {
         ActionCardEffectDTO effectDTO = applyCardEffect(actionCard, game, user, targetPlayer);
 
         // Mark the card as active if needed, or remove it if it's a one-time use
-        actionCard.setActive(true);
+        actionCard.setActiveFlag(true);
         actionCardRepository.save(actionCard);
 
         // Notify all players about the played card
@@ -197,7 +197,7 @@ public class ActionCardService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
         // Return the active action cards
-        return actionCardRepository.findByGameAndIsActiveTrue(game);
+        return actionCardRepository.findByGameAndActiveFlagTrue(game);
     }
 
     /**

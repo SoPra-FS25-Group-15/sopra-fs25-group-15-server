@@ -17,5 +17,5 @@ public interface ActionCardRepository extends JpaRepository<ActionCard, Long> {
 
     List<ActionCard> findByOwnerAndGame(User owner, Game game);
 
-    List<ActionCard> findByGameAndIsActiveTrue(Game game);
+    List<ActionCard> findByGameAndActiveFlagTrue(Game game);
 }
