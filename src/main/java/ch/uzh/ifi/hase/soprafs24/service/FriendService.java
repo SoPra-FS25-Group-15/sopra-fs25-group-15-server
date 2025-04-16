@@ -161,4 +161,44 @@ public class FriendService {
         User currentUser = authService.getUserByToken(token);
         return friendRequestRepository.findBySender(currentUser);
     }
+
+    @Transactional
+public FriendRequest respondToFriendRequestBySender(String token, Long senderId, String action) {
+    // Only the recipient (current user) can respond.
+    User recipient = authService.getUserByToken(token);
+    // Find the pending friend request where the sender is senderId and the recipient is the current user.
+    FriendRequest request = friendRequestRepository.findBySenderAndRecipientAndStatus(
+            userRepository.findById(senderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sender not found")),
+            recipient,
+            FriendRequestStatus.PENDING);
+    if (request == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend request not found");
+    }
+    if ("accept".equalsIgnoreCase(action)) {
+        request.setStatus(FriendRequestStatus.ACCEPTED);
+    } else if ("deny".equalsIgnoreCase(action)) {
+        request.setStatus(FriendRequestStatus.DENIED);
+    } else {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid action");
+    }
+    friendRequestRepository.save(request);
+    return request;
+}
+
+@Transactional
+public void cancelFriendRequestToUser(String token, Long recipientId) {
+    // The sender (current user) can cancel a pending friend request.
+    User sender = authService.getUserByToken(token);
+    User recipient = userRepository.findById(recipientId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient not found"));
+    FriendRequest request = friendRequestRepository.findBySenderAndRecipientAndStatus(
+            sender,
+            recipient,
+            FriendRequestStatus.PENDING);
+    if (request == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend request not found");
+    }
+    friendRequestRepository.delete(request);
+}
 }
