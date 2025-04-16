@@ -61,6 +61,8 @@ public class ActionCardService {
      */
     public List<ActionCard> getPlayerActionCards(Long gameId, Long userId) {
         // Validate game and user
+        log.info("Retrieving action cards for player {} in game {}", userId, gameId);
+
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
@@ -73,7 +75,11 @@ public class ActionCardService {
         }
 
         // Return the action cards
+
+        List<ActionCard> cards = actionCardRepository.findByOwnerAndGame(user, game);
+        log.info("Found {} action cards for player {} in game {}", cards.size(), userId, gameId);
         return actionCardRepository.findByOwnerAndGame(user, game);
+
     }
 
     /**
@@ -84,6 +90,7 @@ public class ActionCardService {
      * @return the drawn ActionCard
      */
     public ActionCard drawActionCard(Long gameId, Long userId) {
+        log.info("Player {} attempting to draw an action card in game {}", userId, gameId);
         // Validate game and user
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
@@ -101,9 +108,12 @@ public class ActionCardService {
         if (userCards.size() >= 5) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Player already has the maximum number of action cards (5). Discard one first.");
+
         }
+        log.debug("Player {} has {} cards, maximum is 5", userId, userCards.size());
 
         // Create a new random action card
+        log.debug("Creating random action card for player {} in game {}", userId, gameId);
         ActionCard newCard = createRandomActionCard();
         newCard.setOwner(user);
         newCard.setGame(game);
@@ -111,7 +121,7 @@ public class ActionCardService {
 
         // Save and return the new card
         ActionCard savedCard = actionCardRepository.save(newCard);
-
+        log.info("Player {} drew a new {} card: '{}' in game {}", userId, savedCard.getType(), savedCard.getName(), gameId);
         // Notify all players that a card has been drawn
         webSocketService.sendToGame(gameId, "/topic/game/" + gameId + "/cards",
                 "Player " + user.getId() + " has drawn a new action card.");
