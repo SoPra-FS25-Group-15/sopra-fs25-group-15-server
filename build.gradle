@@ -5,6 +5,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id "org.sonarqube" version "4.4.1.3373"
+//    id 'java-annotation-processor'
 }
 
 group 'ch.uzh.ifi.hasel'
@@ -24,7 +25,12 @@ configurations {
 }
 
 repositories {
-    mavenCentral()
+    mavenLocal()
+//        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+    maven {
+        allowInsecureProtocol = true
+        url 'https://maven.aliyun.com/repository/central'
+    }
 }
 
 springBoot {
@@ -32,6 +38,13 @@ springBoot {
 }
 
 dependencies {
+    // add Lombok dependence
+    compileOnly 'org.projectlombok:lombok:1.18.28'
+    annotationProcessor 'org.projectlombok:lombok:1.18.28'
+    testCompileOnly 'org.projectlombok:lombok:1.18.28'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.28'
+
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.mapstruct:mapstruct:1.3.1.Final'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.3.1.Final'
     testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.3.1.Final'
@@ -62,12 +75,12 @@ bootJar {
 }
 
 sonar {
-  properties {
-    property "sonar.projectKey", "julienzb_sopra-fs25-group-15-server"
-    property "sonar.projectName", "sopra-fs25-group-15-server"
-    property "sonar.organization", "sopra-fs25-group-15"
-    property "sonar.host.url", "https://sonarcloud.io"
-  }
+    properties {
+        property "sonar.projectKey", "julienzb_sopra-fs25-group-15-server"
+        property "sonar.projectName", "sopra-fs25-group-15-server"
+        property "sonar.organization", "sopra-fs25-group-15"
+        property "sonar.host.url", "https://sonarcloud.io"
+    }
 }
 
 jacocoTestReport {
