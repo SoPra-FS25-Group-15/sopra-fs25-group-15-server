@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
-import com.sun.xml.bind.v2.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -141,12 +140,12 @@ public class UserService {
         if (username == null || username.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be empty");
         }
-
+        
         User user = userRepository.findByProfile_Username(username);
         if (user == null) {
             return null; // Return null to let the caller handle the not-found case
         }
-
+        
         return user;
     }
 
@@ -173,21 +172,6 @@ public class UserService {
 
         log.info("the user account has been deleted: ID={}, Email={}", currentUser.getId(), currentUser.getEmail());
 
-    }
-
-    /**
-     * Retrieves a user based on the provided token
-     * @param token - the authentication token
-     * @return User
-     */
-    public User getUserByToken(String token) {
-        User user = userRepository.findByToken(token);
-
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
-        }
-
-        return user;
     }
 }
 
