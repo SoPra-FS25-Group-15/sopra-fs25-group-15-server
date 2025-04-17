@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.websocket.controller;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,7 +16,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,11 +24,13 @@ import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyJoinResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import ch.uzh.ifi.hase.soprafs24.websocket.WebSocketEventListener;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.LobbyManagementDTO;
+import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketLobbyStatusDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
 
 @Controller
@@ -52,14 +54,13 @@ public class LobbyManagerWebSocketController {
     private WebSocketEventListener webSocketEventListener;
     
     /**
-     * Helper method to validate that the user is authenticated
+     * Helper to validate that the user is authenticated.
      */
     private Long validateAuthentication(Principal principal) {
         if (principal == null) {
             log.error("Unauthorized WebSocket request - missing principal");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
-        
         try {
             return Long.parseLong(principal.getName());
         } catch (NumberFormatException e) {
@@ -69,7 +70,7 @@ public class LobbyManagerWebSocketController {
     }
 
     /**
-     * Get all available lobbies when a client subscribes
+     * Send all lobbies on initial subscribe.
      */
     @Transactional(readOnly = true)
     @SubscribeMapping("/lobby-manager/lobbies")
@@ -77,61 +78,42 @@ public class LobbyManagerWebSocketController {
         validateAuthentication(principal);
         try {
             List<Lobby> lobbies = lobbyService.listLobbies();
-            
-            // Force initialization of the lazy hintsEnabled collection for each lobby.
-            for (Lobby lobby : lobbies) {
-                Hibernate.initialize(lobby.getHintsEnabled());
-            }
-            
-            List<LobbyResponseDTO> lobbyDTOs = lobbies.stream()
+            lobbies.forEach(lobby -> Hibernate.initialize(lobby.getHintsEnabled()));
+            List<LobbyResponseDTO> dtos = lobbies.stream()
                 .map(mapper::lobbyEntityToResponseDTO)
                 .collect(Collectors.toList());
-            return new WebSocketMessage<>("LOBBIES_LIST", lobbyDTOs);
+            return new WebSocketMessage<>("LOBBIES_LIST", dtos);
         } catch (Exception e) {
             log.error("Error retrieving lobbies: {}", e.getMessage());
             return new WebSocketMessage<>("LOBBIES_ERROR", List.of());
         }
     }
     
-
     /**
-     * Handle join lobby requests via WebSocket
+     * Handle join lobby by code requests.
      */
     @MessageMapping("/lobby-manager/join/{code}")
     public void joinLobbyByCode(@DestinationVariable String code,
-                              @Payload WebSocketMessage<Void> message,
-                              Principal principal) {
-        
+                                @Payload WebSocketMessage<Void> message,
+                                Principal principal) {
         Long userId = validateAuthentication(principal);
-        
         try {
             log.info("User {} attempting to join lobby with code {}", userId, code);
-            
-            // Find the lobby by code
             Lobby lobby = lobbyService.getLobbyByCode(code);
-            if (lobby == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
-            }
-            
-            // Join the lobby
             LobbyJoinResponseDTO response = lobbyService.joinLobby(
                 lobby.getId(), userId, null, code, false);
-            
-            // Send confirmation to the user
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/join/result",
                 new WebSocketMessage<>("JOIN_SUCCESS", response)
             );
-            log.info("User {} successfully joined lobby {}", principal.getName(), code);
-            
         } catch (ResponseStatusException e) {
             log.error("Error joining lobby: {}", e.getMessage());
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/join/result",
                 new WebSocketMessage<>(
-                    "JOIN_ERROR", 
+                    "JOIN_ERROR",
                     Map.of("code", e.getStatus().value(), "message", e.getReason())
                 )
             );
@@ -140,141 +122,142 @@ public class LobbyManagerWebSocketController {
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/join/result",
-                new WebSocketMessage<>("JOIN_ERROR", 
-                    Map.of("code", 500, "message", "An unexpected error occurred"))
+                new WebSocketMessage<>(
+                    "JOIN_ERROR",
+                    Map.of("code", 500, "message", "An unexpected error occurred")
+                )
             );
         }
     }
-
+    
     /**
-     * Get user's current lobby management state
+     * Send the user's current lobby code and pending invites on subscribe.
      */
     @SubscribeMapping("/lobby-manager/state")
     public WebSocketMessage<LobbyManagementDTO> getLobbyManagementState(Principal principal) {
         Long userId = validateAuthentication(principal);
-
         try {
             LobbyManagementDTO state = new LobbyManagementDTO();
-            Lobby currentLobby = lobbyService.getCurrentLobbyForUser(userId);
-
-            if (currentLobby != null) {
-                state.setCurrentLobbyCode(currentLobby.getLobbyCode());
+            Lobby current = lobbyService.getCurrentLobbyForUser(userId);
+            if (current != null) {
+                state.setCurrentLobbyCode(current.getLobbyCode());
             }
-
-            List<LobbyManagementDTO.PendingInvite> pendingInvites =
-                lobbyService.getPendingInvitesForUser(userId).stream()
-                .map(invite -> {
-                    LobbyManagementDTO.PendingInvite pendingInvite = new LobbyManagementDTO.PendingInvite();
-                    pendingInvite.setUsername(invite.getSender().getProfile().getUsername());
-                    pendingInvite.setLobbyCode(invite.getLobbyCode());
-                    return pendingInvite;
+            var pending = lobbyService.getPendingInvitesForUser(userId).stream()
+                .map(inv -> {
+                    var p = new LobbyManagementDTO.PendingInvite();
+                    p.setUsername(inv.getSender().getProfile().getUsername());
+                    p.setLobbyCode(inv.getLobbyCode());
+                    return p;
                 })
                 .collect(Collectors.toList());
-
-            state.setPendingInvites(pendingInvites);
-
+            state.setPendingInvites(pending);
             return new WebSocketMessage<>("LOBBY_MANAGEMENT_STATE", state);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error getting lobby management state: {}", e.getMessage());
             return new WebSocketMessage<>("LOBBY_MANAGEMENT_ERROR", null);
         }
     }
 
     /**
-     * Get detailed status of a specific lobby
+     * Retrieve detailed status of a lobby by its code.
+     * Now returns a full WebSocketLobbyStatusDTO (with host and players).
      */
     @Transactional(readOnly = true)
-    @SubscribeMapping("/lobby-manager/lobby/{lobbyId}")
-    public WebSocketMessage<?> getLobbyStatus(@DestinationVariable Long lobbyId,
-                                              Principal principal) {
+    @SubscribeMapping("/lobby-manager/lobby/{lobbyCode}")
+    public WebSocketMessage<WebSocketLobbyStatusDTO> getLobbyStatusByCode(
+            @DestinationVariable String lobbyCode,
+            Principal principal) {
+
+        Long userId = validateAuthentication(principal);
         try {
-            Long userId = validateAuthentication(principal);
-            log.info("User {} requesting status for lobby {}", userId, lobbyId);
+            log.info("User {} requesting status for lobby '{}'", userId, lobbyCode);
+            Lobby lobby = lobbyService.getLobbyByCode(lobbyCode);
 
-            Lobby lobby = lobbyService.getLobbyById(lobbyId);
-
-            if (!lobbyService.isUserInLobby(userId, lobbyId) && lobby.isPrivate()) {
-                log.warn("User {} attempted to access private lobby {} they're not a member of", userId, lobbyId);
-                return new WebSocketMessage<>("LOBBY_STATUS_ERROR", Map.of(
-                    "code", HttpStatus.FORBIDDEN.value(),
-                    "message", "You don't have permission to view this lobby"
-                ));
+            if (lobby.isPrivate() && !lobbyService.isUserInLobby(userId, lobby.getId())) {
+                log.warn("Unauthorized access to private lobby '{}'", lobbyCode);
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission");
             }
 
-            LobbyResponseDTO lobbyDTO = mapper.lobbyEntityToResponseDTO(lobby);
-            return new WebSocketMessage<>("LOBBY_STATUS", lobbyDTO);
-        }
-        catch (ResponseStatusException e) {
-            log.error("Error retrieving lobby status: {} - {}", e.getStatus(), e.getMessage());
-            return new WebSocketMessage<>("LOBBY_STATUS_ERROR", Map.of(
-                "code", e.getStatus().value(),
-                "message", e.getReason()
-            ));
-        }
-        catch (Exception e) {
+            // Initialize lazy collections
+            if (lobby.getPlayers() != null) {
+                Hibernate.initialize(lobby.getPlayers());
+            }
+            if (lobby.getTeams() != null) {
+                Hibernate.initialize(lobby.getTeams());
+                lobby.getTeams().values().forEach(Hibernate::initialize);
+            }
+
+            // Map host and players
+            UserPublicDTO hostDto = mapper.toUserPublicDTO(lobby.getHost());
+            List<UserPublicDTO> playerDtos = (lobby.getPlayers() != null)
+                ? lobby.getPlayers().stream()
+                        .map(mapper::toUserPublicDTO)
+                        .collect(Collectors.toList())
+                : Collections.emptyList();
+
+            WebSocketLobbyStatusDTO payload = new WebSocketLobbyStatusDTO(
+                lobby.getId(),
+                lobby.getLobbyCode(),
+                hostDto,
+                lobby.getMode(),
+                String.valueOf(lobby.getMaxPlayers()),
+                lobby.getMaxPlayersPerTeam(),
+                (lobby.getHintsEnabled() != null ? lobby.getHintsEnabled().size() : null),
+                lobby.isPrivate(),
+                lobby.getStatus(),
+                playerDtos
+            );
+
+            return new WebSocketMessage<>("LOBBY_STATUS", payload);
+
+        } catch (ResponseStatusException e) {
+            log.error("Error retrieving lobby status: {} – {}", e.getStatus(), e.getReason());
+            return new WebSocketMessage<>("LOBBY_STATUS_ERROR", null);
+        } catch (Exception e) {
             log.error("Unexpected error retrieving lobby status: {}", e.getMessage());
-            return new WebSocketMessage<>("LOBBY_STATUS_ERROR", Map.of(
-                "code", HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "message", "An unexpected error occurred"
-            ));
+            return new WebSocketMessage<>("LOBBY_STATUS_ERROR", null);
         }
     }
-
+    
     /**
-     * Send a lobby invite
+     * Send a lobby invite.
      */
     @MessageMapping("/lobby-manager/invite")
     public void sendLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
                                 Principal principal) {
         Long senderId = validateAuthentication(principal);
-        Map<String, String> payload = message.getPayload();
-        String toUsername = payload.get("toUsername");
-
+        String toUsername = message.getPayload().get("toUsername");
         try {
             log.info("User {} sending lobby invite to {}", senderId, toUsername);
-
-            // Get the sender user
             User sender = userService.getPublicProfile(senderId);
-
-            // Retrieve recipient using findByUsername first, then getPublicProfile to ensure full initialization
-            User tmpRecipient = userService.findByUsername(toUsername);
-            if (tmpRecipient == null) {
+            User tmp = userService.findByUsername(toUsername);
+            if (tmp == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
             }
-            User recipient = userService.getPublicProfile(tmpRecipient.getId());
-
-            // Get current lobby code for the sender
-            Lobby currentLobby = lobbyService.getCurrentLobbyForUser(senderId);
-            if (currentLobby == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must be in a lobby to invite others");
+            User recipient = userService.getPublicProfile(tmp.getId());
+            Lobby current = lobbyService.getCurrentLobbyForUser(senderId);
+            if (current == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must be in lobby to invite");
             }
+            String code = current.getLobbyCode();
+            lobbyService.createLobbyInvite(sender, recipient, code);
 
-            String lobbyCode = currentLobby.getLobbyCode();
-
-            // Create and store the invite in the service
-            lobbyService.createLobbyInvite(sender, recipient, lobbyCode);
-
-            // Send confirmation to the sender
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/invite/result",
                 new WebSocketMessage<>("INVITE_SENT", Map.of(
                     "recipient", toUsername,
-                    "lobbyCode", lobbyCode
+                    "lobbyCode", code
                 ))
             );
-
-            // Send notification to the recipient
             messagingTemplate.convertAndSendToUser(
                 recipient.getId().toString(),
                 "/topic/lobby-manager/invites",
                 new WebSocketMessage<>("INVITE_IN", Map.of(
                     "fromUsername", sender.getProfile().getUsername(),
-                    "lobbyCode", lobbyCode
+                    "lobbyCode", code
                 ))
             );
-
         } catch (ResponseStatusException e) {
             log.error("Error sending invite: {}", e.getMessage());
             messagingTemplate.convertAndSendToUser(
@@ -299,42 +282,30 @@ public class LobbyManagerWebSocketController {
     }
 
     /**
-     * Cancel a pending lobby invite
+     * Cancel a pending lobby invite.
      */
     @MessageMapping("/lobby-manager/invite/cancel")
     public void cancelLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
-                                Principal principal) {
+                                  Principal principal) {
         Long senderId = validateAuthentication(principal);
-        Map<String, String> payload = message.getPayload();
-        String toUsername = payload.get("toUsername");
-
+        String toUsername = message.getPayload().get("toUsername");
         try {
-            log.info("User {} canceling lobby invite to {}", senderId, toUsername);
-
-            // Get the sender user
+            log.info("User {} canceling invite to {}", senderId, toUsername);
             User sender = userService.getPublicProfile(senderId);
-
-            // Retrieve recipient using findByUsername first, then getPublicProfile
-            User tmpRecipient = userService.findByUsername(toUsername);
-            if (tmpRecipient == null) {
+            User tmp = userService.findByUsername(toUsername);
+            if (tmp == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
             }
-            User recipient = userService.getPublicProfile(tmpRecipient.getId());
-
-            // Cancel the invite using the same invite key construction (senderId-recipientId)
+            User recipient = userService.getPublicProfile(tmp.getId());
             boolean canceled = lobbyService.cancelLobbyInvite(sender, recipient);
             if (!canceled) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No pending invite found");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No pending invite");
             }
-
-            // Send confirmation to the sender
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/invite/cancel/result",
                 new WebSocketMessage<>("INVITE_CANCELED", Map.of("recipient", toUsername))
             );
-
-            // Notify the recipient that the invite was canceled
             messagingTemplate.convertAndSendToUser(
                 recipient.getId().toString(),
                 "/topic/lobby-manager/invites",
@@ -342,7 +313,6 @@ public class LobbyManagerWebSocketController {
                     "fromUsername", sender.getProfile().getUsername()
                 ))
             );
-
         } catch (ResponseStatusException e) {
             log.error("Error canceling invite: {}", e.getMessage());
             messagingTemplate.convertAndSendToUser(
@@ -367,77 +337,50 @@ public class LobbyManagerWebSocketController {
     }
 
     /**
-     * Accept a friend invite to join their lobby
-     * This endpoint specifically handles friend invites and doesn't expect a lobby code from clients
+     * Accept a friend’s lobby invite.
      */
     @MessageMapping("/lobby-manager/invite/accept")
     public void acceptFriendLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
-                             Principal principal,
-                             StompHeaderAccessor headerAccessor) {
+                                        Principal principal,
+                                        org.springframework.messaging.simp.stomp.StompHeaderAccessor headerAccessor) {
         Long recipientId = validateAuthentication(principal);
-        Map<String, String> payload = message.getPayload();
-        String fromUsername = payload.get("fromUsername");
-        
+        String fromUsername = message.getPayload().get("fromUsername");
         try {
-            log.info("User {} accepting friend invite from {}", recipientId, fromUsername);
-            
-            // No sessionId check is performed here because token validation from the handshake is relied upon.
-            
-            // Find the sender by username
+            log.info("User {} accepting invite from {}", recipientId, fromUsername);
             User sender = userService.findByUsername(fromUsername);
             if (sender == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Inviting user not found");
             }
-            
-            // Get the recipient's public profile
             User recipient = userService.getPublicProfile(recipientId);
-            
-            // Look up the current lobby of the friend (sender)
-            log.info("Looking up current lobby of friend: {}", fromUsername);
             Lobby senderLobby = lobbyService.getCurrentLobbyForUser(sender.getId());
             if (senderLobby == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Your friend is not currently in any lobby");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend not in lobby");
             }
-            String lobbyCode = senderLobby.getLobbyCode();
-            log.info("Found friend's lobby with code: {}", lobbyCode);
-            
-            // Verify that an invite exists from this sender
             if (!lobbyService.hasAnyPendingInviteFrom(sender, recipient)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No invite found from this friend");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No invite found");
             }
-            
-            // Join the friend's lobby
             LobbyJoinResponseDTO response = lobbyService.joinLobby(
-                senderLobby.getId(), recipientId, null, lobbyCode, true);
-            
-            // Remove the invite as it has been accepted
+                senderLobby.getId(), recipientId, null, senderLobby.getLobbyCode(), true);
             lobbyService.cancelLobbyInvite(sender, recipient);
-            
-            // Send confirmation to the recipient
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/invite/accept/result",
                 new WebSocketMessage<>("INVITE_ACCEPTED", response)
             );
-            
-            // Notify the original sender that their invite was accepted
             messagingTemplate.convertAndSendToUser(
                 sender.getId().toString(),
                 "/topic/lobby-manager/invites/status",
                 new WebSocketMessage<>("INVITE_ACCEPTED", Map.of(
                     "username", recipient.getProfile().getUsername(),
-                    "lobbyCode", lobbyCode
+                    "lobbyCode", senderLobby.getLobbyCode()
                 ))
             );
-            
-            // Broadcast to the lobby that a new user has joined
             messagingTemplate.convertAndSend(
                 "/topic/lobby/" + senderLobby.getId() + "/users",
                 new WebSocketMessage<>("USER_JOINED", mapper.toUserPublicDTO(recipient))
             );
-            
         } catch (ResponseStatusException e) {
-            log.error("Error accepting friend invite: {}", e.getMessage());
+            log.error("Error accepting invite: {}", e.getMessage());
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/invite/accept/result",
@@ -447,7 +390,7 @@ public class LobbyManagerWebSocketController {
                 ))
             );
         } catch (Exception e) {
-            log.error("Unexpected error accepting friend invite: {}", e.getMessage());
+            log.error("Unexpected error accepting invite: {}", e.getMessage());
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/invite/accept/result",
@@ -458,55 +401,31 @@ public class LobbyManagerWebSocketController {
             );
         }
     }
-    
 
     /**
-     * Decline a friend's lobby invite
+     * Decline a friend’s lobby invite.
      */
     @MessageMapping("/lobby-manager/invite/decline")
     public void declineFriendLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
-                                    Principal principal,
-                                    StompHeaderAccessor headerAccessor) {
+                                         Principal principal,
+                                         org.springframework.messaging.simp.stomp.StompHeaderAccessor headerAccessor) {
         Long recipientId = validateAuthentication(principal);
-        Map<String, String> payload = message.getPayload();
-        String fromUsername = payload.get("fromUsername");
-        
+        String fromUsername = message.getPayload().get("fromUsername");
         try {
             log.info("User {} declining invite from {}", recipientId, fromUsername);
-            
-            // Additional check for session information
             String sessionId = headerAccessor.getSessionId();
             if (sessionId == null) {
-                log.error("Invalid session for invite decline request");
-                messagingTemplate.convertAndSendToUser(
-                    principal.getName(),
-                    "/topic/lobby-manager/invite/decline/result",
-                    new WebSocketMessage<>("INVITE_DECLINE_ERROR", Map.of(
-                        "code", HttpStatus.UNAUTHORIZED.value(),
-                        "message", "Invalid session"
-                    ))
-                );
-                return;
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid session");
             }
-            
-            // Find the sender by username
             User sender = userService.findByUsername(fromUsername);
             if (sender == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Inviting user not found");
             }
-            
-            // Get the recipient (current user)
             User recipient = userService.getPublicProfile(recipientId);
-            
-            // Verify that an invite exists from this sender
             if (!lobbyService.hasAnyPendingInviteFrom(sender, recipient)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No invite found from this friend");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No invite found");
             }
-            
-            // Remove the invite as it's been declined
             lobbyService.cancelLobbyInvite(sender, recipient);
-            
-            // Send confirmation to the recipient that the decline was processed
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby-manager/invite/decline/result",
@@ -515,8 +434,6 @@ public class LobbyManagerWebSocketController {
                     "message", "Invite declined successfully"
                 ))
             );
-            
-            // Notify the original sender that their invite was declined
             messagingTemplate.convertAndSendToUser(
                 sender.getId().toString(),
                 "/topic/lobby-manager/invites/status",
@@ -525,7 +442,6 @@ public class LobbyManagerWebSocketController {
                     "message", "Your invite was declined"
                 ))
             );
-            
         } catch (ResponseStatusException e) {
             log.error("Error declining invite: {}", e.getMessage());
             messagingTemplate.convertAndSendToUser(
