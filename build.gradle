@@ -5,6 +5,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id "org.sonarqube" version "4.4.1.3373"
+    id 'io.freefair.lombok' version '6.6.3'
 //    id 'java-annotation-processor'
 }
 
@@ -37,12 +38,16 @@ springBoot {
     mainClass.set('ch.uzh.ifi.hase.soprafs24.Application')
 }
 
+ext {
+    lombokVersion = '1.18.26'
+}
+
 dependencies {
     // add Lombok dependence
-    compileOnly 'org.projectlombok:lombok:1.18.28'
-    annotationProcessor 'org.projectlombok:lombok:1.18.28'
-    testCompileOnly 'org.projectlombok:lombok:1.18.28'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.28'
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.mapstruct:mapstruct:1.3.1.Final'

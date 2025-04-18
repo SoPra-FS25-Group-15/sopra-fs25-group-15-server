@@ -4,12 +4,12 @@ package ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard;
  * ActionCardPlayDTO - Request DTO for playing an action card
  */
 public class ActionCardPlayDTO {
-    private Long actionCardId;
-    private Long targetPlayerId;
+    private String cardId;
+    private Long targetPlayerId; // optional for powerup cards
 
     // Getter
-    public Long getActionCardId() {
-        return actionCardId;
+    public String getCardId() {
+        return cardId;
     }
 
     public Long getTargetPlayerId() {
@@ -17,8 +17,8 @@ public class ActionCardPlayDTO {
     }
 
     // Setter
-    public void setActionCardId(Long actionCardId) {
-        this.actionCardId = actionCardId;
+    public void setCardId(String cardId) {
+        this.cardId = cardId;
     }
 
     public void setTargetPlayerId(Long targetPlayerId) {
