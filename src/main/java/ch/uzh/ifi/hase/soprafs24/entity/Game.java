@@ -54,9 +54,6 @@ public class Game implements Serializable {
     )
     private Set<User> players = new HashSet<>();
 
-    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ActionCard> actionCards = new HashSet<>();
-
     @Column
     private Integer currentRound = 0;
 
@@ -87,10 +84,6 @@ public class Game implements Serializable {
 
     public Set<User> getPlayers() {
         return players;
-    }
-
-    public Set<ActionCard> getActionCards() {
-        return actionCards;
     }
 
     public Integer getCurrentRound() {
@@ -128,10 +121,6 @@ public class Game implements Serializable {
 
     public void setPlayers(Set<User> players) {
         this.players = players;
-    }
-
-    public void setActionCards(Set<ActionCard> actionCards) {
-        this.actionCards = actionCards;
     }
 
     public void setCurrentRound(Integer currentRound) {
