@@ -3,9 +3,11 @@ package ch.uzh.ifi.hase.soprafs24.service;
 import ch.uzh.ifi.hase.soprafs24.constant.RoundCardType;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.RoundCard;
+import ch.uzh.ifi.hase.soprafs24.entity.PlayerRoundCard;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.RoundCardRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.PlayerRoundCardRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,14 +32,17 @@ public class RoundCardService {
     private final RoundCardRepository roundCardRepository;
     private final UserRepository userRepository;
     private final GameRepository gameRepository;
+    private final PlayerRoundCardRepository playerRoundCardRepository;
 
     @Autowired
     public RoundCardService(@Qualifier("roundCardRepository") RoundCardRepository roundCardRepository,
                             @Qualifier("userRepository") UserRepository userRepository,
-                            @Qualifier("gameRepository") GameRepository gameRepository) {
+                            @Qualifier("gameRepository") GameRepository gameRepository,
+                            @Qualifier("playerRoundCardRepository") PlayerRoundCardRepository playerRoundCardRepository) {
         this.roundCardRepository = roundCardRepository;
         this.userRepository = userRepository;
         this.gameRepository = gameRepository;
+        this.playerRoundCardRepository = playerRoundCardRepository;
     }
 
     /**
@@ -108,9 +114,16 @@ public class RoundCardService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // In a real implementation, you would get the actual round cards assigned to the player
-        // For now, we'll just return all available round cards
-        return getAllRoundCards();
+        // Get the player's unused round cards
+        List<PlayerRoundCard> playerRoundCards = playerRoundCardRepository.findByUserAndUsedFalse(user);
+
+        // Convert PlayerRoundCard to RoundCard
+        List<RoundCard> roundCards = new ArrayList<>();
+        for (PlayerRoundCard playerRoundCard : playerRoundCards) {
+            roundCards.add(playerRoundCard.getRoundCard());
+        }
+
+        return roundCards;
     }
 
     /**
@@ -121,10 +134,6 @@ public class RoundCardService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // Get round card
-        RoundCard roundCard = roundCardRepository.findById(roundCardId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Round card not found"));
-
         // Get game
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
@@ -134,10 +143,27 @@ public class RoundCardService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
         }
 
-        // Update game with the selected round card
-        game.setCurrentRoundCard(roundCard);
+        // Find the player's round card
+        List<PlayerRoundCard> playerCards = playerRoundCardRepository.findByUserAndUsedFalse(user);
+        PlayerRoundCard selectedCard = null;
 
-        // Additional game logic here (e.g., update player's remaining round cards)
+        for (PlayerRoundCard card : playerCards) {
+            if (card.getRoundCard().getId().equals(roundCardId)) {
+                selectedCard = card;
+                break;
+            }
+        }
+
+        if (selectedCard == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Round card not found or already used");
+        }
+
+        // Update game with the selected round card
+        game.setCurrentRoundCard(selectedCard.getRoundCard());
+
+        // Mark the card as used
+        selectedCard.setUsed(true);
+        playerRoundCardRepository.save(selectedCard);
 
         // Save updated game
         return gameRepository.save(game);
@@ -147,17 +173,30 @@ public class RoundCardService {
      * Assign initial round cards to a player
      */
     public void assignInitialRoundCards(User user, int cardCount) {
-        // Get all round cards
+        // Get the World card type only
+        RoundCard worldCard = null;
         List<RoundCard> allCards = getAllRoundCards();
+        for (RoundCard card : allCards) {
+            if (card.getType() == RoundCardType.WORLD) {
+                worldCard = card;
+                break;
+            }
+        }
 
-        // Shuffle the cards to randomize selection
-        Collections.shuffle(allCards);
+        if (worldCard == null) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "World card type not found");
+        }
 
-        // Select the first 'cardCount' cards
-        List<RoundCard> selectedCards = allCards.subList(0, Math.min(cardCount, allCards.size()));
+        // Create the specified number of player cards - all World cards
+        for (int i = 0; i < cardCount; i++) {
+            PlayerRoundCard playerCard = new PlayerRoundCard();
+            playerCard.setUser(user);
+            playerCard.setRoundCard(worldCard);
+            playerCard.setUsed(false);
 
-        // In a real implementation, you would associate these cards with the player
-        // For simplicity, we're just logging this action
-        log.info("Assigned {} round cards to user {}", selectedCards.size(), user.getId());
+            playerRoundCardRepository.save(playerCard);
+        }
+
+        log.info("Assigned {} World round cards to user {}", cardCount, user.getId());
     }
 }
