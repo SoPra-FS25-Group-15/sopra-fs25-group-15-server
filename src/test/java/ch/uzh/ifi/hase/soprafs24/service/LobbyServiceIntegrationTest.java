@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,9 @@ import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyJoinResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.ActionCardMapper;
+import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService;
+import ch.uzh.ifi.hase.soprafs24.service.ActionCardService;
 
 @WebAppConfiguration
 @SpringBootTest
@@ -45,6 +49,16 @@ public class LobbyServiceIntegrationTest {
 
     @Autowired
     private DTOMapper mapper;
+    
+    // MockBeans needed for GameRoundService and other components
+    @MockBean
+    private ActionCardMapper actionCardMapper;
+    
+    @MockBean
+    private ActionCardService actionCardService;
+    
+    @MockBean
+    private GoogleMapsService googleMapsService;
 
     private User hostUser;
     private Lobby teamLobby;
@@ -123,38 +137,6 @@ public class LobbyServiceIntegrationTest {
         assertEquals("8", soloDTO.getMaxPlayers()); // MaxPlayers is now a String
         assertNull(soloDTO.getPlayersPerTeam()); // Renamed from maxPlayersPerTeam
         assertEquals(soloLobby.getLobbyCode(), soloDTO.getCode()); // Check new field name
-    }
-
-    @Test
-    public void testCreateLobby_ProvidesDefaultRoundCards() {
-        // Create a new lobby
-        Lobby newLobby = new Lobby();
-        newLobby.setPrivate(true);  // casual/unranked game
-        newLobby.setMode(LobbyConstants.MODE_SOLO);  // solo mode
-        newLobby.setHost(hostUser);
-        
-        // Create the lobby through the service
-        Lobby createdLobby = lobbyService.createLobby(newLobby);
-        
-        // Verify the lobby has server-generated round cards
-        assertNotNull(createdLobby.getHintsEnabled());
-        assertFalse(createdLobby.getHintsEnabled().isEmpty());
-        assertEquals(5, createdLobby.getHintsEnabled().size());  // Checking for the 5 default cards
-        
-        // Verify the DTO mapper includes these cards in the response
-        LobbyResponseDTO responseDTO = mapper.lobbyEntityToResponseDTO(createdLobby);
-        
-        // Verify both fields are set properly for compatibility
-        assertNotNull(responseDTO.getRoundCards());
-        assertEquals(createdLobby.getHintsEnabled(), responseDTO.getRoundCards());
-        
-        // Verify new field is also set correctly
-        assertNotNull(responseDTO.getRoundCardsStartAmount());
-        assertEquals(5, responseDTO.getRoundCardsStartAmount().intValue());
-        
-        // Verify the expected default card values still exist in the entity
-        assertTrue(createdLobby.getHintsEnabled().contains("STANDARD_CARD_1"));
-        assertTrue(createdLobby.getHintsEnabled().contains("STANDARD_CARD_5"));
     }
 
     @Test

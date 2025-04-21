@@ -1,25 +1,38 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
-import ch.uzh.ifi.hase.soprafs24.constant.ActionCardType;
-import ch.uzh.ifi.hase.soprafs24.entity.ActionCard;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTO;
-import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
+import org.springframework.stereotype.Component;
 
-@Mapper
-public interface ActionCardMapper {
+/**
+ * Mapper class to convert between ActionCard entities and DTOs
+ */
+@Component
+public class ActionCardMapper {
 
-    ActionCardMapper INSTANCE = Mappers.getMapper(ActionCardMapper.class);
-
-    default ActionCardDTO convertEntityToActionCardDTO(ActionCard actionCard) {
-        if (actionCard == null) {
+    /**
+     * Convert ActionCardDTO to a string ID representation
+     * @param dto ActionCardDTO to convert
+     * @return String ID of the action card
+     */
+    public String toId(ActionCardDTO dto) {
+        if (dto == null) {
             return null;
         }
+        return dto.getId();
+    }
+    
+    /**
+     * Create a simple ActionCardDTO with only an ID
+     * @param id ID of the action card
+     * @return ActionCardDTO with the given ID
+     */
+    public ActionCardDTO toDTO(String id) {
+        if (id == null) {
+            return null;
+        }
+        
         ActionCardDTO dto = new ActionCardDTO();
-        dto.setId(actionCard.getId());
-        dto.setType(actionCard.getType().toString().toLowerCase());
-        dto.setTitle(actionCard.getTitle());
-        dto.setDescription(actionCard.getDescription());
+        dto.setId(id);
         return dto;
     }
 }

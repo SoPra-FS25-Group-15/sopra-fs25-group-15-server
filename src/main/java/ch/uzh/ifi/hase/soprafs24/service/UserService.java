@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
 
 /**
  * User Service
@@ -177,10 +178,12 @@ public class UserService {
 
     /**
      * Retrieves a user based on the provided token
-     * @param token - the authentication token
+     * @param rawToken - the authentication token (with or without Bearer prefix)
      * @return User
      */
-    public User getUserByToken(String token) {
+    public User getUserByToken(String rawToken) {
+        String token = TokenUtils.extractToken(rawToken);
+        
         User user = userRepository.findByToken(token);
 
         if (user == null) {

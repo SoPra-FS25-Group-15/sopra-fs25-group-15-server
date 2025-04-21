@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.hibernate.Hibernate;
 import org.slf4j.Logger;
@@ -86,9 +87,6 @@ public class LobbyService {
             lobby.setTeams(null);
         }
 
-        // Default round cards
-        lobby.setHintsEnabled(generateDefaultRoundCards());
-
         // Automatically add the host
         User host = lobby.getHost();
         if (host != null) {
@@ -162,6 +160,21 @@ public class LobbyService {
         }
 
         return lobbyRepository.save(lobby);
+    }
+
+    /**
+     * Updates the status of a lobby
+     * @param lobbyId ID of the lobby
+     * @param status New status for the lobby
+     * @return The updated lobby
+     */
+    @Transactional
+    public Lobby updateLobbyStatus(Long lobbyId, String status) {
+        Lobby lobby = getLobbyById(lobbyId);
+        lobby.setStatus(status);
+        lobby = lobbyRepository.save(lobby);
+        logger.info("Updated lobby {} status to {}", lobbyId, status);
+        return lobby;
     }
 
     /**
@@ -353,13 +366,6 @@ public class LobbyService {
         return new GenericMessageResponseDTO("Lobby disbanded successfully.");
     }
 
-    private List<String> generateDefaultRoundCards() {
-        return new ArrayList<>(List.of(
-            "STANDARD_CARD_1", "STANDARD_CARD_2", "STANDARD_CARD_3",
-            "STANDARD_CARD_4", "STANDARD_CARD_5"
-        ));
-    }
-
     public Lobby getLobbyByCode(String code) {
         if (code == null || code.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby code is required");
@@ -469,5 +475,124 @@ public class LobbyService {
     @Transactional
     public boolean hasAnyPendingInviteFrom(User sender, User recipient) {
         return pendingInvites.containsKey(sender.getId() + "-" + recipient.getId());
+    }
+
+    /**
+     * Get all player IDs in a lobby
+     * @param lobbyId lobby ID
+     * @return list of player IDs
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getLobbyPlayerIds(Long lobbyId) {
+        Lobby lobby = getLobbyById(lobbyId);
+        List<Long> playerIds = new ArrayList<>();
+        
+        // Add the host
+        if (lobby.getHost() != null) {
+            playerIds.add(lobby.getHost().getId());
+        }
+        
+        // Add all players from teams or player list
+        if (LobbyConstants.MODE_TEAM.equals(lobby.getMode()) && lobby.getTeams() != null) {
+            for (List<User> team : lobby.getTeams().values()) {
+                for (User player : team) {
+                    if (!playerIds.contains(player.getId())) {
+                        playerIds.add(player.getId());
+                    }
+                }
+            }
+        } else if (lobby.getPlayers() != null) {
+            // Initialize the lazy collection
+            Hibernate.initialize(lobby.getPlayers());
+            for (User player : lobby.getPlayers()) {
+                if (!playerIds.contains(player.getId())) {
+                    playerIds.add(player.getId());
+                }
+            }
+        }
+        
+        logger.info("Found {} players in lobby {}: {}", playerIds.size(), lobbyId, playerIds);
+        return playerIds;
+    }
+
+    /**
+     * Get player tokens for a lobby
+     * @param lobbyId Lobby ID
+     * @return List of player tokens in the lobby
+     */
+    public List<String> getLobbyPlayerTokens(Long lobbyId) {
+        Lobby lobby = getLobbyById(lobbyId);
+        
+        if (lobby.getMode().equals(LobbyConstants.MODE_TEAM)) {
+            // For team mode, collect tokens from all teams
+            return lobby.getTeams().values().stream()
+                .flatMap(List::stream)
+                .map(User::getToken)
+                .collect(Collectors.toList());
+        } else {
+            // For solo mode, get tokens from players list
+            return lobby.getPlayers().stream()
+                .map(User::getToken)
+                .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Check if a user with the given token is the host of a lobby
+     * @param lobbyId Lobby ID
+     * @param token User token
+     * @return true if the user is the host
+     */
+    public boolean isUserHostByToken(Long lobbyId, String token) {
+        Lobby lobby = getLobbyById(lobbyId);
+        
+        if (lobby == null || lobby.getHost() == null) {
+            return false;
+        }
+        
+        return lobby.getHost().getToken().equals(token);
+    }
+
+    /**
+     * Handle user disconnection from WebSocket
+     * Find all lobbies the user is in and process them leaving
+     * @param userId ID of the disconnected user
+     */
+    public void handleUserDisconnect(Long userId) {
+        logger.info("Handling WebSocket disconnect for user {}", userId);
+        
+        try {
+            // Find all lobbies where this user is a player
+            List<Lobby> userLobbies = lobbyRepository.findAll().stream()
+                .filter(lobby -> isUserInLobby(userId, lobby.getId()))
+                .collect(Collectors.toList());
+                
+            if (userLobbies.isEmpty()) {
+                logger.debug("User {} was not in any lobbies", userId);
+                return;
+            }
+            
+            for (Lobby lobby : userLobbies) {
+                try {
+                    logger.info("Processing user {} disconnect from lobby {}", userId, lobby.getId());
+                    
+                    // If the user is the host, delete the lobby
+                    if (isUserHost(lobby.getId(), userId)) {
+                        logger.info("User {} was host of lobby {} - deleting lobby", userId, lobby.getId());
+                        deleteLobby(lobby.getId(), userId);
+                    } else {
+                        // Otherwise just remove them from the lobby
+                        logger.info("User {} was player in lobby {} - removing from lobby", userId, lobby.getId());
+                        leaveLobby(lobby.getId(), userId, userId);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error processing disconnect for user {} from lobby {}: {}", 
+                        userId, lobby.getId(), e.getMessage());
+                    // Continue processing other lobbies even if one fails
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error handling disconnect for user {}: {}", userId, e.getMessage(), e);
+        }
     }
 }

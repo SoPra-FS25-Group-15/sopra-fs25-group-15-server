@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2025-04-21T20:52:10" hostname="Daria-XPS" time="0.063">
+  <properties/>
+  <testcase name="testToLoginResponse()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.044"/>
+  <testcase name="testLobbyEntityToResponseDTO_SoloMode_HidesMaxPlayersPerTeam()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testToUserPublicDTO()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testToUserStatsDTO()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testToLobbyLeaveResponse_WithValidLobby()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testLobbyEntityToResponseDTO_RoundCardsStartAmount()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testJoinLobbyRequestDTO()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testToEntity_fromUserRegisterRequestDTO()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testToUserMeDTO()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testToUpdateResponse()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testLobbyRequestDTOToEntity_CasualGame()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testLobbyRequestDTOToEntity_RankedGame_RespectsTeamMode()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testLobbyEntityToResponseDTO_SoloMode()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testLobbyRequestDTOToEntity_SoloMode()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testLobbyEntityToResponseDTO_TeamMode_ShowsMaxPlayersPerTeam()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testLobbyRequestDTOToEntity_CasualGame_EnforcesSoloMode()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testLobbyEntityToResponseDTO_TeamMode()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testToLobbyLeaveResponse_WithNullLobby()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testLobbyRequestDTOToEntity_TeamMode()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testUpdateEntityFromDTO()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
+  <testcase name="testToRegisterResponse()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <testcase name="testLobbyEntityToResponseDTO_SoloMode_DefaultMaxPlayers()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

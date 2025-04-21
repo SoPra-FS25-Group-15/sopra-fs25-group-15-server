@@ -1,19 +1,23 @@
 package ch.uzh.ifi.hase.soprafs24.websocket.dto;
 
 public class RoundGuessBroadcast {
-    private final String type   = "ROUND_GUESS";
+    private final String type = "ROUND_GUESS";
     private final String username;
-    private final Integer guess;
-    private final Integer diff;
+    private final Double latitude;
+    private final Double longitude;
+    private final Integer distance; // Distance in meters
     private final int round;
 
-    public RoundGuessBroadcast(String username, Integer guess, Integer diff, int round) {
+    // Constructor for geographical guesses
+    public RoundGuessBroadcast(String username, Double latitude, Double longitude, Integer distance, int round) {
         this.username = username;
-        this.guess    = guess;
-        this.diff     = diff;
-        this.round    = round;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.distance = distance;
+        this.round = round;
     }
 
+    // Getters
     public String getType() {
         return type;
     }
@@ -22,12 +26,16 @@ public class RoundGuessBroadcast {
         return username;
     }
 
-    public Integer getGuess() {
-        return guess;
+    public Double getLatitude() {
+        return latitude;
+    }
+    
+    public Double getLongitude() {
+        return longitude;
     }
 
-    public Integer getDiff() {
-        return diff;
+    public Integer getDistance() {
+        return distance;
     }
 
     public int getRound() {

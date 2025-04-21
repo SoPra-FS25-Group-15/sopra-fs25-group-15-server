@@ -12,8 +12,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.FriendService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
+import ch.uzh.ifi.hase.soprafs24.util.TokenUtils; // Fix: Add TokenUtils import
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
 
 @Controller
@@ -28,14 +30,40 @@ public class FriendWebSocketController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private AuthService authService;
+
     // Helper method to validate that the user is authenticated.
-    private Long validateAuthentication(Principal principal) {
+    private String validateAuthentication(Principal principal) {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
+        
+        String principalName = principal.getName();
+        
+        // Try to handle both token and numeric ID formats
+        if (principalName != null && principalName.matches("\\d+")) {
+            try {
+                // If it's a user ID, find the associated token
+                User user = userService.getPublicProfile(Long.parseLong(principalName));
+                if (user != null && user.getToken() != null) {
+                    return user.getToken();
+                }
+            } catch (Exception e) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+            }
+        }
+        
+        // Extract token if it starts with Bearer
+        String token = TokenUtils.extractToken(principalName);
+        
         try {
-            return Long.parseLong(principal.getName());
-        } catch (NumberFormatException e) {
+            User user = authService.getUserByToken(token);
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+            }
+            return token;
+        } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
         }
     }
@@ -47,11 +75,12 @@ public class FriendWebSocketController {
      */
     @MessageMapping("/friend/requestOut")
     public void sendFriendRequest(@Payload WebSocketMessage<Map<String, String>> message, Principal principal) {
+        String userToken = validateAuthentication(principal);
         Map<String, String> payload = message.getPayload();
-        String token = payload.get("token");
         String toUsername = payload.get("toUsername");
         
-        Long senderId = validateAuthentication(principal);
+        // Get user by token
+        User user = authService.getUserByToken(userToken);
 
         // Lookup the recipient by username.
         User recipient = userService.findByUsername(toUsername);
@@ -61,13 +90,13 @@ public class FriendWebSocketController {
             return;
         }
         try {
-            friendService.sendFriendRequest(token, recipient.getId());
+            friendService.sendFriendRequest(userToken, recipient.getId());
             // Notify the sender that the friend request was sent successfully.
             messagingTemplate.convertAndSendToUser(principal.getName(), "/topic/friend/requestOut/result", 
                 new WebSocketMessage<>("REQUEST_SENT", "Friend request sent to " + toUsername));
             
             // Retrieve sender's username to include in the notification.
-            String senderUsername = userService.getPublicProfile(senderId).getProfile().getUsername();
+            String senderUsername = user.getProfile().getUsername(); // Fix: Use getProfile().getUsername()
             // Notify the recipient that an incoming friend request has been received.
             messagingTemplate.convertAndSendToUser(recipient.getId().toString(), "/topic/friend/incoming", 
                 new WebSocketMessage<>("REQUEST_IN", Map.of("fromUsername", senderUsername)));
@@ -86,13 +115,14 @@ public class FriendWebSocketController {
      */
     @MessageMapping("/friend/requestResponse")
     public void respondToFriendRequest(@Payload WebSocketMessage<Map<String, String>> message, Principal principal) {
+        String userToken = validateAuthentication(principal);
         Map<String, String> payload = message.getPayload();
-        String token = payload.get("token");
         String toUsername = payload.get("toUsername");
         // 'accept' is passed as a string ("true" or "false")
         boolean accept = Boolean.parseBoolean(payload.get("accept"));
         
-        Long responderId = validateAuthentication(principal);
+        // Get user by token
+        User responder = authService.getUserByToken(userToken);
         
         // Lookup the original sender by username.
         User requester = userService.findByUsername(toUsername);
@@ -102,13 +132,11 @@ public class FriendWebSocketController {
             return;
         }
         try {
-            // Here we assume you add a service helper that finds the pending friend request by sender.
-            // The new helper method (respondToFriendRequestBySender) handles the lookup internally.
-            friendService.respondToFriendRequestBySender(token, requester.getId(), accept ? "accept" : "deny");
+            friendService.respondToFriendRequestBySender(userToken, requester.getId(), accept ? "accept" : "deny");
 
             // If the friend request was accepted, notify the original sender.
             if (accept) {
-                String responderUsername = userService.getPublicProfile(responderId).getProfile().getUsername();
+                String responderUsername = responder.getProfile().getUsername(); // Fix: Use getProfile().getUsername()
                 messagingTemplate.convertAndSendToUser(requester.getId().toString(), "/topic/friend/requestResponse", 
                     new WebSocketMessage<>("FRIEND_ACCEPTED", Map.of("fromUsername", responderUsername)));
             }
@@ -127,11 +155,12 @@ public class FriendWebSocketController {
      */
     @MessageMapping("/friend/cancelRequest")
     public void cancelFriendRequest(@Payload WebSocketMessage<Map<String, String>> message, Principal principal) {
+        String userToken = validateAuthentication(principal);
         Map<String, String> payload = message.getPayload();
-        String token = payload.get("token");
         String toUsername = payload.get("toUsername");
         
-        Long senderId = validateAuthentication(principal);
+        // Get user by token
+        User sender = authService.getUserByToken(userToken);
         // Lookup the recipient by username.
         User recipient = userService.findByUsername(toUsername);
         if (recipient == null) {
@@ -140,8 +169,7 @@ public class FriendWebSocketController {
             return;
         }
         try {
-            // Here we assume a new helper in FriendService (cancelFriendRequestToUser) is added.
-            friendService.cancelFriendRequestToUser(token, recipient.getId());
+            friendService.cancelFriendRequestToUser(userToken, recipient.getId());
             messagingTemplate.convertAndSendToUser(principal.getName(), "/topic/friend/cancelRequest/result",
                 new WebSocketMessage<>("CANCEL_REQUEST", "Friend request canceled"));
         } catch (ResponseStatusException e) {
@@ -157,11 +185,12 @@ public class FriendWebSocketController {
      */
     @MessageMapping("/friend/removeFriend")
     public void removeFriend(@Payload WebSocketMessage<Map<String, String>> message, Principal principal) {
+        String userToken = validateAuthentication(principal);
         Map<String, String> payload = message.getPayload();
-        String token = payload.get("token");
         String toUsername = payload.get("toUsername");
         
-        Long userId = validateAuthentication(principal);
+        // Get user by token
+        User user = authService.getUserByToken(userToken);
         // Lookup the friend by username.
         User friend = userService.findByUsername(toUsername);
         if (friend == null) {
@@ -170,7 +199,7 @@ public class FriendWebSocketController {
             return;
         }
         try {
-            friendService.unfriend(token, friend.getId());
+            friendService.unfriend(userToken, friend.getId());
             messagingTemplate.convertAndSendToUser(principal.getName(), "/topic/friend/removeFriend/result",
                 new WebSocketMessage<>("REMOVE_FRIEND", "Friend removed successfully"));
         } catch (ResponseStatusException e) {

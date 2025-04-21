@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -16,6 +17,9 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.ActionCardMapper;
+import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService;
+import ch.uzh.ifi.hase.soprafs24.service.ActionCardService;
 
 @WebAppConfiguration
 @SpringBootTest
@@ -30,6 +34,16 @@ public class UserServiceIntegrationTest {
   
   @Autowired
   private UserService userService;
+  
+  // Add mocked dependencies directly in the test class
+  @MockBean
+  private ActionCardMapper actionCardMapper;
+  
+  @MockBean
+  private ActionCardService actionCardService;
+  
+  @MockBean
+  private GoogleMapsService googleMapsService;
 
   @BeforeEach
   public void setup() {

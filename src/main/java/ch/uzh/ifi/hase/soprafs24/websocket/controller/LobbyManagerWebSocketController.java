@@ -32,6 +32,8 @@ import ch.uzh.ifi.hase.soprafs24.websocket.WebSocketEventListener;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.LobbyManagementDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketLobbyStatusDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
+import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 
 @Controller
 public class LobbyManagerWebSocketController {
@@ -53,19 +55,53 @@ public class LobbyManagerWebSocketController {
     @Autowired
     private WebSocketEventListener webSocketEventListener;
     
+    @Autowired
+    private AuthService authService; // Add missing AuthService autowired field
+    
     /**
      * Helper to validate that the user is authenticated.
      */
-    private Long validateAuthentication(Principal principal) {
+    private String validateAuthentication(Principal principal) {
         if (principal == null) {
             log.error("Unauthorized WebSocket request - missing principal");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
+        
+        String principalName = principal.getName();
+        log.debug("Validating authentication for principal: {}", principalName);
+        
+        // If the principal is a numeric user ID, try to find the token
+        if (principalName != null && principalName.matches("\\d+")) {
+            log.debug("Principal appears to be a user ID: {}. Finding token.", principalName);
+            
+            try {
+                // Find the user
+                User user = userService.getPublicProfile(Long.parseLong(principalName));
+                if (user != null && user.getToken() != null) {
+                    log.debug("Found token for user ID {}", principalName);
+                    return user.getToken();
+                }
+            } catch (Exception e) {
+                log.warn("Error retrieving token for user ID {}: {}", principalName, e.getMessage());
+            }
+        }
+        
+        // Otherwise the principal name should be the token itself
         try {
-            return Long.parseLong(principal.getName());
-        } catch (NumberFormatException e) {
-            log.error("Invalid principal format: {}", principal.getName());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+            // Extract token if it starts with Bearer
+            String token = TokenUtils.extractToken(principalName);
+            User user = authService.getUserByToken(token);
+            
+            if (user == null) {
+                log.error("Invalid token: {}", TokenUtils.maskToken(token));
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+            }
+            
+            log.debug("Authentication succeeded for user ID: {}", user.getId());
+            return token;
+        } catch (ResponseStatusException e) {
+            log.error("Token validation failed: {}", e.getMessage());
+            throw e;
         }
     }
 
@@ -75,8 +111,11 @@ public class LobbyManagerWebSocketController {
     @Transactional(readOnly = true)
     @SubscribeMapping("/lobby-manager/lobbies")
     public WebSocketMessage<List<LobbyResponseDTO>> getAllLobbies(Principal principal) {
-        validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         try {
+            // Validate the token
+            authService.getUserByToken(userToken);
+            
             List<Lobby> lobbies = lobbyService.listLobbies();
             lobbies.forEach(lobby -> Hibernate.initialize(lobby.getHintsEnabled()));
             List<LobbyResponseDTO> dtos = lobbies.stream()
@@ -96,8 +135,12 @@ public class LobbyManagerWebSocketController {
     public void joinLobbyByCode(@DestinationVariable String code,
                                 @Payload WebSocketMessage<Void> message,
                                 Principal principal) {
-        Long userId = validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         try {
+            // Convert token to userId for methods that expect a Long
+            User user = authService.getUserByToken(userToken);
+            Long userId = user.getId();
+            
             log.info("User {} attempting to join lobby with code {}", userId, code);
             Lobby lobby = lobbyService.getLobbyByCode(code);
             LobbyJoinResponseDTO response = lobbyService.joinLobby(
@@ -135,8 +178,12 @@ public class LobbyManagerWebSocketController {
      */
     @SubscribeMapping("/lobby-manager/state")
     public WebSocketMessage<LobbyManagementDTO> getLobbyManagementState(Principal principal) {
-        Long userId = validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         try {
+            // Convert token to userId
+            User user = authService.getUserByToken(userToken);
+            Long userId = user.getId();
+            
             LobbyManagementDTO state = new LobbyManagementDTO();
             Lobby current = lobbyService.getCurrentLobbyForUser(userId);
             if (current != null) {
@@ -168,8 +215,12 @@ public class LobbyManagerWebSocketController {
             @DestinationVariable String lobbyCode,
             Principal principal) {
 
-        Long userId = validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         try {
+            // Convert token to userId
+            User user = authService.getUserByToken(userToken);
+            Long userId = user.getId();
+            
             log.info("User {} requesting status for lobby '{}'", userId, lobbyCode);
             Lobby lobby = lobbyService.getLobbyByCode(lobbyCode);
 
@@ -225,9 +276,13 @@ public class LobbyManagerWebSocketController {
     @MessageMapping("/lobby-manager/invite")
     public void sendLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
                                 Principal principal) {
-        Long senderId = validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         String toUsername = message.getPayload().get("toUsername");
         try {
+            // Convert token to userId
+            User user = authService.getUserByToken(userToken);
+            Long senderId = user.getId();
+            
             log.info("User {} sending lobby invite to {}", senderId, toUsername);
             User sender = userService.getPublicProfile(senderId);
             User tmp = userService.findByUsername(toUsername);
@@ -287,9 +342,13 @@ public class LobbyManagerWebSocketController {
     @MessageMapping("/lobby-manager/invite/cancel")
     public void cancelLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
                                   Principal principal) {
-        Long senderId = validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         String toUsername = message.getPayload().get("toUsername");
         try {
+            // Convert token to userId
+            User user = authService.getUserByToken(userToken);
+            Long senderId = user.getId();
+            
             log.info("User {} canceling invite to {}", senderId, toUsername);
             User sender = userService.getPublicProfile(senderId);
             User tmp = userService.findByUsername(toUsername);
@@ -337,15 +396,19 @@ public class LobbyManagerWebSocketController {
     }
 
     /**
-     * Accept a friend’s lobby invite.
+     * Accept a friend's lobby invite.
      */
     @MessageMapping("/lobby-manager/invite/accept")
     public void acceptFriendLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
                                         Principal principal,
                                         org.springframework.messaging.simp.stomp.StompHeaderAccessor headerAccessor) {
-        Long recipientId = validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         String fromUsername = message.getPayload().get("fromUsername");
         try {
+            // Convert token to userId
+            User user = authService.getUserByToken(userToken);
+            Long recipientId = user.getId();
+            
             log.info("User {} accepting invite from {}", recipientId, fromUsername);
             User sender = userService.findByUsername(fromUsername);
             if (sender == null) {
@@ -403,15 +466,19 @@ public class LobbyManagerWebSocketController {
     }
 
     /**
-     * Decline a friend’s lobby invite.
+     * Decline a friend's lobby invite.
      */
     @MessageMapping("/lobby-manager/invite/decline")
     public void declineFriendLobbyInvite(@Payload WebSocketMessage<Map<String, String>> message,
                                          Principal principal,
                                          org.springframework.messaging.simp.stomp.StompHeaderAccessor headerAccessor) {
-        Long recipientId = validateAuthentication(principal);
+        String userToken = validateAuthentication(principal);
         String fromUsername = message.getPayload().get("fromUsername");
         try {
+            // Convert token to userId
+            User user = authService.getUserByToken(userToken);
+            Long recipientId = user.getId();
+            
             log.info("User {} declining invite from {}", recipientId, fromUsername);
             String sessionId = headerAccessor.getSessionId();
             if (sessionId == null) {

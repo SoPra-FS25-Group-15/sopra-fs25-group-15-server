@@ -1,7 +1,14 @@
 {
+  "name": "sopra-fs25-group-15-server",
+  "version": "1.0.0",
+  "description": "SoPra FS25 Server",
+  "main": "index.js",
+  "scripts": {
+    "test:game": "node test/websocket/run_game_test.js"
+  },
   "dependencies": {
-    "@stomp/stompjs": "^7.1.1",
-    "axios": "^1.8.4",
-    "ws": "^8.18.1"
+    "@stomp/stompjs": "^6.1.2",
+    "websocket": "^1.0.34",
+    "uuid": "^8.3.2"
   }
 }

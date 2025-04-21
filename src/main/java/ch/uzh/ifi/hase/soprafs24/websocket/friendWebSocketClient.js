@@ -26,12 +26,12 @@ const WebSocket = require('ws');
 const YOUR_TOKEN = '98f23eb3-ecef-44a7-a4ac-4375395ec2d5';
 
 const friendClient = new Client({
-  brokerURL: 'ws://localhost:8080/ws/friend', // Make sure /ws/friend is registered on your server
+  brokerURL: `ws://localhost:8080/ws/friend?token=${encodeURIComponent(YOUR_TOKEN)}`, // Add query parameter token as an alternative authentication method
   connectHeaders: {
     Authorization: `Bearer ${YOUR_TOKEN}`
   },
   webSocketFactory: () =>
-    new WebSocket('ws://localhost:8080/ws/friend', {
+    new WebSocket(`ws://localhost:8080/ws/friend?token=${encodeURIComponent(YOUR_TOKEN)}`, {
       headers: {
         Authorization: `Bearer ${YOUR_TOKEN}`
       }

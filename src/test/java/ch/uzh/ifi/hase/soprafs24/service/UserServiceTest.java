@@ -113,14 +113,33 @@ public class UserServiceTest {
         // Simulate that a user with the duplicate username already exists.
         Mockito.when(userRepository.findByProfile_Username("duplicateUsername"))
                 .thenReturn(conflictUser);
+                
+        // Create the main user that will attempt the update
+        User user = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(user, 1L);
+        }
+        catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+        user.setEmail("test@example.com");
+        user.setPassword("password");
+        user.setStatus(UserStatus.OFFLINE);
+        user.setToken("test-token");
 
-        // Also, let the email lookup return null (no conflict by email).
-        Mockito.when(userRepository.findByEmail("updated@example.com")).thenReturn(null);
+        UserProfile profile = new UserProfile();
+        profile.setUsername("testUser");
+        user.setProfile(profile);
 
-        // Attempt to update testUser with the duplicate username.
-        assertThrows(ResponseStatusException.class, () ->
-                userService.updateMyUser("test-token", "duplicateUsername", "updated@example.com", null)
-        );
+        // When trying to update to a duplicate username, expect an exception
+        Mockito.when(userRepository.findByToken("test-token")).thenReturn(user);
+        
+        // Assert that the method throws an exception
+        assertThrows(ResponseStatusException.class, () -> {
+            userService.updateMyUser("test-token", "duplicateUsername", "test@example.com", true);
+        });
     }
 
     @Test

@@ -241,7 +241,6 @@ public class DTOMapperTest {
         assertNull(responseDTO.getPlayersPerTeam()); // Ensure playersPerTeam is null for solo mode
         assertEquals("CODE1234", responseDTO.getCode());
         assertEquals(2, responseDTO.getRoundCardsStartAmount());
-        assertEquals(hints, responseDTO.getRoundCards());
         assertEquals("waiting", responseDTO.getStatus());
         assertEquals(now, responseDTO.getCreatedAt());
     }
@@ -281,7 +280,6 @@ public class DTOMapperTest {
         assertEquals("team", responseDTO.getMode());
         assertEquals("TEAMCODE", responseDTO.getCode());
         assertEquals(2, responseDTO.getRoundCardsStartAmount());
-        assertEquals(hints, responseDTO.getRoundCards());
         assertEquals("waiting", responseDTO.getStatus());
         assertEquals(now, responseDTO.getCreatedAt());
     }
@@ -469,17 +467,12 @@ public class DTOMapperTest {
         }
         lobby.setMode("solo");
         lobby.setPrivate(true);
-        
-        // Set 5 round cards/hints
-        List<String> hints = Arrays.asList("C1", "C2", "C3", "C4", "C5");
-        lobby.setHintsEnabled(hints);
+    
         
         LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
         
         // Verify roundCardsStartAmount is set correctly
-        assertEquals(5, dto.getRoundCardsStartAmount());
-        // Verify backward compatibility
-        assertEquals(hints, dto.getRoundCards());
+        assertEquals(2, dto.getRoundCardsStartAmount());
     }
 
     @Test

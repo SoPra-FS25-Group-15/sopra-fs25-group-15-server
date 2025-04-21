@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
 
 @Service
 @Transactional
@@ -79,15 +80,37 @@ public class AuthService {
         log.debug("User logged out: {}", user);
     }
 
-    // Helper method
-    public User getUserByToken(String token) {
-        if (token == null || token.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User authentication required");
+    /**
+     * Gets a user by their authentication token
+     */
+    @Transactional
+    public User getUserByToken(String rawToken) {
+        if (rawToken == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No token provided");
         }
+        
+        // Extract the token from the Authorization header if needed
+        String token = TokenUtils.extractToken(rawToken);
+        
         User user = userRepository.findByToken(token);
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User authentication required");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
+        return user;
+    }
+
+    /**
+     * Gets a user by their ID
+     */
+    @Transactional
+    public User getUserById(Long userId) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User ID is required");
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        
         return user;
     }
 

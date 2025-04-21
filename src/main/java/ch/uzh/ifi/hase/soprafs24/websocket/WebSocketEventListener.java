@@ -1,72 +1,131 @@
 package ch.uzh.ifi.hase.soprafs24.websocket;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
+import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
+import ch.uzh.ifi.hase.soprafs24.service.UserService;
+import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
+
+import java.security.Principal;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class WebSocketEventListener {
-    
-    private static final Logger log = LoggerFactory.getLogger(WebSocketEventListener.class);
+
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketEventListener.class);
     
     @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private LobbyService lobbyService;
     
-    // Session ID to Lobby ID mapping to track which lobby a user is in
-    private final Map<String, Long> sessionLobbyMap = new ConcurrentHashMap<>();
+    @Autowired
+    private UserService userService;
     
+    @Autowired
+    private AuthService authService;
+    
+    // Track which WebSocket sessions belong to which lobbies
+    private final Map<String, Long> sessionToLobbyMap = new ConcurrentHashMap<>();
+
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        String sessionId = headerAccessor.getSessionId();
-        String username = headerAccessor.getUser().getName();
+        Principal principal = headerAccessor.getUser();
         
-        log.info("User connected: Session ID {} - User ID {}", sessionId, username);
+        if (principal != null) {
+            String principalName = principal.getName();
+            logger.info("User connected: Session ID {} - User ID {}", 
+                    headerAccessor.getSessionId(), principalName);
+        }
     }
-    
+
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        Principal principal = headerAccessor.getUser();
         String sessionId = headerAccessor.getSessionId();
-        String username = headerAccessor.getUser() != null ? headerAccessor.getUser().getName() : "Unknown";
         
-        log.info("User disconnected: Session ID {} - User ID {}", sessionId, username);
+        if (principal == null) {
+            logger.warn("User disconnected but no principal found: Session ID {}", sessionId);
+            return;
+        }
         
-        // Check if user was in a lobby
-        Long lobbyId = sessionLobbyMap.remove(sessionId);
-        if (lobbyId != null && headerAccessor.getUser() != null) {
-            // Notify others in the lobby that user has disconnected
-            messagingTemplate.convertAndSend(
-                "/topic/lobby/" + lobbyId + "/users",
-                new WebSocketMessage<>("USER_DISCONNECTED", Long.parseLong(username))
-            );
+        String principalName = principal.getName();
+        logger.info("User disconnected: Session ID {} - User ID {}", sessionId, principalName);
+        
+        // Check if this session was associated with a lobby
+        Long lobbyId = sessionToLobbyMap.remove(sessionId);
+        if (lobbyId != null) {
+            logger.info("Session {} was associated with lobby {}", sessionId, lobbyId);
+        }
+        
+        try {
+            Long userId = null;
             
-            log.info("User {} disconnected from lobby {}", username, lobbyId);
+            // Try to determine if it's a numeric ID or a token
+            if (principalName != null && principalName.matches("\\d+")) {
+                // It's a numeric ID, parse directly
+                userId = Long.parseLong(principalName);
+            } else {
+                // It's likely a token
+                String token = TokenUtils.extractToken(principalName);
+                
+                try {
+                    // Convert token to user ID
+                    User user = authService.getUserByToken(token);
+                    if (user != null) {
+                        userId = user.getId();
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error looking up user by token: {}", e.getMessage());
+                }
+            }
+            
+            // If we found a user ID, handle their disconnection
+            if (userId != null) {
+                // Notify the lobby service that a user has disconnected
+                lobbyService.handleUserDisconnect(userId);
+            }
+        } catch (Exception e) {
+            logger.error("Error handling WebSocket disconnect: {}", e.getMessage(), e);
         }
     }
     
     /**
-     * Register a session with a lobby for tracking purposes
+     * Register a session with a lobby to track which sessions are in which lobbies
      */
     public void registerSessionWithLobby(String sessionId, Long lobbyId) {
-        sessionLobbyMap.put(sessionId, lobbyId);
+        if (sessionId != null && lobbyId != null) {
+            sessionToLobbyMap.put(sessionId, lobbyId);
+            logger.debug("Registered session {} with lobby {}", sessionId, lobbyId);
+        }
     }
     
     /**
-     * Remove a session from a lobby tracking
+     * Unregister a session from its lobby
      */
     public void unregisterSessionFromLobby(String sessionId) {
-        sessionLobbyMap.remove(sessionId);
+        if (sessionId != null) {
+            Long lobbyId = sessionToLobbyMap.remove(sessionId);
+            if (lobbyId != null) {
+                logger.debug("Unregistered session {} from lobby {}", sessionId, lobbyId);
+            }
+        }
+    }
+    
+    /**
+     * Get the lobby ID associated with a session
+     */
+    public Long getLobbyIdForSession(String sessionId) {
+        return sessionToLobbyMap.get(sessionId);
     }
 }

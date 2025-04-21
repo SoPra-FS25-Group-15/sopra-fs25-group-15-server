@@ -1,8 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.config;
 
 import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -32,6 +31,8 @@ import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
+import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
+import ch.uzh.ifi.hase.soprafs24.websocket.WebSocketErrorHandler;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -41,6 +42,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private WebSocketErrorHandler webSocketErrorHandler;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -70,6 +74,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     Map<String, Object> attributes) {
 
                 logger.info("WebSocket handshake request from: {}", request.getRemoteAddress());
+                
+                // Allow OPTIONS requests for CORS preflight
+                if (request instanceof ServletServerHttpRequest && 
+                    ((ServletServerHttpRequest) request).getServletRequest().getMethod().equals("OPTIONS")) {
+                    return true;
+                }
 
                 // 1) Try to parse 'token=' from query params (works with SockJS fallback)
                 String tokenFromQuery = getTokenFromQuery(request.getURI());
@@ -98,11 +108,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 }
 
                 String authHeader = authHeaders.get(0);
-                String token = authHeader;
-
-                if (authHeader.startsWith("Bearer ")) {
-                    token = authHeader.substring(7);
-                }
+                String token = TokenUtils.extractToken(authHeader);
 
                 try {
                     User user = authService.getUserByToken(token);
@@ -141,7 +147,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     WebSocketHandler wsHandler,
                     Map<String, Object> attributes) {
 
-                if (attributes.containsKey("userId")) {
+                // If token is available in attributes, use that as the principal
+                if (attributes.containsKey("token")) {
+                    final String token = (String) attributes.get("token");
+                    logger.info("Creating principal with token: " + 
+                        (token.length() > 10 ? token.substring(0, 10) + "..." : token));
+                    return () -> token;
+                }
+                // Fall back to user ID if token is not available
+                else if (attributes.containsKey("userId")) {
                     final Long userId;
                     Object userIdObj = attributes.get("userId");
 
@@ -153,18 +167,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         userId = Long.valueOf(userIdObj.toString());
                     }
 
-                    logger.info("Creating principal for user: " + userId);
+                    logger.info("Creating principal with user ID: " + userId);
                     return () -> userId.toString();
                 }
+                
+                logger.warn("No token or userId in attributes for principal creation");
                 return null;
             }
         };
 
-        logger.info("Registering STOMP endpoints /ws/lobby, /ws/lobby-manager, /ws/user, /ws/friend");
+        logger.info("Registering STOMP endpoints /ws/lobby, /ws/lobby-manager, /ws/user, /ws/friend, /ws/game");
 
         // SockJS endpoints with fallback (query param token + no cookies)
-        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend")
-                .setAllowedOrigins("http://localhost:3000", "https://sopra-fs25-group-15-server.oa.r.appspot.com/")
+        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend", "/ws/game")
+                .setAllowedOriginPatterns("*") // Change to use patterns instead of origins
                 .addInterceptors(authInterceptor)
                 .setHandshakeHandler(handshakeHandler)
                 .withSockJS()
@@ -174,10 +190,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                   .setDisconnectDelay(5000);
 
         // Raw WebSocket endpoints (no fallback). 
-        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend")
-                .setAllowedOrigins("http://localhost:3000", "https://sopra-fs25-group-15-server.oa.r.appspot.com/")
+        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend", "/ws/game")
+                .setAllowedOriginPatterns("*") // Change to use patterns instead of origins
                 .addInterceptors(authInterceptor)
                 .setHandshakeHandler(handshakeHandler);
+
+        // Set the error handler for all endpoints
+        registry.setErrorHandler(webSocketErrorHandler);
 
         logger.info("STOMP endpoints registered successfully");
     }
@@ -190,77 +209,75 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 try {
                     StompHeaderAccessor accessor =
                         MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-                    if (accessor == null || accessor.getCommand() == null) {
-                        logger.error("Received malformed STOMP frame or non-STOMP message");
+                    if (accessor == null) {
+                        logger.error("Received message with null accessor");
+                        return message;
+                    }
+                    
+                    if (accessor.getCommand() == null) {
+                        // This might be a non-STOMP message (like heartbeat), just pass it through
                         return message;
                     }
 
-                    logger.info("STOMP command received: {}, sessionId={}, payload={}",
-                                accessor.getCommand(), accessor.getSessionId(),
-                                message.getPayload() != null
-                                    ? message.getPayload().toString()
-                                    : "null");
-
-                    accessor.toNativeHeaderMap().forEach((key, value) -> {
-                        logger.info("STOMP header: {} = {}", key, value);
-                    });
+                    logger.debug("STOMP command received: {}, sessionId={}",
+                                accessor.getCommand(), accessor.getSessionId());
+                    
+                    if (accessor.getMessageHeaders() != null) {
+                        accessor.getMessageHeaders().forEach((key, value) -> {
+                            logger.trace("Header: {} = {}", key, value);
+                        });
+                    }
 
                     if (StompCommand.CONNECT.equals(accessor.getCommand())) {
                         logger.info("Processing STOMP CONNECT frame");
 
                         // Attempt to get token from handshake attributes
-                        String token = null;
+                        String tokenValue = null;
                         Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
                         if (sessionAttributes != null && sessionAttributes.containsKey("token")) {
-                            token = (String) sessionAttributes.get("token");
-                            if (token.length() > 10) {
-                                logger.info("Using token from handshake: {}...", token.substring(0, 10));
-                            } else {
-                                logger.info("Using token from handshake: {}", token);
+                            tokenValue = (String) sessionAttributes.get("token");
+                            if (tokenValue != null) {
+                                if (tokenValue.length() > 10) {
+                                    logger.info("Using token from handshake: {}...", tokenValue.substring(0, 10));
+                                } else {
+                                    logger.info("Using token from handshake: {}", tokenValue);
+                                }
                             }
                         }
 
                         // Fallback to STOMP headers if needed
-                        if (token == null) {
+                        if (tokenValue == null) {
                             List<String> authorization = accessor.getNativeHeader("Authorization");
                             if (authorization != null && !authorization.isEmpty()) {
                                 String authHeader = authorization.get(0);
-                                token = authHeader;
-                                if (authHeader.startsWith("Bearer ")) {
-                                    token = authHeader.substring(7);
-                                }
-                                if (token.length() > 10) {
-                                    logger.info("Using token from STOMP headers: {}...", token.substring(0, 10));
-                                } else {
-                                    logger.info("Using token from STOMP headers: {}", token);
+                                tokenValue = TokenUtils.extractToken(authHeader);
+                                
+                                if (tokenValue != null && tokenValue.length() > 10) {
+                                    logger.info("Using token from STOMP headers: {}...", tokenValue.substring(0, 10));
+                                } else if (tokenValue != null) {
+                                    logger.info("Using token from STOMP headers: {}", tokenValue);
                                 }
                             }
                         }
 
                         // Validate token if found
-                        if (token != null) {
+                        if (tokenValue != null) {
                             try {
-                                User user = authService.getUserByToken(token);
-                                accessor.setUser(() -> user.getId().toString());
-                                logger.info("STOMP authentication successful for user ID: {}", user.getId());
+                                final String finalToken = tokenValue; // Create a final variable for use in lambda
+                                User user = authService.getUserByToken(finalToken);
+                                accessor.setUser(() -> finalToken); // Use the final variable
+                                logger.info("Authentication successful for STOMP CONNECT - user: {}", user.getId());
                             } catch (Exception e) {
-                                logger.warn("STOMP authentication failed: {}", e.getMessage());
-                                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+                                logger.error("Authentication failed for STOMP CONNECT: {}", e.getMessage());
+                                throw e; // Let the exception propagate
                             }
-                        }
-                        else if (accessor.getUser() == null) {
-                            logger.warn("STOMP connection attempt without authorization");
-                            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No authorization provided");
+                        } else {
+                            logger.error("No valid token found for STOMP CONNECT");
                         }
                     }
                     else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-                        logger.info("STOMP SUBSCRIBE to: {}", accessor.getDestination());
-                    }
-                    else if (StompCommand.SEND.equals(accessor.getCommand())) {
-                        logger.info("STOMP SEND to: {}", accessor.getDestination());
-                    }
-                    else if (StompCommand.DISCONNECT.equals(accessor.getCommand())) {
-                        logger.info("STOMP DISCONNECT from sessionId: {}", accessor.getSessionId());
+                        // Handle subscriptions - verify token here if needed
+                        logger.debug("STOMP SUBSCRIBE to: {}", accessor.getDestination());
                     }
                 } catch (Exception e) {
                     logger.error("Error processing STOMP frame: {}", e.getMessage(), e);
@@ -280,16 +297,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 try {
                     StompHeaderAccessor accessor =
                         MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+                    
                     if (accessor != null && accessor.getCommand() != null) {
-                        logger.info("OUTBOUND STOMP frame: command={}, sessionId={}, destination={}",
-                                    accessor.getCommand(), accessor.getSessionId(), accessor.getDestination());
-
-                        if (StompCommand.CONNECTED.equals(accessor.getCommand())) {
-                            logger.info("Sending CONNECTED response to client");
-                        }
+                        logger.trace("Outbound STOMP: {} to {}", 
+                            accessor.getCommand(), accessor.getDestination());
                     }
                 } catch (Exception e) {
-                    logger.error("Error in outbound channel: {}", e.getMessage());
+                    logger.warn("Error in outbound channel interceptor: {}", e.getMessage());
                 }
                 return message;
             }
@@ -302,17 +316,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      * Helper method to parse "token=" from query parameters, e.g. ?token=ABC123
      */
     private String getTokenFromQuery(URI uri) {
-        if (uri == null || uri.getQuery() == null) {
+        String query = uri.getQuery();
+        if (query == null || query.isEmpty()) {
             return null;
         }
-        String query = uri.getQuery(); // e.g. "token=ABC123&foo=bar"
+        
         for (String param : query.split("&")) {
-            if (param.startsWith("token=")) {
-                String raw = param.substring("token=".length());
-                // decode in case we have URL-encoded tokens
-                return URLDecoder.decode(raw, StandardCharsets.UTF_8);
+            String[] parts = param.split("=", 2);
+            if (parts.length == 2 && "token".equals(parts[0])) {
+                return parts[1];
             }
         }
+        
         return null;
     }
 }

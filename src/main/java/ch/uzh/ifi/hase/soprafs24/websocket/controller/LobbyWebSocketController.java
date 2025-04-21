@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.websocket.controller;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 import org.hibernate.Hibernate;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
@@ -26,8 +28,10 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
+import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
 import ch.uzh.ifi.hase.soprafs24.websocket.WebSocketEventListener;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.LobbyDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
@@ -55,21 +59,85 @@ public class LobbyWebSocketController {
     @Autowired
     private WebSocketEventListener webSocketEventListener;
 
+    @Autowired
+    private AuthService authService;
+
     /**
-     * Helper method to validate that the user is authenticated
+     * Validate user authentication from WebSocket principal
+     * @param principal The Principal from the WebSocket session
+     * @return The validated user token
+     * @throws ResponseStatusException if authentication fails
      */
-    private Long validateAuthentication(Principal principal) {
+    private String validateAuthentication(Principal principal) {
         if (principal == null) {
             log.error("Unauthorized WebSocket request - missing principal");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         
-        try {
-            return Long.parseLong(principal.getName());
-        } catch (NumberFormatException e) {
-            log.error("Invalid principal format: {}", principal.getName());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+        String principalName = principal.getName();
+        log.debug("Validating authentication for principal: {}", principalName);
+        
+        // If the principal is a numeric user ID, try to find the token
+        if (principalName != null && principalName.matches("\\d+")) {
+            log.debug("Principal appears to be a user ID: {}. Finding token.", principalName);
+            
+            try {
+                // Find the user
+                User user = userService.getPublicProfile(Long.parseLong(principalName));
+                if (user != null && user.getToken() != null) {
+                    log.debug("Found token for user ID {}", principalName);
+                    return user.getToken();
+                }
+            } catch (Exception e) {
+                log.warn("Error retrieving token for user ID {}: {}", principalName, e.getMessage());
+            }
         }
+        
+        // Otherwise the principal name should be the token itself
+        try {
+            // Extract token if it starts with Bearer
+            String token = TokenUtils.extractToken(principalName);
+            User user = authService.getUserByToken(token);
+            
+            if (user == null) {
+                log.error("Invalid token: {}", TokenUtils.maskToken(token));
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+            }
+            
+            log.debug("Authentication succeeded for user ID: {}", user.getId());
+            return token;
+        } catch (ResponseStatusException e) {
+            log.error("Token validation failed: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * Extract token from StompHeaderAccessor as a fallback
+     */
+    private String getUserTokenFromHeaders(StompHeaderAccessor headerAccessor) {
+        if (headerAccessor == null) {
+            return null;
+        }
+        
+        // Try to get token from session attributes first
+        Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
+        if (sessionAttributes != null && sessionAttributes.containsKey("token")) {
+            String token = (String) sessionAttributes.get("token");
+            log.debug("Found token in session attributes: {}", TokenUtils.maskToken(token));
+            return token;
+        }
+        
+        // Try to get from native headers
+        List<String> authHeaders = headerAccessor.getNativeHeader("Authorization");
+        if (authHeaders != null && !authHeaders.isEmpty()) {
+            String authHeader = authHeaders.get(0);
+            String token = TokenUtils.extractToken(authHeader);
+            log.debug("Found token in Authorization header: {}", TokenUtils.maskToken(token));
+            return token;
+        }
+        
+        return null;
     }
 
     /**
@@ -79,7 +147,7 @@ public class LobbyWebSocketController {
     public void createLobby(@Payload WebSocketMessage<LobbyRequestDTO> message, 
                            Principal principal,
                            StompHeaderAccessor headerAccessor) {
-        Long userId = validateAuthentication(principal);
+        Long userId = Long.parseLong(validateAuthentication(principal));
         
         try {
             // Verify session validity
@@ -148,7 +216,7 @@ public class LobbyWebSocketController {
                                     @Payload WebSocketMessage<LobbyDTO> message,
                                     Principal principal,
                                     StompHeaderAccessor headerAccessor) {
-        Long userId = validateAuthentication(principal);
+        Long userId = Long.parseLong(validateAuthentication(principal));
         log.info("User {} attempting to update lobby {}", userId, lobbyId);
         
         try {
@@ -242,7 +310,7 @@ public class LobbyWebSocketController {
                           @Payload WebSocketMessage<Map<String, String>> message,
                           Principal principal,
                           StompHeaderAccessor headerAccessor) {
-        Long userId = validateAuthentication(principal);
+        Long userId = Long.parseLong(validateAuthentication(principal));
         log.info("User {} leaving lobby {}", userId, lobbyId);
         
         try {
@@ -333,7 +401,7 @@ public class LobbyWebSocketController {
     public void deleteLobby(@DestinationVariable Long lobbyId, 
                            Principal principal, 
                            StompHeaderAccessor headerAccessor) {
-        Long userId = validateAuthentication(principal);
+        Long userId = Long.parseLong(validateAuthentication(principal));
         
         try {
             log.info("User {} attempting to delete lobby {}", userId, lobbyId);
@@ -387,48 +455,66 @@ public class LobbyWebSocketController {
      */
     @MessageMapping("/lobby/join/{code}")
     public void joinLobbyByCode(@DestinationVariable String code,
-                              @Payload WebSocketMessage<Void> message,
+                              @Payload(required = false) WebSocketMessage<Void> message,
                               Principal principal,
                               StompHeaderAccessor headerAccessor) {
-        Long userId = validateAuthentication(principal);
+        String userToken = null;
         
         try {
-            log.info("User {} attempting to join lobby with code {}", userId, code);
+            userToken = validateAuthentication(principal);
+        } catch (Exception e) {
+            log.warn("Principal auth failed, trying header accessor: {}", e.getMessage());
             
-            // Check for session ID
-            String sessionId = headerAccessor.getSessionId();
-            if (sessionId == null) {
-                log.error("Invalid session for join request");
-                messagingTemplate.convertAndSendToUser(
-                    principal.getName(),
-                    "/topic/lobby/join/result",
-                    new WebSocketMessage<>("JOIN_ERROR", "Invalid session")
+            // If principal validation fails, try headers as fallback
+            userToken = getUserTokenFromHeaders(headerAccessor);
+            
+            if (userToken == null) {
+                log.error("Authentication failed - no valid token found");
+                messagingTemplate.convertAndSend(
+                    "/user/topic/lobby/join/result",
+                    new WebSocketMessage<>("JOIN_ERROR", "Authentication required")
                 );
                 return;
             }
             
-            // Find the lobby by code
-            Lobby lobby = lobbyService.getLobbyByCode(code);
-            if (lobby == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+            // Validate the token from headers
+            try {
+                authService.getUserByToken(userToken);
+            } catch (Exception headerEx) {
+                log.error("Header token validation failed: {}", headerEx.getMessage());
+                messagingTemplate.convertAndSendToUser(
+                    userToken,
+                    "/topic/lobby/join/result",
+                    new WebSocketMessage<>("JOIN_ERROR", "Invalid token")
+                );
+                return;
             }
+        }
+        
+        try {
+            log.info("Attempting to join lobby with code {}", code);
             
-            // Join the lobby
+            // Convert token to userId for lobby service
+            User user = authService.getUserByToken(userToken);
+            Long userId = user.getId();
+            
+            Lobby lobby = lobbyService.getLobbyByCode(code);
             LobbyJoinResponseDTO response = lobbyService.joinLobby(
                 lobby.getId(), userId, null, code, false);
-            
-            // Register this user's session with the lobby
-            webSocketEventListener.registerSessionWithLobby(sessionId, lobby.getId());
-            
-            // Send confirmation to the user
+                
             messagingTemplate.convertAndSendToUser(
                 principal.getName(),
                 "/topic/lobby/join/result",
                 new WebSocketMessage<>("JOIN_SUCCESS", convertToLobbyDTO(response.getLobby()))
             );
             
+            // Register this user's session with the lobby
+            String sessionId = headerAccessor.getSessionId();
+            if (sessionId != null) {
+                webSocketEventListener.registerSessionWithLobby(sessionId, lobby.getId());
+            }
+            
             // Broadcast to the lobby that a new user has joined
-            User user = userService.getPublicProfile(userId);
             messagingTemplate.convertAndSend(
                 "/topic/lobby/" + lobby.getId() + "/users",
                 new WebSocketMessage<>("USER_JOINED", mapper.toUserPublicDTO(user))

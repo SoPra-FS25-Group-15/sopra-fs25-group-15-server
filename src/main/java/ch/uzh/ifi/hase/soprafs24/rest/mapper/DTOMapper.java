@@ -198,12 +198,10 @@ public class DTOMapper {
             dto.setPlayersPerTeam(null);
         }
 
-        if (lobby.getHintsEnabled() != null) {
-            dto.setRoundCardsStartAmount(lobby.getHintsEnabled().size());
-            dto.setRoundCards(lobby.getHintsEnabled());
-        } else {
-            dto.setRoundCardsStartAmount(0);
-        }
+        // Set roundCardsStartAmount to 2 as per requirements
+        // This represents the fixed number of round cards in the RoundCardService
+        dto.setRoundCardsStartAmount(2);
+    
 
         dto.setCreatedAt(lobby.getCreatedAt());
         dto.setStatus(lobby.getStatus());

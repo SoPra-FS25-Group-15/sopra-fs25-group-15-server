@@ -105,6 +105,11 @@ public class Lobby {
         if (this.isPrivate) {
             lobbyCode = generateLobbyCode();
         }
+        
+        // Initialize with default hints (empty list)
+        if (this.hintsEnabled == null) {
+            this.hintsEnabled = new ArrayList<>();
+        }
     }
 
     private String generateLobbyCode() {

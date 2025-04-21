@@ -104,14 +104,6 @@ public class LobbyResponseDTO {
         this.roundCardsStartAmount = roundCardsStartAmount;
     }
     
-    // Keep for backward compatibility
-    public List<String> getRoundCards() {
-        return roundCards;
-    }
-    public void setRoundCards(List<String> roundCards) {
-        this.roundCards = roundCards;
-    }
-    
     public Instant getCreatedAt() {
         return createdAt;
     }

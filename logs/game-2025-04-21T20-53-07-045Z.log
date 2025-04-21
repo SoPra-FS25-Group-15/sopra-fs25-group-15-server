@@ -1,0 +1,1512 @@
+=== GAME CLIENT LOG STARTED AT 2025-04-21T20:53:07.045Z ===
+
+[2025-04-21T20:53:07.045Z] [INIT] Game client initialized. Logs will be written to: /home/dariast/SoPra/sopra-fs25-group-15-server/logs/game-2025-04-21T20-53-07-045Z.log
+[2025-04-21T20:53:07.046Z] [INIT] Game states will be recorded in: /home/dariast/SoPra/sopra-fs25-group-15-server/logs/game-states-2025-04-21T20-53-07-045Z.json
+[2025-04-21T20:53:07.047Z] [START] Starting game client
+[2025-04-21T20:53:07.047Z] [INFO] Using tokens directly for authentication
+[2025-04-21T20:53:07.047Z] [INFO] Creating lobby as player A...
+[2025-04-21T20:53:07.101Z] [LOBBY] Lobby created: ID=1, CODE=79980 with maxPlayers=2
+[2025-04-21T20:53:07.101Z] [SETUP] Setting global lobby ID: 1, joining code: 79980
+[2025-04-21T20:53:07.102Z] [CONNECT] [A] Connecting to WebSocket...
+[2025-04-21T20:53:07.102Z] [SETUP] [A] WebSocket client activated with token authentication
+[2025-04-21T20:53:07.102Z] [CONNECT] [B] Connecting to WebSocket...
+[2025-04-21T20:53:07.102Z] [SETUP] [B] WebSocket client activated with token authentication
+[2025-04-21T20:53:07.155Z] [CONNECT] [A] CONNECTED to WebSocket server
+[2025-04-21T20:53:07.156Z] [CONNECT] [B] CONNECTED to WebSocket server
+[2025-04-21T20:53:07.157Z] [EVENT] Recorded game event: JOINING_LOBBY
+{
+  "player": "B",
+  "code": "79980"
+}
+
+[2025-04-21T20:53:07.157Z] [INFO] [B] Joining lobby with code: 79980
+[2025-04-21T20:53:07.218Z] [INFO] [B] <<< JOIN RESULT: JOIN_SUCCESS
+[2025-04-21T20:53:07.218Z] [JOIN] [B] Player B join confirmed
+[2025-04-21T20:53:07.218Z] [EVENT] Recorded game event: JOIN_SUCCESS
+{
+  "player": "B",
+  "lobbyState": {
+    "playerAJoined": true,
+    "playerBJoined": true,
+    "lobbyCreated": true,
+    "gameStarted": false,
+    "gameStartAttempted": false,
+    "playerCount": 0,
+    "maxPlayers": 2,
+    "joinedPlayerTokens": [
+      "9826db28-d104-4b24-bab1-4b248eb02cff",
+      "cecde776-b87f-4137-807a-17cb34172b9b"
+    ]
+  }
+}
+
+[2025-04-21T20:53:07.218Z] [LOBBY] Lobby state after join success: playerAJoined=true, playerBJoined=true, count=2/2
+[2025-04-21T20:53:07.220Z] [INFO] [A] <<< LOBBY USERS: USER_JOINED
+[2025-04-21T20:53:07.220Z] [INFO] [A] User joined lobby: {"userid":3,"username":"wini","mmr":0,"points":0,"email":"wini@example.com"}
+[2025-04-21T20:53:07.220Z] [EVENT] Recorded game event: USER_JOINED
+{
+  "player": "A",
+  "user": {
+    "userid": 3,
+    "username": "wini",
+    "mmr": 0,
+    "points": 0,
+    "email": "wini@example.com"
+  },
+  "lobbyState": {
+    "playerAJoined": true,
+    "playerBJoined": true,
+    "lobbyCreated": true,
+    "gameStarted": false,
+    "gameStartAttempted": false,
+    "playerCount": 1,
+    "maxPlayers": 2,
+    "joinedPlayerTokens": [
+      "9826db28-d104-4b24-bab1-4b248eb02cff",
+      "cecde776-b87f-4137-807a-17cb34172b9b"
+    ]
+  }
+}
+
+[2025-04-21T20:53:07.220Z] [LOBBY] Lobby state after user joined: playerAJoined=true, playerBJoined=true, count=1/2
+[2025-04-21T20:53:07.221Z] [INFO] [B] <<< LOBBY USERS: USER_JOINED
+[2025-04-21T20:53:07.221Z] [INFO] [B] User joined lobby: {"userid":3,"username":"wini","mmr":0,"points":0,"email":"wini@example.com"}
+[2025-04-21T20:53:07.221Z] [EVENT] Recorded game event: USER_JOINED
+{
+  "player": "B",
+  "user": {
+    "userid": 3,
+    "username": "wini",
+    "mmr": 0,
+    "points": 0,
+    "email": "wini@example.com"
+  },
+  "lobbyState": {
+    "playerAJoined": true,
+    "playerBJoined": true,
+    "lobbyCreated": true,
+    "gameStarted": false,
+    "gameStartAttempted": false,
+    "playerCount": 2,
+    "maxPlayers": 2,
+    "joinedPlayerTokens": [
+      "9826db28-d104-4b24-bab1-4b248eb02cff",
+      "cecde776-b87f-4137-807a-17cb34172b9b"
+    ]
+  }
+}
+
+[2025-04-21T20:53:07.221Z] [LOBBY] Lobby state after user joined: playerAJoined=true, playerBJoined=true, count=2/2
+[2025-04-21T20:53:09.222Z] [GAME] Starting game with lobby state: playerAJoined=true, playerBJoined=true, joinedPlayers=2/2
+[2025-04-21T20:53:09.223Z] [INFO] [A] ▶ STARTING GAME
+[2025-04-21T20:53:09.223Z] [EVENT] Recorded game event: STARTING_GAME
+{
+  "player": "A",
+  "lobbyState": {
+    "playerAJoined": true,
+    "playerBJoined": true,
+    "lobbyCreated": true,
+    "gameStarted": false,
+    "gameStartAttempted": true,
+    "playerCount": 2,
+    "maxPlayers": 2,
+    "joinedPlayerTokens": [
+      "9826db28-d104-4b24-bab1-4b248eb02cff",
+      "cecde776-b87f-4137-807a-17cb34172b9b"
+    ]
+  }
+}
+
+[2025-04-21T20:53:09.294Z] [INFO] [A] <<< ACTION CARD: ACTION_CARD_ASSIGNED
+[2025-04-21T20:53:09.294Z] [INFO] [A] Received action card: badsight
+[2025-04-21T20:53:09.294Z] [EVENT] Recorded game event: ACTION_CARD_RECEIVED
+{
+  "player": "A",
+  "cardId": "badsight",
+  "type": "ACTION_CARD_ASSIGNED"
+}
+
+[2025-04-21T20:53:09.295Z] [INFO] [B] <<< ACTION CARD: ACTION_CARD_ASSIGNED
+[2025-04-21T20:53:09.295Z] [INFO] [B] Received action card: 7choices
+[2025-04-21T20:53:09.295Z] [EVENT] Recorded game event: ACTION_CARD_RECEIVED
+{
+  "player": "B",
+  "cardId": "7choices",
+  "type": "ACTION_CARD_ASSIGNED"
+}
+
+[2025-04-21T20:53:09.300Z] [DEBUG] [A] Raw WebSocket message: {"type":"GAME_START","payload":{"currentTurnPlayerToken":"cecde776-b87f-4137-807a-17cb34172b9b"},"timestamp":"2025-04-21T20:53:09.295337316Z"}
+[2025-04-21T20:53:09.300Z] [INFO] [A] <<< TOPIC: GAME_START
+[2025-04-21T20:53:09.300Z] [EVENT] [A] Processing event type: GAME_START
+[2025-04-21T20:53:09.300Z] [GAME] [A] Game started with initial state: {"currentTurnPlayerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:53:09.300Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:53:09.300Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:53:09.300Z] [RESET] Reset all command locks for new round
+[2025-04-21T20:53:09.301Z] [TIMER] Cleared all timers
+[2025-04-21T20:53:09.301Z] [EVENT] Recorded game event: GAME_STARTED
+{
+  "player": "A",
+  "initialState": {
+    "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+  }
+}
+
+[2025-04-21T20:53:09.301Z] [DEBUG] [B] Raw WebSocket message: {"type":"GAME_START","payload":{"currentTurnPlayerToken":"cecde776-b87f-4137-807a-17cb34172b9b"},"timestamp":"2025-04-21T20:53:09.295337316Z"}
+[2025-04-21T20:53:09.301Z] [INFO] [B] <<< TOPIC: GAME_START
+[2025-04-21T20:53:09.301Z] [EVENT] [B] Processing event type: GAME_START
+[2025-04-21T20:53:09.301Z] [GAME] [B] Game started with initial state: {"currentTurnPlayerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:53:09.301Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:53:09.301Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:53:09.301Z] [RESET] Reset all command locks for new round
+[2025-04-21T20:53:09.301Z] [TIMER] Cleared all timers
+[2025-04-21T20:53:09.301Z] [EVENT] Recorded game event: GAME_STARTED
+{
+  "player": "B",
+  "initialState": {
+    "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+  }
+}
+
+[2025-04-21T20:53:09.303Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:53:09.303Z] [STATE] [A] Updating game state
+[2025-04-21T20:53:09.303Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:53:09.304Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 0,
+  "currentScreen": "ROUNDCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "time": 0
+  },
+  "activeRoundCard": null,
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:09.304Z] [STATE] [A] Round card selection phase, submitter: wini, active token: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:53:09.304Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:53:09.304Z] [STATE] [B] Updating game state
+[2025-04-21T20:53:09.304Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:53:09.304Z] [TURN] [B] It's my turn to select a round card!
+[2025-04-21T20:53:09.304Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 0,
+  "currentScreen": "ROUNDCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-cecde776",
+      "flash-cecde776"
+    ],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "time": 0
+  },
+  "activeRoundCard": null,
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:09.304Z] [STATE] [B] Round card selection phase, submitter: wini, active token: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:53:09.305Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:53:09.305Z] [STATE] [A] Updating game state
+[2025-04-21T20:53:09.305Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:53:09.305Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 0,
+  "currentScreen": "ROUNDCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "time": 0
+  },
+  "activeRoundCard": null,
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:09.305Z] [STATE] [A] Round card selection phase, submitter: wini, active token: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:53:09.306Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:53:09.306Z] [STATE] [B] Updating game state
+[2025-04-21T20:53:09.306Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:53:09.306Z] [TURN] [B] It's my turn to select a round card!
+[2025-04-21T20:53:09.306Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 0,
+  "currentScreen": "ROUNDCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-cecde776",
+      "flash-cecde776"
+    ],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "time": 0
+  },
+  "activeRoundCard": null,
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:09.306Z] [STATE] [B] Round card selection phase, submitter: wini, active token: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:53:09.805Z] [GAME] [B] Selected round card: world-cecde776
+[2025-04-21T20:53:09.806Z] [EVENT] Recorded game event: SELECTING_ROUND_CARD
+{
+  "player": "B",
+  "roundCardId": "world-cecde776"
+}
+
+[2025-04-21T20:53:09.807Z] [GAME] [B] Sent round card selection: world-cecde776
+[2025-04-21T20:53:09.808Z] [WARN] [B] Round card selection already in progress
+[2025-04-21T20:53:10.224Z] [RETRY] [A] Requesting game state update (1000ms after start)
+[2025-04-21T20:53:10.276Z] [DEBUG] [A] Raw WebSocket message: {"type":"ROUND_CARD_SELECTED","payload":{"roundCard":{"id":"world-cecde776","name":"World","description":"The round includes the full available coverage","modifiers":{"guessType":"Precise","streetView":"Standard","time":60}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"},"timestamp":"2025-04-21T20:53:10.270033097Z"}
+[2025-04-21T20:53:10.277Z] [INFO] [A] <<< TOPIC: ROUND_CARD_SELECTED
+[2025-04-21T20:53:10.277Z] [EVENT] [A] Processing event type: ROUND_CARD_SELECTED
+[2025-04-21T20:53:10.277Z] [GAME] [A] Round card selected: {"roundCard":{"id":"world-cecde776","name":"World","description":"The round includes the full available coverage","modifiers":{"guessType":"Precise","streetView":"Standard","time":60}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:53:10.277Z] [EVENT] Recorded game event: ROUND_CARD_SELECTED
+{
+  "player": "A",
+  "roundCard": {
+    "id": "world-cecde776",
+    "name": "World",
+    "description": "The round includes the full available coverage",
+    "modifiers": {
+      "guessType": "Precise",
+      "streetView": "Standard",
+      "time": 60
+    }
+  },
+  "username": "wini"
+}
+
+[2025-04-21T20:53:10.277Z] [DEBUG] [B] Raw WebSocket message: {"type":"ROUND_CARD_SELECTED","payload":{"roundCard":{"id":"world-cecde776","name":"World","description":"The round includes the full available coverage","modifiers":{"guessType":"Precise","streetView":"Standard","time":60}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"},"timestamp":"2025-04-21T20:53:10.270033097Z"}
+[2025-04-21T20:53:10.278Z] [INFO] [B] <<< TOPIC: ROUND_CARD_SELECTED
+[2025-04-21T20:53:10.278Z] [EVENT] [B] Processing event type: ROUND_CARD_SELECTED
+[2025-04-21T20:53:10.279Z] [GAME] [B] Round card selected: {"roundCard":{"id":"world-cecde776","name":"World","description":"The round includes the full available coverage","modifiers":{"guessType":"Precise","streetView":"Standard","time":60}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:53:10.279Z] [EVENT] Recorded game event: ROUND_CARD_SELECTED
+{
+  "player": "B",
+  "roundCard": {
+    "id": "world-cecde776",
+    "name": "World",
+    "description": "The round includes the full available coverage",
+    "modifiers": {
+      "guessType": "Precise",
+      "streetView": "Standard",
+      "time": 60
+    }
+  },
+  "username": "wini"
+}
+
+[2025-04-21T20:53:10.783Z] [DEBUG] [A] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"ACTIONCARD","roundCardComplete":true},"timestamp":"2025-04-21T20:53:10.776815637Z"}
+[2025-04-21T20:53:10.784Z] [INFO] [A] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:53:10.784Z] [EVENT] [A] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:53:10.784Z] [TRANSITION] [A] Received SCREEN_CHANGE to: ACTIONCARD
+[2025-04-21T20:53:10.784Z] [TIMER] Cleared all timers
+[2025-04-21T20:53:10.784Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:53:10.784Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "A",
+  "screen": "ACTIONCARD",
+  "payload": {
+    "screen": "ACTIONCARD",
+    "roundCardComplete": true
+  }
+}
+
+[2025-04-21T20:53:10.785Z] [DEBUG] [B] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"ACTIONCARD","roundCardComplete":true},"timestamp":"2025-04-21T20:53:10.776815637Z"}
+[2025-04-21T20:53:10.785Z] [INFO] [B] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:53:10.785Z] [EVENT] [B] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:53:10.785Z] [TRANSITION] [B] Received SCREEN_CHANGE to: ACTIONCARD
+[2025-04-21T20:53:10.785Z] [TIMER] Cleared all timers
+[2025-04-21T20:53:10.785Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:53:10.785Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "B",
+  "screen": "ACTIONCARD",
+  "payload": {
+    "screen": "ACTIONCARD",
+    "roundCardComplete": true
+  }
+}
+
+[2025-04-21T20:53:10.794Z] [DEBUG] [A] Raw WebSocket message: {"type":"ACTION_CARD_PHASE_START","payload":{"coordinates":{"latitude":2.0312206,"longitude":141.1638202},"timeLimit":60},"timestamp":"2025-04-21T20:53:10.779209455Z"}
+[2025-04-21T20:53:10.794Z] [INFO] [A] <<< TOPIC: ACTION_CARD_PHASE_START
+[2025-04-21T20:53:10.794Z] [EVENT] [A] Processing event type: ACTION_CARD_PHASE_START
+[2025-04-21T20:53:10.794Z] [GAME] [A] Action card phase started with time limit: 60s
+[2025-04-21T20:53:10.794Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:53:10.794Z] [EVENT] Recorded game event: ACTION_CARD_PHASE_START
+{
+  "player": "A",
+  "timeLimit": 60,
+  "coordinates": {
+    "latitude": 2.0312206,
+    "longitude": 141.1638202
+  }
+}
+
+[2025-04-21T20:53:10.795Z] [TIMER] [A] Setting up action card phase timer for 8s
+[2025-04-21T20:53:10.795Z] [DEBUG] [B] Raw WebSocket message: {"type":"ACTION_CARD_PHASE_START","payload":{"coordinates":{"latitude":2.0312206,"longitude":141.1638202},"timeLimit":60},"timestamp":"2025-04-21T20:53:10.779209455Z"}
+[2025-04-21T20:53:10.796Z] [INFO] [B] <<< TOPIC: ACTION_CARD_PHASE_START
+[2025-04-21T20:53:10.796Z] [EVENT] [B] Processing event type: ACTION_CARD_PHASE_START
+[2025-04-21T20:53:10.796Z] [GAME] [B] Action card phase started with time limit: 60s
+[2025-04-21T20:53:10.796Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:53:10.796Z] [EVENT] Recorded game event: ACTION_CARD_PHASE_START
+{
+  "player": "B",
+  "timeLimit": 60,
+  "coordinates": {
+    "latitude": 2.0312206,
+    "longitude": 141.1638202
+  }
+}
+
+[2025-04-21T20:53:10.797Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:53:10.797Z] [STATE] [A] Updating game state
+[2025-04-21T20:53:10.797Z] [STATE] [A] Active round card updated to: world-cecde776
+[2025-04-21T20:53:10.797Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:53:10.800Z] [STATE] [A] Guess location updated: lat=2.0312206, lon=141.1638202
+[2025-04-21T20:53:10.800Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 1,
+  "currentScreen": "ACTIONCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 1,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 141.1638202,
+      "lat": 2.0312206
+    },
+    "time": 60
+  },
+  "activeRoundCard": "world-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:10.800Z] [STATE] [A] Action card playing phase, active round card: world-cecde776
+[2025-04-21T20:53:10.801Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:53:10.801Z] [STATE] [B] Updating game state
+[2025-04-21T20:53:10.801Z] [STATE] [B] Active round card updated to: world-cecde776
+[2025-04-21T20:53:10.801Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:53:10.801Z] [STATE] [B] Guess location updated: lat=2.0312206, lon=141.1638202
+[2025-04-21T20:53:10.801Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 1,
+  "currentScreen": "ACTIONCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 1,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "flash-cecde776"
+    ],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 141.1638202,
+      "lat": 2.0312206
+    },
+    "time": 60
+  },
+  "activeRoundCard": "world-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:10.801Z] [STATE] [B] Action card playing phase, active round card: world-cecde776
+[2025-04-21T20:53:11.224Z] [RETRY] [A] Requesting game state update (2000ms after start)
+[2025-04-21T20:53:11.785Z] [GAME] [A] Have action card: badsight
+[2025-04-21T20:53:11.785Z] [GAME] [A] Playing punishment card with target player: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:53:11.786Z] [EVENT] Recorded game event: PLAYING_ACTION_CARD
+{
+  "player": "A",
+  "actionCardId": "badsight",
+  "targetPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:11.786Z] [GAME] [A] Sent action card play: {"actionCardId":"badsight","targetPlayerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:53:11.787Z] [GAME] [B] Have action card: 7choices
+[2025-04-21T20:53:11.787Z] [EVENT] Recorded game event: PLAYING_ACTION_CARD
+{
+  "player": "B",
+  "actionCardId": "7choices"
+}
+
+[2025-04-21T20:53:11.788Z] [GAME] [B] Sent action card play: {"actionCardId":"7choices"}
+[2025-04-21T20:53:11.801Z] [WARN] [A] Action card play already in progress
+[2025-04-21T20:53:11.801Z] [WARN] [B] Action card play already in progress
+[2025-04-21T20:53:12.415Z] [WARN] [A] Action card play already in progress
+[2025-04-21T20:53:12.766Z] [WARN] [B] Action card play already in progress
+[2025-04-21T20:53:13.224Z] [RETRY] [A] Requesting game state update (4000ms after start)
+[2025-04-21T20:53:16.788Z] [TIMEOUT] [A] Releasing action card play lock after timeout
+[2025-04-21T20:53:16.789Z] [TIMEOUT] [B] Releasing action card play lock after timeout
+[2025-04-21T20:53:17.224Z] [RETRY] [A] Requesting game state update (8000ms after start)
+[2025-04-21T20:53:18.797Z] [PHASE] [A] Signaling action cards complete to transition to guessing phase
+[2025-04-21T20:53:18.798Z] [EVENT] Recorded game event: ACTION_CARDS_COMPLETE
+{
+  "player": "A"
+}
+
+[2025-04-21T20:53:18.798Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:53:18.816Z] [DEBUG] [A] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"GUESS","actionCardsComplete":true},"timestamp":"2025-04-21T20:53:18.809485815Z"}
+[2025-04-21T20:53:18.816Z] [INFO] [A] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:53:18.817Z] [EVENT] [A] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:53:18.817Z] [TRANSITION] [A] Received SCREEN_CHANGE to: GUESS
+[2025-04-21T20:53:18.817Z] [TIMER] Cleared all timers
+[2025-04-21T20:53:18.817Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:53:18.817Z] [TRANSITION] [A] Transitioning to guessing phase after action cards complete
+[2025-04-21T20:53:18.818Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "A",
+  "screen": "GUESS",
+  "payload": {
+    "screen": "GUESS",
+    "actionCardsComplete": true
+  }
+}
+
+[2025-04-21T20:53:18.828Z] [DEBUG] [B] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"GUESS","actionCardsComplete":true},"timestamp":"2025-04-21T20:53:18.809485815Z"}
+[2025-04-21T20:53:18.833Z] [INFO] [B] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:53:18.833Z] [EVENT] [B] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:53:18.833Z] [TRANSITION] [B] Received SCREEN_CHANGE to: GUESS
+[2025-04-21T20:53:18.833Z] [TIMER] Cleared all timers
+[2025-04-21T20:53:18.833Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:53:18.833Z] [TRANSITION] [B] Transitioning to guessing phase after action cards complete
+[2025-04-21T20:53:18.833Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "B",
+  "screen": "GUESS",
+  "payload": {
+    "screen": "GUESS",
+    "actionCardsComplete": true
+  }
+}
+
+[2025-04-21T20:53:18.848Z] [DEBUG] [A] Raw WebSocket message: {"type":"ROUND_START","payload":{"roundData":{"round":1,"latitude":2.0312206,"longitude":141.1638202,"roundTime":60,"startTimer":true},"activeActionCards":{"cecde776-b87f-4137-807a-17cb34172b9b":[],"9826db28-d104-4b24-bab1-4b248eb02cff":[]},"startGuessTimer":true},"timestamp":"2025-04-21T20:53:18.820396849Z"}
+[2025-04-21T20:53:18.849Z] [INFO] [A] <<< TOPIC: ROUND_START
+[2025-04-21T20:53:18.849Z] [EVENT] [A] Processing event type: ROUND_START
+[2025-04-21T20:53:18.849Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:53:18.849Z] [GAME] [A] Round 1 started with coords: 2.0312206, 141.1638202, time: 60s
+[2025-04-21T20:53:18.849Z] [EVENT] Recorded game event: ROUND_STARTED
+{
+  "player": "A",
+  "round": 1,
+  "time": 60,
+  "coordinates": {
+    "lat": 2.0312206,
+    "lon": 141.1638202
+  },
+  "activeActionCards": {
+    "cecde776-b87f-4137-807a-17cb34172b9b": [],
+    "9826db28-d104-4b24-bab1-4b248eb02cff": []
+  }
+}
+
+[2025-04-21T20:53:18.849Z] [TIMER] [A] Starting guess timer for 60 seconds (startGuessTimer flag received)
+[2025-04-21T20:53:18.849Z] [TIMER] Starting guess timer with 60 seconds
+[2025-04-21T20:53:18.849Z] [EVENT] Recorded game event: GUESS_TIMER_STARTED
+{
+  "timeLimit": 60,
+  "timestamp": 1745268798849
+}
+
+[2025-04-21T20:53:18.849Z] [TIMER] [A] Setting timer to signal round time expired in 61s
+[2025-04-21T20:53:18.849Z] [DEBUG] [B] Raw WebSocket message: {"type":"ROUND_START","payload":{"roundData":{"round":1,"latitude":2.0312206,"longitude":141.1638202,"roundTime":60,"startTimer":true},"activeActionCards":{"cecde776-b87f-4137-807a-17cb34172b9b":[],"9826db28-d104-4b24-bab1-4b248eb02cff":[]},"startGuessTimer":true},"timestamp":"2025-04-21T20:53:18.820396849Z"}
+[2025-04-21T20:53:18.849Z] [INFO] [B] <<< TOPIC: ROUND_START
+[2025-04-21T20:53:18.849Z] [EVENT] [B] Processing event type: ROUND_START
+[2025-04-21T20:53:18.850Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:53:18.850Z] [GAME] [B] Round 1 started with coords: 2.0312206, 141.1638202, time: 60s
+[2025-04-21T20:53:18.850Z] [EVENT] Recorded game event: ROUND_STARTED
+{
+  "player": "B",
+  "round": 1,
+  "time": 60,
+  "coordinates": {
+    "lat": 2.0312206,
+    "lon": 141.1638202
+  },
+  "activeActionCards": {
+    "cecde776-b87f-4137-807a-17cb34172b9b": [],
+    "9826db28-d104-4b24-bab1-4b248eb02cff": []
+  }
+}
+
+[2025-04-21T20:53:18.850Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:53:18.850Z] [STATE] [A] Updating game state
+[2025-04-21T20:53:18.850Z] [STATE] [A] Active round card updated to: world-cecde776
+[2025-04-21T20:53:18.850Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:53:18.851Z] [STATE] [A] Guess location updated: lat=2.0312206, lon=141.1638202
+[2025-04-21T20:53:18.851Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 1,
+  "currentScreen": "GUESS",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 1,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 141.1638202,
+      "lat": 2.0312206
+    },
+    "time": 60
+  },
+  "activeRoundCard": "world-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:18.851Z] [STATE] [A] Guessing phase, time: 60s, coords: 2.0312206,141.1638202
+[2025-04-21T20:53:18.855Z] [TIMER] [A] Will submit automatic guess in 4.7964602404646834s
+[2025-04-21T20:53:18.856Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:53:18.856Z] [STATE] [B] Updating game state
+[2025-04-21T20:53:18.856Z] [STATE] [B] Active round card updated to: world-cecde776
+[2025-04-21T20:53:18.856Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:53:18.856Z] [STATE] [B] Guess location updated: lat=2.0312206, lon=141.1638202
+[2025-04-21T20:53:18.857Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 1,
+  "currentScreen": "GUESS",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 1,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "flash-cecde776"
+    ],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 141.1638202,
+      "lat": 2.0312206
+    },
+    "time": 60
+  },
+  "activeRoundCard": "world-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:53:18.857Z] [STATE] [B] Guessing phase, time: 60s, coords: 2.0312206,141.1638202
+[2025-04-21T20:53:18.857Z] [TIMER] [B] Will submit automatic guess in 4.6108368256812495s
+[2025-04-21T20:53:23.467Z] [GUESS] [B] Submitting automatic guess: -4.661990724522665, 147.85703152452268
+[2025-04-21T20:53:23.467Z] [EVENT] Recorded game event: SUBMITTING_GUESS
+{
+  "player": "B",
+  "latitude": -4.661990724522665,
+  "longitude": 147.85703152452268
+}
+
+[2025-04-21T20:53:23.647Z] [GUESS] [A] Submitting automatic guess: 11.032524743554966, 132.16251605644504
+[2025-04-21T20:53:23.648Z] [EVENT] Recorded game event: SUBMITTING_GUESS
+{
+  "player": "A",
+  "latitude": 11.032524743554966,
+  "longitude": 132.16251605644504
+}
+
+[2025-04-21T20:53:23.853Z] [TIMER] Guess timer: 55s remaining
+[2025-04-21T20:53:28.858Z] [TIMER] Guess timer: 50s remaining
+[2025-04-21T20:53:33.864Z] [TIMER] Guess timer: 45s remaining
+[2025-04-21T20:53:38.869Z] [TIMER] Guess timer: 40s remaining
+[2025-04-21T20:53:43.875Z] [TIMER] Guess timer: 35s remaining
+[2025-04-21T20:53:48.882Z] [TIMER] Guess timer: 30s remaining
+[2025-04-21T20:53:53.887Z] [TIMER] Guess timer: 25s remaining
+[2025-04-21T20:53:58.893Z] [TIMER] Guess timer: 20s remaining
+[2025-04-21T20:54:03.898Z] [TIMER] Guess timer: 15s remaining
+[2025-04-21T20:54:08.903Z] [TIMER] Guess timer: 10s remaining
+[2025-04-21T20:54:13.910Z] [TIMER] Guess timer: 5s remaining
+[2025-04-21T20:54:14.911Z] [TIMER] Guess timer: 4s remaining
+[2025-04-21T20:54:15.911Z] [TIMER] Guess timer: 3s remaining
+[2025-04-21T20:54:16.913Z] [TIMER] Guess timer: 2s remaining
+[2025-04-21T20:54:17.913Z] [TIMER] Guess timer: 1s remaining
+[2025-04-21T20:54:18.916Z] [TIMER] Guess timer: 0s remaining
+[2025-04-21T20:54:18.916Z] [TIMER] Guess timer expired!
+[2025-04-21T20:54:19.851Z] [PHASE] [A] Signaling round time expired to determine round winner
+[2025-04-21T20:54:19.851Z] [EVENT] Recorded game event: ROUND_TIME_EXPIRED
+{
+  "player": "A"
+}
+
+[2025-04-21T20:54:20.353Z] [PHASE] [A] Sent round-time-expired message to server
+[2025-04-21T20:54:20.379Z] [DEBUG] [A] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":12268129,"longitude":21.163820200000004,"round":1,"latitude":42.0312206,"username":"nina"},"timestamp":"2025-04-21T20:54:20.376199588Z"}
+[2025-04-21T20:54:20.379Z] [INFO] [A] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:54:20.379Z] [EVENT] [A] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.379Z] [WARN] [A] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.379Z] [DEBUG] [B] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":12268129,"longitude":21.163820200000004,"round":1,"latitude":42.0312206,"username":"nina"},"timestamp":"2025-04-21T20:54:20.376199588Z"}
+[2025-04-21T20:54:20.379Z] [INFO] [B] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:54:20.380Z] [EVENT] [B] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.380Z] [WARN] [B] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.387Z] [DEBUG] [A] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":12268129,"longitude":21.163820200000004,"round":1,"latitude":42.0312206,"username":"wini"},"timestamp":"2025-04-21T20:54:20.378788447Z"}
+[2025-04-21T20:54:20.387Z] [INFO] [A] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:54:20.388Z] [EVENT] [A] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.388Z] [WARN] [A] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.388Z] [DEBUG] [B] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":12268129,"longitude":21.163820200000004,"round":1,"latitude":42.0312206,"username":"wini"},"timestamp":"2025-04-21T20:54:20.378788447Z"}
+[2025-04-21T20:54:20.388Z] [INFO] [B] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:54:20.388Z] [EVENT] [B] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.389Z] [WARN] [B] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:54:20.390Z] [DEBUG] [A] Raw WebSocket message: {"type":"ROUND_WINNER","winnerUsername":"wini","round":1,"distance":12268129}
+[2025-04-21T20:54:20.390Z] [BROADCAST] [A] <<< STRUCTURED BROADCAST: ROUND_WINNER
+[2025-04-21T20:54:20.390Z] [EVENT] [A] Processing event type: ROUND_WINNER
+[2025-04-21T20:54:20.390Z] [GAME] [A] Round winner: wini with distance 12268129m in round 1
+[2025-04-21T20:54:20.390Z] [EVENT] Recorded game event: ROUND_WINNER
+{
+  "player": "A",
+  "username": "wini",
+  "round": 1,
+  "distance": 12268129
+}
+
+[2025-04-21T20:54:20.390Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:54:20.390Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:54:20.390Z] [RESET] Reset all command locks for new round
+[2025-04-21T20:54:20.390Z] [TIMER] Cleared all timers
+[2025-04-21T20:54:20.390Z] [DEBUG] [B] Raw WebSocket message: {"type":"ROUND_WINNER","winnerUsername":"wini","round":1,"distance":12268129}
+[2025-04-21T20:54:20.390Z] [BROADCAST] [B] <<< STRUCTURED BROADCAST: ROUND_WINNER
+[2025-04-21T20:54:20.390Z] [EVENT] [B] Processing event type: ROUND_WINNER
+[2025-04-21T20:54:20.391Z] [GAME] [B] Round winner: wini with distance 12268129m in round 1
+[2025-04-21T20:54:20.391Z] [EVENT] Recorded game event: ROUND_WINNER
+{
+  "player": "B",
+  "username": "wini",
+  "round": 1,
+  "distance": 12268129
+}
+
+[2025-04-21T20:54:20.391Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:54:20.391Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:54:20.391Z] [RESET] Reset all command locks for new round
+[2025-04-21T20:54:20.391Z] [TIMER] Cleared all timers
+[2025-04-21T20:54:20.391Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:54:20.391Z] [STATE] [A] Updating game state
+[2025-04-21T20:54:20.391Z] [TIMER] Cleared all timers
+[2025-04-21T20:54:20.391Z] [TRANSITION] [A] Screen transition: REVEAL -> ROUNDCARD
+[2025-04-21T20:54:20.391Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:54:20.391Z] [STATE] [A] Guess location updated: lat=2.0312206, lon=141.1638202
+[2025-04-21T20:54:20.391Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 1,
+  "currentScreen": "ROUNDCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 1,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 141.1638202,
+      "lat": 2.0312206
+    },
+    "time": 60
+  },
+  "activeRoundCard": null,
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:54:20.392Z] [STATE] [A] Round card selection phase, submitter: wini, active token: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:54:20.392Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:54:20.392Z] [STATE] [B] Updating game state
+[2025-04-21T20:54:20.392Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:54:20.392Z] [STATE] [B] Guess location updated: lat=2.0312206, lon=141.1638202
+[2025-04-21T20:54:20.392Z] [TURN] [B] It's my turn to select a round card!
+[2025-04-21T20:54:20.392Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 1,
+  "currentScreen": "ROUNDCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 1,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "flash-cecde776"
+    ],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 141.1638202,
+      "lat": 2.0312206
+    },
+    "time": 60
+  },
+  "activeRoundCard": null,
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:54:20.392Z] [STATE] [B] Round card selection phase, submitter: wini, active token: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:54:20.893Z] [GAME] [B] Selected round card: flash-cecde776
+[2025-04-21T20:54:20.894Z] [EVENT] Recorded game event: SELECTING_ROUND_CARD
+{
+  "player": "B",
+  "roundCardId": "flash-cecde776"
+}
+
+[2025-04-21T20:54:20.894Z] [GAME] [B] Sent round card selection: flash-cecde776
+[2025-04-21T20:54:21.032Z] [DEBUG] [A] Raw WebSocket message: {"type":"ROUND_CARD_SELECTED","payload":{"roundCard":{"id":"flash-cecde776","name":"Flash","description":"The round includes the full available coverage, but the round time is halved","modifiers":{"guessType":"Precise","streetView":"Standard","time":30}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"},"timestamp":"2025-04-21T20:54:21.029452844Z"}
+[2025-04-21T20:54:21.032Z] [INFO] [A] <<< TOPIC: ROUND_CARD_SELECTED
+[2025-04-21T20:54:21.032Z] [EVENT] [A] Processing event type: ROUND_CARD_SELECTED
+[2025-04-21T20:54:21.032Z] [GAME] [A] Round card selected: {"roundCard":{"id":"flash-cecde776","name":"Flash","description":"The round includes the full available coverage, but the round time is halved","modifiers":{"guessType":"Precise","streetView":"Standard","time":30}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:54:21.032Z] [EVENT] Recorded game event: ROUND_CARD_SELECTED
+{
+  "player": "A",
+  "roundCard": {
+    "id": "flash-cecde776",
+    "name": "Flash",
+    "description": "The round includes the full available coverage, but the round time is halved",
+    "modifiers": {
+      "guessType": "Precise",
+      "streetView": "Standard",
+      "time": 30
+    }
+  },
+  "username": "wini"
+}
+
+[2025-04-21T20:54:21.033Z] [DEBUG] [B] Raw WebSocket message: {"type":"ROUND_CARD_SELECTED","payload":{"roundCard":{"id":"flash-cecde776","name":"Flash","description":"The round includes the full available coverage, but the round time is halved","modifiers":{"guessType":"Precise","streetView":"Standard","time":30}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"},"timestamp":"2025-04-21T20:54:21.029452844Z"}
+[2025-04-21T20:54:21.033Z] [INFO] [B] <<< TOPIC: ROUND_CARD_SELECTED
+[2025-04-21T20:54:21.033Z] [EVENT] [B] Processing event type: ROUND_CARD_SELECTED
+[2025-04-21T20:54:21.034Z] [GAME] [B] Round card selected: {"roundCard":{"id":"flash-cecde776","name":"Flash","description":"The round includes the full available coverage, but the round time is halved","modifiers":{"guessType":"Precise","streetView":"Standard","time":30}},"username":"wini","playerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:54:21.034Z] [EVENT] Recorded game event: ROUND_CARD_SELECTED
+{
+  "player": "B",
+  "roundCard": {
+    "id": "flash-cecde776",
+    "name": "Flash",
+    "description": "The round includes the full available coverage, but the round time is halved",
+    "modifiers": {
+      "guessType": "Precise",
+      "streetView": "Standard",
+      "time": 30
+    }
+  },
+  "username": "wini"
+}
+
+[2025-04-21T20:54:21.537Z] [DEBUG] [A] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"ACTIONCARD","roundCardComplete":true},"timestamp":"2025-04-21T20:54:21.531303148Z"}
+[2025-04-21T20:54:21.538Z] [INFO] [A] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:54:21.538Z] [EVENT] [A] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:54:21.538Z] [TRANSITION] [A] Received SCREEN_CHANGE to: ACTIONCARD
+[2025-04-21T20:54:21.538Z] [TIMER] Cleared all timers
+[2025-04-21T20:54:21.538Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:54:21.538Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "A",
+  "screen": "ACTIONCARD",
+  "payload": {
+    "screen": "ACTIONCARD",
+    "roundCardComplete": true
+  }
+}
+
+[2025-04-21T20:54:21.539Z] [DEBUG] [B] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"ACTIONCARD","roundCardComplete":true},"timestamp":"2025-04-21T20:54:21.531303148Z"}
+[2025-04-21T20:54:21.539Z] [INFO] [B] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:54:21.540Z] [EVENT] [B] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:54:21.540Z] [TRANSITION] [B] Received SCREEN_CHANGE to: ACTIONCARD
+[2025-04-21T20:54:21.540Z] [TIMER] Cleared all timers
+[2025-04-21T20:54:21.540Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:54:21.540Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "B",
+  "screen": "ACTIONCARD",
+  "payload": {
+    "screen": "ACTIONCARD",
+    "roundCardComplete": true
+  }
+}
+
+[2025-04-21T20:54:21.545Z] [DEBUG] [A] Raw WebSocket message: {"type":"ACTION_CARD_PHASE_START","payload":{"coordinates":{"latitude":8.8471526,"longitude":172.9409305},"timeLimit":30},"timestamp":"2025-04-21T20:54:21.533170174Z"}
+[2025-04-21T20:54:21.545Z] [INFO] [A] <<< TOPIC: ACTION_CARD_PHASE_START
+[2025-04-21T20:54:21.545Z] [EVENT] [A] Processing event type: ACTION_CARD_PHASE_START
+[2025-04-21T20:54:21.545Z] [GAME] [A] Action card phase started with time limit: 30s
+[2025-04-21T20:54:21.545Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:54:21.545Z] [EVENT] Recorded game event: ACTION_CARD_PHASE_START
+{
+  "player": "A",
+  "timeLimit": 30,
+  "coordinates": {
+    "latitude": 8.8471526,
+    "longitude": 172.9409305
+  }
+}
+
+[2025-04-21T20:54:21.545Z] [TIMER] [A] Setting up action card phase timer for 8s
+[2025-04-21T20:54:21.546Z] [DEBUG] [B] Raw WebSocket message: {"type":"ACTION_CARD_PHASE_START","payload":{"coordinates":{"latitude":8.8471526,"longitude":172.9409305},"timeLimit":30},"timestamp":"2025-04-21T20:54:21.533170174Z"}
+[2025-04-21T20:54:21.546Z] [INFO] [B] <<< TOPIC: ACTION_CARD_PHASE_START
+[2025-04-21T20:54:21.546Z] [EVENT] [B] Processing event type: ACTION_CARD_PHASE_START
+[2025-04-21T20:54:21.546Z] [GAME] [B] Action card phase started with time limit: 30s
+[2025-04-21T20:54:21.546Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:54:21.546Z] [EVENT] Recorded game event: ACTION_CARD_PHASE_START
+{
+  "player": "B",
+  "timeLimit": 30,
+  "coordinates": {
+    "latitude": 8.8471526,
+    "longitude": 172.9409305
+  }
+}
+
+[2025-04-21T20:54:21.549Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:54:21.549Z] [STATE] [A] Updating game state
+[2025-04-21T20:54:21.549Z] [STATE] [A] Active round card updated to: flash-cecde776
+[2025-04-21T20:54:21.549Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:54:21.549Z] [STATE] [A] Guess location updated: lat=8.8471526, lon=172.9409305
+[2025-04-21T20:54:21.549Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 2,
+  "currentScreen": "ACTIONCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 0,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 172.9409305,
+      "lat": 8.8471526
+    },
+    "time": 30
+  },
+  "activeRoundCard": "flash-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:54:21.549Z] [STATE] [A] Action card playing phase, active round card: flash-cecde776
+[2025-04-21T20:54:21.550Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:54:21.550Z] [STATE] [B] Updating game state
+[2025-04-21T20:54:21.550Z] [STATE] [B] Active round card updated to: flash-cecde776
+[2025-04-21T20:54:21.550Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:54:21.550Z] [STATE] [B] Guess location updated: lat=8.8471526, lon=172.9409305
+[2025-04-21T20:54:21.550Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 2,
+  "currentScreen": "ACTIONCARD",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 0,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 172.9409305,
+      "lat": 8.8471526
+    },
+    "time": 30
+  },
+  "activeRoundCard": "flash-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:54:21.550Z] [STATE] [B] Action card playing phase, active round card: flash-cecde776
+[2025-04-21T20:54:22.539Z] [GAME] [A] Have action card: badsight
+[2025-04-21T20:54:22.540Z] [GAME] [A] Playing punishment card with target player: cecde776-b87f-4137-807a-17cb34172b9b
+[2025-04-21T20:54:22.540Z] [EVENT] Recorded game event: PLAYING_ACTION_CARD
+{
+  "player": "A",
+  "actionCardId": "badsight",
+  "targetPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:54:22.540Z] [GAME] [A] Sent action card play: {"actionCardId":"badsight","targetPlayerToken":"cecde776-b87f-4137-807a-17cb34172b9b"}
+[2025-04-21T20:54:22.541Z] [GAME] [B] Have action card: 7choices
+[2025-04-21T20:54:22.541Z] [EVENT] Recorded game event: PLAYING_ACTION_CARD
+{
+  "player": "B",
+  "actionCardId": "7choices"
+}
+
+[2025-04-21T20:54:22.541Z] [GAME] [B] Sent action card play: {"actionCardId":"7choices"}
+[2025-04-21T20:54:22.552Z] [WARN] [A] Action card play already in progress
+[2025-04-21T20:54:22.553Z] [WARN] [B] Action card play already in progress
+[2025-04-21T20:54:23.013Z] [WARN] [A] Action card play already in progress
+[2025-04-21T20:54:23.236Z] [WARN] [B] Action card play already in progress
+[2025-04-21T20:54:27.541Z] [TIMEOUT] [A] Releasing action card play lock after timeout
+[2025-04-21T20:54:27.541Z] [TIMEOUT] [B] Releasing action card play lock after timeout
+[2025-04-21T20:54:29.546Z] [PHASE] [A] Signaling action cards complete to transition to guessing phase
+[2025-04-21T20:54:29.547Z] [EVENT] Recorded game event: ACTION_CARDS_COMPLETE
+{
+  "player": "A"
+}
+
+[2025-04-21T20:54:29.547Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:54:29.561Z] [DEBUG] [A] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"GUESS","actionCardsComplete":true},"timestamp":"2025-04-21T20:54:29.556300615Z"}
+[2025-04-21T20:54:29.561Z] [INFO] [A] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:54:29.561Z] [EVENT] [A] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:54:29.561Z] [TRANSITION] [A] Received SCREEN_CHANGE to: GUESS
+[2025-04-21T20:54:29.561Z] [TIMER] Cleared all timers
+[2025-04-21T20:54:29.561Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:54:29.561Z] [TRANSITION] [A] Transitioning to guessing phase after action cards complete
+[2025-04-21T20:54:29.561Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "A",
+  "screen": "GUESS",
+  "payload": {
+    "screen": "GUESS",
+    "actionCardsComplete": true
+  }
+}
+
+[2025-04-21T20:54:29.563Z] [DEBUG] [B] Raw WebSocket message: {"type":"SCREEN_CHANGE","payload":{"screen":"GUESS","actionCardsComplete":true},"timestamp":"2025-04-21T20:54:29.556300615Z"}
+[2025-04-21T20:54:29.563Z] [INFO] [B] <<< TOPIC: SCREEN_CHANGE
+[2025-04-21T20:54:29.563Z] [EVENT] [B] Processing event type: SCREEN_CHANGE
+[2025-04-21T20:54:29.563Z] [TRANSITION] [B] Received SCREEN_CHANGE to: GUESS
+[2025-04-21T20:54:29.563Z] [TIMER] Cleared all timers
+[2025-04-21T20:54:29.563Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:54:29.563Z] [TRANSITION] [B] Transitioning to guessing phase after action cards complete
+[2025-04-21T20:54:29.563Z] [EVENT] Recorded game event: SCREEN_CHANGED
+{
+  "player": "B",
+  "screen": "GUESS",
+  "payload": {
+    "screen": "GUESS",
+    "actionCardsComplete": true
+  }
+}
+
+[2025-04-21T20:54:29.571Z] [DEBUG] [A] Raw WebSocket message: {"type":"ROUND_START","payload":{"roundData":{"round":2,"latitude":8.8471526,"longitude":172.9409305,"roundTime":30,"startTimer":true},"activeActionCards":{"cecde776-b87f-4137-807a-17cb34172b9b":[],"9826db28-d104-4b24-bab1-4b248eb02cff":[]},"startGuessTimer":true},"timestamp":"2025-04-21T20:54:29.559823140Z"}
+[2025-04-21T20:54:29.571Z] [INFO] [A] <<< TOPIC: ROUND_START
+[2025-04-21T20:54:29.571Z] [EVENT] [A] Processing event type: ROUND_START
+[2025-04-21T20:54:29.571Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:54:29.571Z] [GAME] [A] Round 2 started with coords: 8.8471526, 172.9409305, time: 30s
+[2025-04-21T20:54:29.571Z] [EVENT] Recorded game event: ROUND_STARTED
+{
+  "player": "A",
+  "round": 2,
+  "time": 30,
+  "coordinates": {
+    "lat": 8.8471526,
+    "lon": 172.9409305
+  },
+  "activeActionCards": {
+    "cecde776-b87f-4137-807a-17cb34172b9b": [],
+    "9826db28-d104-4b24-bab1-4b248eb02cff": []
+  }
+}
+
+[2025-04-21T20:54:29.572Z] [TIMER] [A] Starting guess timer for 30 seconds (startGuessTimer flag received)
+[2025-04-21T20:54:29.572Z] [TIMER] Starting guess timer with 30 seconds
+[2025-04-21T20:54:29.572Z] [EVENT] Recorded game event: GUESS_TIMER_STARTED
+{
+  "timeLimit": 30,
+  "timestamp": 1745268869572
+}
+
+[2025-04-21T20:54:29.572Z] [TIMER] [A] Setting timer to signal round time expired in 31s
+[2025-04-21T20:54:29.572Z] [DEBUG] [B] Raw WebSocket message: {"type":"ROUND_START","payload":{"roundData":{"round":2,"latitude":8.8471526,"longitude":172.9409305,"roundTime":30,"startTimer":true},"activeActionCards":{"cecde776-b87f-4137-807a-17cb34172b9b":[],"9826db28-d104-4b24-bab1-4b248eb02cff":[]},"startGuessTimer":true},"timestamp":"2025-04-21T20:54:29.559823140Z"}
+[2025-04-21T20:54:29.572Z] [INFO] [B] <<< TOPIC: ROUND_START
+[2025-04-21T20:54:29.572Z] [EVENT] [B] Processing event type: ROUND_START
+[2025-04-21T20:54:29.572Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:54:29.572Z] [GAME] [B] Round 2 started with coords: 8.8471526, 172.9409305, time: 30s
+[2025-04-21T20:54:29.572Z] [EVENT] Recorded game event: ROUND_STARTED
+{
+  "player": "B",
+  "round": 2,
+  "time": 30,
+  "coordinates": {
+    "lat": 8.8471526,
+    "lon": 172.9409305
+  },
+  "activeActionCards": {
+    "cecde776-b87f-4137-807a-17cb34172b9b": [],
+    "9826db28-d104-4b24-bab1-4b248eb02cff": []
+  }
+}
+
+[2025-04-21T20:54:29.573Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:54:29.573Z] [STATE] [A] Updating game state
+[2025-04-21T20:54:29.573Z] [STATE] [A] Active round card updated to: flash-cecde776
+[2025-04-21T20:54:29.573Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:54:29.573Z] [STATE] [A] Guess location updated: lat=8.8471526, lon=172.9409305
+[2025-04-21T20:54:29.573Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 2,
+  "currentScreen": "GUESS",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 0,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 172.9409305,
+      "lat": 8.8471526
+    },
+    "time": 30
+  },
+  "activeRoundCard": "flash-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:54:29.573Z] [STATE] [A] Guessing phase, time: 30s, coords: 8.8471526,172.9409305
+[2025-04-21T20:54:29.573Z] [TIMER] [A] Will submit automatic guess in 4.300404637705524s
+[2025-04-21T20:54:29.574Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:54:29.574Z] [STATE] [B] Updating game state
+[2025-04-21T20:54:29.574Z] [STATE] [B] Active round card updated to: flash-cecde776
+[2025-04-21T20:54:29.574Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:54:29.574Z] [STATE] [B] Guess location updated: lat=8.8471526, lon=172.9409305
+[2025-04-21T20:54:29.574Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 2,
+  "currentScreen": "GUESS",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 0,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 172.9409305,
+      "lat": 8.8471526
+    },
+    "time": 30
+  },
+  "activeRoundCard": "flash-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:54:29.574Z] [STATE] [B] Guessing phase, time: 30s, coords: 8.8471526,172.9409305
+[2025-04-21T20:54:29.574Z] [TIMER] [B] Will submit automatic guess in 3.242885200676726s
+[2025-04-21T20:54:32.817Z] [GUESS] [B] Submitting automatic guess: 5.1888091028251075, 176.5992739971749
+[2025-04-21T20:54:32.817Z] [EVENT] Recorded game event: SUBMITTING_GUESS
+{
+  "player": "B",
+  "latitude": 5.1888091028251075,
+  "longitude": 176.5992739971749
+}
+
+[2025-04-21T20:54:33.874Z] [GUESS] [A] Submitting automatic guess: 4.1938720777074145, 177.5942110222926
+[2025-04-21T20:54:33.875Z] [EVENT] Recorded game event: SUBMITTING_GUESS
+{
+  "player": "A",
+  "latitude": 4.1938720777074145,
+  "longitude": 177.5942110222926
+}
+
+[2025-04-21T20:54:34.575Z] [TIMER] Guess timer: 25s remaining
+[2025-04-21T20:54:39.581Z] [TIMER] Guess timer: 20s remaining
+[2025-04-21T20:54:44.587Z] [TIMER] Guess timer: 15s remaining
+[2025-04-21T20:54:49.593Z] [TIMER] Guess timer: 10s remaining
+[2025-04-21T20:54:54.598Z] [TIMER] Guess timer: 5s remaining
+[2025-04-21T20:54:55.600Z] [TIMER] Guess timer: 4s remaining
+[2025-04-21T20:54:56.600Z] [TIMER] Guess timer: 3s remaining
+[2025-04-21T20:54:57.601Z] [TIMER] Guess timer: 2s remaining
+[2025-04-21T20:54:58.601Z] [TIMER] Guess timer: 1s remaining
+[2025-04-21T20:54:59.603Z] [TIMER] Guess timer: 0s remaining
+[2025-04-21T20:54:59.603Z] [TIMER] Guess timer expired!
+[2025-04-21T20:55:00.573Z] [PHASE] [A] Signaling round time expired to determine round winner
+[2025-04-21T20:55:00.573Z] [EVENT] Recorded game event: ROUND_TIME_EXPIRED
+{
+  "player": "A"
+}
+
+[2025-04-21T20:55:01.074Z] [PHASE] [A] Sent round-time-expired message to server
+[2025-04-21T20:55:01.092Z] [DEBUG] [A] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":11351032,"longitude":52.94093050000001,"round":2,"latitude":48.8471526,"username":"nina"},"timestamp":"2025-04-21T20:55:01.082366032Z"}
+[2025-04-21T20:55:01.092Z] [INFO] [A] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:55:01.092Z] [EVENT] [A] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.092Z] [WARN] [A] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.092Z] [DEBUG] [B] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":11351032,"longitude":52.94093050000001,"round":2,"latitude":48.8471526,"username":"nina"},"timestamp":"2025-04-21T20:55:01.082366032Z"}
+[2025-04-21T20:55:01.093Z] [INFO] [B] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:55:01.093Z] [EVENT] [B] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.093Z] [WARN] [B] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.096Z] [DEBUG] [A] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":11351032,"longitude":52.94093050000001,"round":2,"latitude":48.8471526,"username":"wini"},"timestamp":"2025-04-21T20:55:01.086933012Z"}
+[2025-04-21T20:55:01.096Z] [INFO] [A] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:55:01.096Z] [EVENT] [A] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.096Z] [WARN] [A] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.096Z] [DEBUG] [B] Raw WebSocket message: {"type":"GUESS_SUBMITTED","payload":{"distance":11351032,"longitude":52.94093050000001,"round":2,"latitude":48.8471526,"username":"wini"},"timestamp":"2025-04-21T20:55:01.086933012Z"}
+[2025-04-21T20:55:01.097Z] [INFO] [B] <<< TOPIC: GUESS_SUBMITTED
+[2025-04-21T20:55:01.097Z] [EVENT] [B] Processing event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.097Z] [WARN] [B] Unhandled event type: GUESS_SUBMITTED
+[2025-04-21T20:55:01.097Z] [DEBUG] [A] Raw WebSocket message: {"type":"ROUND_WINNER","winnerUsername":"wini","round":2,"distance":11351032}
+[2025-04-21T20:55:01.098Z] [BROADCAST] [A] <<< STRUCTURED BROADCAST: ROUND_WINNER
+[2025-04-21T20:55:01.098Z] [EVENT] [A] Processing event type: ROUND_WINNER
+[2025-04-21T20:55:01.098Z] [GAME] [A] Round winner: wini with distance 11351032m in round 2
+[2025-04-21T20:55:01.098Z] [EVENT] Recorded game event: ROUND_WINNER
+{
+  "player": "A",
+  "username": "wini",
+  "round": 2,
+  "distance": 11351032
+}
+
+[2025-04-21T20:55:01.098Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:55:01.098Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:55:01.098Z] [RESET] Reset all command locks for new round
+[2025-04-21T20:55:01.098Z] [TIMER] Cleared all timers
+[2025-04-21T20:55:01.098Z] [DEBUG] [B] Raw WebSocket message: {"type":"ROUND_WINNER","winnerUsername":"wini","round":2,"distance":11351032}
+[2025-04-21T20:55:01.098Z] [BROADCAST] [B] <<< STRUCTURED BROADCAST: ROUND_WINNER
+[2025-04-21T20:55:01.098Z] [EVENT] [B] Processing event type: ROUND_WINNER
+[2025-04-21T20:55:01.098Z] [GAME] [B] Round winner: wini with distance 11351032m in round 2
+[2025-04-21T20:55:01.098Z] [EVENT] Recorded game event: ROUND_WINNER
+{
+  "player": "B",
+  "username": "wini",
+  "round": 2,
+  "distance": 11351032
+}
+
+[2025-04-21T20:55:01.098Z] [INFO] Reset action card tracking for new round
+[2025-04-21T20:55:01.098Z] [INFO] Reset guess tracking for new round
+[2025-04-21T20:55:01.099Z] [RESET] Reset all command locks for new round
+[2025-04-21T20:55:01.099Z] [TIMER] Cleared all timers
+[2025-04-21T20:55:01.101Z] [DEBUG] [A] Raw WebSocket message: {"type":"GAME_WINNER","winnerUsername":"wini"}
+[2025-04-21T20:55:01.101Z] [BROADCAST] [A] <<< STRUCTURED BROADCAST: GAME_WINNER
+[2025-04-21T20:55:01.101Z] [EVENT] [A] Processing event type: GAME_WINNER
+[2025-04-21T20:55:01.101Z] [GAME] [A] Game winner: undefined
+[2025-04-21T20:55:01.101Z] [EVENT] Recorded game event: GAME_WINNER
+{
+  "player": "A"
+}
+
+[2025-04-21T20:55:01.101Z] [TIMER] Cleared all timers
+[2025-04-21T20:55:01.102Z] [DEBUG] [B] Raw WebSocket message: {"type":"GAME_WINNER","winnerUsername":"wini"}
+[2025-04-21T20:55:01.102Z] [BROADCAST] [B] <<< STRUCTURED BROADCAST: GAME_WINNER
+[2025-04-21T20:55:01.102Z] [EVENT] [B] Processing event type: GAME_WINNER
+[2025-04-21T20:55:01.102Z] [GAME] [B] Game winner: undefined
+[2025-04-21T20:55:01.103Z] [EVENT] Recorded game event: GAME_WINNER
+{
+  "player": "B"
+}
+
+[2025-04-21T20:55:01.103Z] [TIMER] Cleared all timers
+[2025-04-21T20:55:01.103Z] [STATE] [A] Received state message: GAME_STATE
+[2025-04-21T20:55:01.103Z] [STATE] [A] Updating game state
+[2025-04-21T20:55:01.103Z] [STATE] [A] Active round card updated to: flash-cecde776
+[2025-04-21T20:55:01.103Z] [STATE] [A] Round card submitter updated: wini
+[2025-04-21T20:55:01.103Z] [STATE] [A] Guess location updated: lat=8.8471526, lon=172.9409305
+[2025-04-21T20:55:01.103Z] [STATE] Recorded game state from A-update
+{
+  "currentRound": 2,
+  "currentScreen": "GAMEOVER",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 0,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [
+      "world-9826db28",
+      "flash-9826db28"
+    ],
+    "actionCards": [
+      "badsight"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 172.9409305,
+      "lat": 8.8471526
+    },
+    "time": 30
+  },
+  "activeRoundCard": "flash-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:55:01.103Z] [STATE] [A] Game over
+[2025-04-21T20:55:01.103Z] [TIMER] Cleared all timers
+[2025-04-21T20:55:01.104Z] [STATE] [B] Received state message: GAME_STATE
+[2025-04-21T20:55:01.104Z] [STATE] [B] Updating game state
+[2025-04-21T20:55:01.104Z] [STATE] [B] Active round card updated to: flash-cecde776
+[2025-04-21T20:55:01.104Z] [STATE] [B] Round card submitter updated: wini
+[2025-04-21T20:55:01.104Z] [STATE] [B] Guess location updated: lat=8.8471526, lon=172.9409305
+[2025-04-21T20:55:01.104Z] [STATE] Recorded game state from B-update
+{
+  "currentRound": 2,
+  "currentScreen": "GAMEOVER",
+  "roundCardSubmitter": "wini",
+  "players": [
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 0,
+      "actionCardsLeft": 1,
+      "username": "wini"
+    },
+    {
+      "activeActionCards": [],
+      "roundCardsLeft": 2,
+      "actionCardsLeft": 1,
+      "username": "nina"
+    }
+  ],
+  "inventory": {
+    "roundCards": [],
+    "actionCards": [
+      "7choices"
+    ]
+  },
+  "guessScreenAttributes": {
+    "guessLocation": {
+      "lon": 172.9409305,
+      "lat": 8.8471526
+    },
+    "time": 30
+  },
+  "activeRoundCard": "flash-cecde776",
+  "currentTurnPlayerToken": "cecde776-b87f-4137-807a-17cb34172b9b"
+}
+
+[2025-04-21T20:55:01.104Z] [STATE] [B] Game over
+[2025-04-21T20:55:01.104Z] [TIMER] Cleared all timers
+[2025-04-21T20:55:02.104Z] [INFO] Complete game history written to /home/dariast/SoPra/sopra-fs25-group-15-server/logs/game-history-2025-04-21T20-53-07-045Z.json
+[2025-04-21T20:59:48.330Z] [EXIT] Received SIGINT. Writing final logs before exit...
+[2025-04-21T20:59:48.332Z] [INFO] Complete game history written to /home/dariast/SoPra/sopra-fs25-group-15-server/logs/game-history-2025-04-21T20-53-07-045Z.json
+[2025-04-21T20:59:48.332Z] [EXIT] Process exiting with code 0
+[2025-04-21T20:59:48.333Z] [SUMMARY] Total game time: 401.3s

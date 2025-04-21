@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2025-04-21T20:52:14" hostname="Daria-XPS" time="0.018">
+  <properties/>
+  <testcase name="searchUserByEmail_validEmail_returnsUser()" classname="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" time="0.003"/>
+  <testcase name="updateMyUser_duplicateUsername_throwsException()" classname="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" time="0.002"/>
+  <testcase name="searchUserByEmail_invalidEmail_throwsException()" classname="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" time="0.002"/>
+  <testcase name="deleteMyAccount_validPassword_success()" classname="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" time="0.002"/>
+  <testcase name="deleteMyAccount_invalidPassword_throwsException()" classname="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" time="0.001"/>
+  <testcase name="searchUserByEmail_emptyEmail_throwsException()" classname="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" time="0.0"/>
+  <testcase name="updateMyUser_validInputs_success()" classname="ch.uzh.ifi.hase.soprafs24.service.UserServiceTest" time="0.003"/>
+  <system-out><![CDATA[2025-04-21 22:52:14.484  INFO 1191424 --- [    Test worker] c.u.i.h.soprafs24.service.UserService    : the user account has been deleted: ID=1, Email=test@example.com
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

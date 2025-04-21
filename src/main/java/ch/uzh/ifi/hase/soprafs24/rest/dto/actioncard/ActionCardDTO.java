@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ActionCardDTO {
     private String id;
-    private String type;
+    private String type;  // "powerup" or "punishment"
     private String title;
     private String description;
 

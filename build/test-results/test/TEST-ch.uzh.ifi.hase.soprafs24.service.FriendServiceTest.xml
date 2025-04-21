@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2025-04-21T20:52:12" hostname="Daria-XPS" time="0.043">
+  <properties/>
+  <testcase name="getAllFriendRequests_ShouldReturnBothSentAndReceived()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.02"/>
+  <testcase name="respondToFriendRequest_ShouldAcceptRequest()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.002"/>
+  <testcase name="respondToFriendRequest_ShouldDenyRequest()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.0"/>
+  <testcase name="unfriend_ShouldThrowExceptionIfFriendshipNotFound()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.001"/>
+  <testcase name="unfriend_ShouldRemoveFriendship()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.002"/>
+  <testcase name="respondToFriendRequest_ShouldThrowExceptionForInvalidAction()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.002"/>
+  <testcase name="getOutgoingFriendRequests_ShouldReturnSentRequestsWithStatuses()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.002"/>
+  <testcase name="cancelFriendRequest_ShouldDeletePendingRequest()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.002"/>
+  <testcase name="getFriends_ShouldReturnListOfFriends()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.001"/>
+  <testcase name="sendFriendRequest_ShouldCreateNewRequest()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.001"/>
+  <testcase name="cancelFriendRequest_ShouldThrowExceptionIfNotSender()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.002"/>
+  <testcase name="getIncomingFriendRequests_ShouldReturnPendingRequests()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.001"/>
+  <testcase name="cancelFriendRequest_ShouldThrowExceptionIfNotPending()" classname="ch.uzh.ifi.hase.soprafs24.service.FriendServiceTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

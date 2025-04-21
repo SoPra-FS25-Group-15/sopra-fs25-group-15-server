@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2025-04-21T20:52:07" hostname="Daria-XPS" time="0.191">
+  <properties/>
+  <testcase name="testJoinLobby_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.036"/>
+  <testcase name="testCreateLobby_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.027"/>
+  <testcase name="testJoinLobby_InvalidLobbyCode()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.009"/>
+  <testcase name="testJoinCasualLobby_AsFriend()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.009"/>
+  <testcase name="testUpdateLobbyConfig_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.017"/>
+  <testcase name="testJoinLobby_FriendInvited_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.01"/>
+  <testcase name="testGetAllLobbies_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.013"/>
+  <testcase name="testKickFromLobby_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.012"/>
+  <testcase name="testCreateCasualLobby_ForcesSoloMode()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.009"/>
+  <testcase name="testCreateLobby_AllLobbiesHaveCodes()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.01"/>
+  <testcase name="testLeaveLobby_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.008"/>
+  <testcase name="testDeleteLobby_Valid()" classname="ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest" time="0.009"/>
+  <system-out><![CDATA[2025-04-21 22:52:07.073  INFO 1191424 --- [    Test worker] .b.t.a.w.s.WebMvcTestContextBootstrapper : Neither @ContextConfiguration nor @ContextHierarchy found for test class [ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest], using SpringBootContextLoader
+2025-04-21 22:52:07.073  INFO 1191424 --- [    Test worker] o.s.t.c.support.AbstractContextLoader    : Could not detect default resource locations for test class [ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest]: no resource found for suffixes {-context.xml, Context.groovy}.
+2025-04-21 22:52:07.073  INFO 1191424 --- [    Test worker] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest]: LobbyControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2025-04-21 22:52:07.076  INFO 1191424 --- [    Test worker] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration ch.uzh.ifi.hase.soprafs24.Application for test class ch.uzh.ifi.hase.soprafs24.controller.LobbyControllerTest
+2025-04-21 22:52:07.077  INFO 1191424 --- [    Test worker] .b.t.a.w.s.WebMvcTestContextBootstrapper : Loaded default TestExecutionListener class names from location [META-INF/spring.factories]: [org.springframework.boot.test.autoconfigure.restdocs.RestDocsTestExecutionListener, org.springframework.boot.test.autoconfigure.web.client.MockRestServiceServerResetTestExecutionListener, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrintOnlyOnFailureTestExecutionListener, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverTestExecutionListener, org.springframework.boot.test.autoconfigure.webservices.client.MockWebServiceServerTestExecutionListener, org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener, org.springframework.boot.test.mock.mockito.ResetMocksTestExecutionListener, org.springframework.test.context.web.ServletTestExecutionListener, org.springframework.test.context.support.DirtiesContextBeforeModesTestExecutionListener, org.springframework.test.context.event.ApplicationEventsTestExecutionListener, org.springframework.test.context.support.DependencyInjectionTestExecutionListener, org.springframework.test.context.support.DirtiesContextTestExecutionListener, org.springframework.test.context.transaction.TransactionalTestExecutionListener, org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener, org.springframework.test.context.event.EventPublishingTestExecutionListener]
+2025-04-21 22:52:07.077  INFO 1191424 --- [    Test worker] .b.t.a.w.s.WebMvcTestContextBootstrapper : Using TestExecutionListeners: [org.springframework.test.context.web.ServletTestExecutionListener@7e8e111d, org.springframework.test.context.support.DirtiesContextBeforeModesTestExecutionListener@7781b55f, org.springframework.test.context.event.ApplicationEventsTestExecutionListener@2cb3bc0e, org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener@511f21f9, org.springframework.boot.test.autoconfigure.SpringBootDependencyInjectionTestExecutionListener@5f97d43e, org.springframework.test.context.support.DirtiesContextTestExecutionListener@25c6a9de, org.springframework.test.context.transaction.TransactionalTestExecutionListener@142422a4, org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener@3c9cd930, org.springframework.test.context.event.EventPublishingTestExecutionListener@5dcbdcb9, org.springframework.boot.test.autoconfigure.restdocs.RestDocsTestExecutionListener@4dd31687, org.springframework.boot.test.autoconfigure.web.client.MockRestServiceServerResetTestExecutionListener@78d72c9b, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrintOnlyOnFailureTestExecutionListener@22d82fe8, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverTestExecutionListener@2175111e, org.springframework.boot.test.autoconfigure.webservices.client.MockWebServiceServerTestExecutionListener@74c74c99, org.springframework.boot.test.mock.mockito.ResetMocksTestExecutionListener@35b5056e]
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.4.13)
+
+2025-04-21 22:52:07.096  INFO 1191424 --- [    Test worker] c.u.i.h.s.c.LobbyControllerTest          : Starting LobbyControllerTest using Java 17.0.13 on Daria-XPS with PID 1191424 (started by dariast in /home/dariast/SoPra/sopra-fs25-group-15-server)
+2025-04-21 22:52:07.097  INFO 1191424 --- [    Test worker] c.u.i.h.s.c.LobbyControllerTest          : No active profile set, falling back to default profiles: default
+2025-04-21 22:52:07.497  INFO 1191424 --- [    Test worker] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2025-04-21 22:52:07.498  INFO 1191424 --- [    Test worker] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2025-04-21 22:52:07.498  INFO 1191424 --- [    Test worker] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 0 ms
+2025-04-21 22:52:07.508  INFO 1191424 --- [    Test worker] c.u.i.h.s.c.LobbyControllerTest          : Started LobbyControllerTest in 0.428 seconds (JVM running for 4.313)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

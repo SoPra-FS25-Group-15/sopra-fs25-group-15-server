@@ -1,16 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard;
 
 /**
- * DTO for Action Card Effect
- * This class is used to transfer action card effect data between frontend and backend
+ * DTO for transferring action card effect data.
+ * Used when a player plays an action card and the effect needs to be communicated to clients.
  */
 public class ActionCardEffectDTO {
     
-    private String effectType;
-    private String targetPlayer;
-    // Add other fields that might be needed for your action card effects
+    private String effectType;     // Type of effect (e.g., "continent", "blur")
+    private String targetPlayer;   // Token of target player (if applicable)
     
-    // Getters and Setters
     public String getEffectType() {
         return effectType;
     }
