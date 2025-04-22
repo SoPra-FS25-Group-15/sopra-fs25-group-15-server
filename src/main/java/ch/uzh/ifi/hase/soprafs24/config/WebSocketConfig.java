@@ -180,7 +180,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         // SockJS endpoints with fallback (query param token + no cookies)
         registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend", "/ws/game")
-                .setAllowedOriginPatterns("*") // Change to use patterns instead of origins
+                .setAllowedOriginPatterns("http://localhost:3000", "https://sopra-fs25-group-15-client.vercel.app") // Change to use patterns instead of origins
                 .addInterceptors(authInterceptor)
                 .setHandshakeHandler(handshakeHandler)
                 .withSockJS()
@@ -191,7 +191,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         // Raw WebSocket endpoints (no fallback). 
         registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend", "/ws/game")
-                .setAllowedOriginPatterns("*") // Change to use patterns instead of origins
+                .setAllowedOriginPatterns("http://localhost:3000", "https://sopra-fs25-group-15-client.vercel.app") // Change to use patterns instead of origins
                 .addInterceptors(authInterceptor)
                 .setHandshakeHandler(handshakeHandler);
 
