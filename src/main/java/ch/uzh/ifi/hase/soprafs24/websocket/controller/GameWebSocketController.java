@@ -586,6 +586,7 @@ public class GameWebSocketController {
         }
     }
 
+    @Transactional
     @MessageMapping("/lobby/{lobbyId}/game/play-action-card")
     public void playActionCard(@DestinationVariable Long lobbyId,
                                @Payload Map<String, Object> payload,
@@ -696,7 +697,7 @@ public class GameWebSocketController {
             gameService.sendGameStateToAll(lobbyId);
 
             // Check if all players have played their cards
-            List<String> allPlayerTokens = lobbyService.getLobbyPlayerTokens(lobbyId);
+            List<String> allPlayerTokens = gameService.getPlayerTokens(lobbyId);
             int playedCount = gameService.getPlayedCardCount(lobbyId);
             
             log.info("Action card played count: {}/{}", playedCount, allPlayerTokens.size());
