@@ -553,46 +553,45 @@ public class LobbyService {
         return lobby.getHost().getToken().equals(token);
     }
 
-    /**
-     * Handle user disconnection from WebSocket
-     * Find all lobbies the user is in and process them leaving
-     * @param userId ID of the disconnected user
-     */
-    public void handleUserDisconnect(Long userId) {
-        logger.info("Handling WebSocket disconnect for user {}", userId);
-        
-        try {
-            // Find all lobbies where this user is a player
-            List<Lobby> userLobbies = lobbyRepository.findAll().stream()
-                .filter(lobby -> isUserInLobby(userId, lobby.getId()))
-                .collect(Collectors.toList());
-                
-            if (userLobbies.isEmpty()) {
-                logger.debug("User {} was not in any lobbies", userId);
-                return;
-            }
-            
-            for (Lobby lobby : userLobbies) {
-                try {
-                    logger.info("Processing user {} disconnect from lobby {}", userId, lobby.getId());
-                    
-                    // If the user is the host, delete the lobby
-                    if (isUserHost(lobby.getId(), userId)) {
-                        logger.info("User {} was host of lobby {} - deleting lobby", userId, lobby.getId());
-                        deleteLobby(lobby.getId(), userId);
-                    } else {
-                        // Otherwise just remove them from the lobby
-                        logger.info("User {} was player in lobby {} - removing from lobby", userId, lobby.getId());
-                        leaveLobby(lobby.getId(), userId, userId);
-                    }
-                } catch (Exception e) {
-                    logger.error("Error processing disconnect for user {} from lobby {}: {}", 
-                        userId, lobby.getId(), e.getMessage());
-                    // Continue processing other lobbies even if one fails
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Error handling disconnect for user {}: {}", userId, e.getMessage(), e);
+    @Transactional
+  public void handleUserDisconnect(Long userId) {
+    logger.info("Handling WebSocket disconnect for user {}", userId);
+
+    // Eagerly initialize so we can remove players/teams without lazy errors
+    List<Lobby> userLobbies = lobbyRepository.findAll().stream()
+      .peek(lobby -> {
+        // Load whichever collection is in play
+        if (lobby.getPlayers() != null) {
+          Hibernate.initialize(lobby.getPlayers());
         }
+        if (lobby.getTeams() != null) {
+          Hibernate.initialize(lobby.getTeams());
+          lobby.getTeams().values().forEach(Hibernate::initialize);
+        }
+      })
+      .filter(lobby -> isUserInLobby(userId, lobby.getId()))
+      .collect(Collectors.toList());
+
+    if (userLobbies.isEmpty()) {
+      logger.debug("User {} was not in any lobbies", userId);
+      return;
     }
+
+    for (Lobby lobby : userLobbies) {
+      try {
+        logger.info("Processing user {} disconnect from lobby {}", userId, lobby.getId());
+        if (isUserHost(lobby.getId(), userId)) {
+          logger.info("User {} was host of lobby {} - deleting lobby", userId, lobby.getId());
+          deleteLobby(lobby.getId(), userId);
+        } else {
+          logger.info("User {} was player in lobby {} - removing from lobby", userId, lobby.getId());
+          leaveLobby(lobby.getId(), userId, userId);
+        }
+      } catch (Exception e) {
+        logger.error("Error processing disconnect for user {} from lobby {}: {}", 
+                     userId, lobby.getId(), e.getMessage(), e);
+      }
+    }
+  }
+  
 }

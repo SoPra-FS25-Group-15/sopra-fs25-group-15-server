@@ -29,7 +29,6 @@ import ch.uzh.ifi.hase.soprafs24.service.ActionCardService;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.GameRoundService;
 import ch.uzh.ifi.hase.soprafs24.service.GameService;
-import ch.uzh.ifi.hase.soprafs24.service.GameService.GameStatus;
 import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService.LatLngDTO;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.RoundCardService;
@@ -85,9 +84,7 @@ public class GameWebSocketController {
         // If the principal is a number (user ID), try to find the token
         if (principalName != null && principalName.matches("\\d+")) {
             log.debug("Principal appears to be a user ID: {}. Checking for token.", principalName);
-            
             try {
-                // Look up the user by ID using UserService instead
                 User user = userService.getPublicProfile(Long.parseLong(principalName));
                 if (user != null && user.getToken() != null) {
                     log.debug("Found token for user ID: {}", principalName);
@@ -102,7 +99,6 @@ public class GameWebSocketController {
         try {
             String token = TokenUtils.extractToken(principalName);
             User user = authService.getUserByToken(token);
-            
             if (user == null) {
                 log.error("Invalid token: {}", TokenUtils.maskToken(token));
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
@@ -121,14 +117,10 @@ public class GameWebSocketController {
         if (headerAccessor == null) {
             return null;
         }
-        
-        // Try to get token from session attributes first
         Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
         if (sessionAttributes != null && sessionAttributes.containsKey("token")) {
             return (String) sessionAttributes.get("token");
         }
-        
-        // Try to get from native headers
         List<String> authHeaders = headerAccessor.getNativeHeader("Authorization");
         if (authHeaders != null && !authHeaders.isEmpty()) {
             String authHeader = authHeaders.get(0);
@@ -137,11 +129,14 @@ public class GameWebSocketController {
             }
             return authHeader;
         }
-        
         return null;
     }
 
+    /**
+     * Allow host to start game as soon as ≥2 players have joined.
+     */
     @MessageMapping("/lobby/{lobbyId}/game/start")
+    @Transactional
     public void startGame(@DestinationVariable Long lobbyId,
                           @Payload WebSocketMessage<StartGameRequestDTO> message,
                           Principal principal) {
@@ -149,138 +144,79 @@ public class GameWebSocketController {
         User user = authService.getUserByToken(userToken);
         
         if (!lobbyService.isUserHostByToken(lobbyId, userToken)) {
+            log.warn("Only the host can start the game: lobby={}, userToken={}", lobbyId, userToken);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the game");
         }
-
+    
         var lobby = lobbyService.getLobbyById(lobbyId);
         var players = lobbyService.getLobbyPlayerIds(lobbyId);
-        log.info("Starting game request for lobby {} with {} players, maxPlayers={}", 
-                 lobbyId, players.size(), lobby.getMaxPlayers());
-                 
-        if (players.size() < lobby.getMaxPlayers()) {
-            log.warn("Cannot start game - lobby {} has only {}/{} players", 
-                    lobbyId, players.size(), lobby.getMaxPlayers());
+        int playerCount = players.size();
+        log.info("Starting game request for lobby {}: {} players present", lobbyId, playerCount);
+    
+        // **Changed**: require only 2 players instead of full lobby
+        if (playerCount < 2) {
+            log.warn("Cannot start game - need at least 2 players but found {}", playerCount);
             throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, 
-                String.format("Cannot start until lobby is full (%d/%d players)", 
-                             players.size(), lobby.getMaxPlayers()));
+                HttpStatus.BAD_REQUEST,
+                String.format("Need at least 2 players to start (only %d joined)", playerCount)
+            );
         }
-
+    
+        // Distribute round cards
+        Map<String, List<RoundCardDTO>> tokenToRoundCards = new HashMap<>();
         List<String> playerTokens = players.stream()
             .map(id -> userService.getPublicProfile(id).getToken())
             .collect(Collectors.toList());
-        
-        if (playerTokens.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No players in the lobby");
-        }
-        
-        // First distribute round cards to all players
-        Map<String, List<RoundCardDTO>> tokenToRoundCards = new HashMap<>();
         for (String token : playerTokens) {
-            List<RoundCardDTO> cards = roundCardService.assignRoundCardsToPlayer(token);
+            var cards = roundCardService.assignRoundCardsToPlayer(token);
             tokenToRoundCards.put(token, cards);
         }
-        
-        // Select a truly random player to start (FIXED: use Random properly)
+    
+        // Select random starter
         Random random = new Random();
-        String randomStartingToken = playerTokens.get(random.nextInt(playerTokens.size()));
-        log.info("Selected random player with token {} as first round starter", randomStartingToken);
-        
-        // Initialize the game with our selected random starting player
-        gameService.initializeGame(lobbyId, playerTokens, randomStartingToken);
-        
-        // Distribute action cards
-        Map<String, ActionCardDTO> actionCards = gameRoundService.distributeFreshActionCardsByToken(lobbyId, playerTokens);
-        
-        GameService.GameState gameState = gameService.getGameState(lobbyId);
-        if (gameState == null) {
-            log.error("Failed to initialize game state for lobby {}", lobbyId);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to initialize game state");
-        }
-
-        // Update game state for each player by token
+        String startingToken = playerTokens.get(random.nextInt(playerTokens.size()));
+        log.info("Randomly selected starting player token: {}", startingToken);
+    
+        // Initialize game & distribute action cards
+        gameService.initializeGame(lobbyId, playerTokens, startingToken);
+        var actionCards = gameRoundService.distributeFreshActionCardsByToken(lobbyId, playerTokens);
+    
+        // Populate initial inventories & state
         for (String token : playerTokens) {
-            User playerUser = authService.getUserByToken(token);
-            List<RoundCardDTO> rcDTOs = tokenToRoundCards.get(token);
-            if (rcDTOs == null || rcDTOs.isEmpty()) {
-                log.error("Failed to assign round cards to player with token {} in lobby {}", token, lobbyId);
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
-                    "Failed to assign round cards to all players");
-            }
-            
-            List<String> rcIds = rcDTOs.stream()
-                                       .map(RoundCardDTO::getId)
-                                       .collect(Collectors.toList());
-            gameState.getInventoryForPlayer(token).setRoundCards(rcIds);
-            log.info("Assigned {} round cards to player with token {}", rcIds.size(), token);
-
-            ActionCardDTO ac = actionCards.get(token);
-            List<String> acIds = ac != null
-                                 ? List.of(ac.getId())
-                                 : List.of();
-            gameState.getInventoryForPlayer(token).setActionCards(acIds);
-            
-            GameService.GameState.PlayerInfo info = 
-                gameState.getPlayerInfo().computeIfAbsent(token, k -> new GameService.GameState.PlayerInfo());
-            info.setUsername(playerUser.getProfile().getUsername());
-            info.setRoundCardsLeft(rcIds.size());
-            info.setActionCardsLeft(acIds.size());
-            info.setActiveActionCards(List.of());
+            var rc = tokenToRoundCards.get(token);
+            List<String> rcIds = rc.stream().map(RoundCardDTO::getId).collect(Collectors.toList());
+            gameService.getGameState(lobbyId).getInventoryForPlayer(token).setRoundCards(rcIds);
+    
+            var ac = actionCards.get(token);
+            List<String> acIds = ac != null ? List.of(ac.getId()) : List.of();
+            gameService.getGameState(lobbyId).getInventoryForPlayer(token).setActionCards(acIds);
         }
-
-        // Send action cards to individual players
-        for (String token : playerTokens) {
-            ActionCardDTO card = actionCards.get(token);
-            if (card != null) {
-                messagingTemplate.convertAndSendToUser(
-                    token,
-                    "/queue/lobby/" + lobbyId + "/game/action-card",
-                    new WebSocketMessage<>("ACTION_CARD_ASSIGNED", card)
-                );
-            }
-        }
-
-        // Get the selected starting player token
-        String startingPlayerToken = gameState.getCurrentTurnPlayerToken();
-        
-        // FIXED: Make sure the roundCardSubmitter is set to the username of the starting player
-        User startingPlayer = authService.getUserByToken(startingPlayerToken);
-        gameState.setRoundCardSubmitter(startingPlayer.getProfile().getUsername());
-        log.info("Set initial round card submitter to: {}", startingPlayer.getProfile().getUsername());
-        
-        // Validate that the token matches our selection
-        if (!randomStartingToken.equals(startingPlayerToken)) {
-            log.warn("Starting player token mismatch! Selected: {}, Game state: {}", 
-                    randomStartingToken, startingPlayerToken);
-                    
-            // FIXED: Force the correct starting player if there's a mismatch
-            gameState.setCurrentTurnPlayerToken(randomStartingToken);
-            User correctedStartingPlayer = authService.getUserByToken(randomStartingToken);
-            gameState.setRoundCardSubmitter(correctedStartingPlayer.getProfile().getUsername());
-            startingPlayerToken = randomStartingToken;
-            log.info("Corrected starting player to: {} ({})", 
-                    correctedStartingPlayer.getProfile().getUsername(), randomStartingToken);
-        }
-        
-        // Broadcast game start with selected starting player
+    
+        // 1) Broadcast GAME_START so all clients reroute
         messagingTemplate.convertAndSend(
             "/topic/lobby/" + lobbyId + "/game",
-            new WebSocketMessage<>("GAME_START", Map.of("currentTurnPlayerToken", startingPlayerToken))
+            new WebSocketMessage<>("GAME_START", Map.of("startingPlayerToken", startingToken))
         );
-        
-        // Update all clients with the latest state including roundCardSubmitter
-        gameService.sendGameStateToAll(lobbyId);
-        
-        // Start the game with a very high max rounds value
-        gameService.startGame(lobbyId, Integer.MAX_VALUE);
-        
-        // Update lobby status to mark game as started
-        lobby.setStatus("IN_PROGRESS");
+        log.info("Broadcasted GAME_START for lobby {} with starting token {}", lobbyId, startingToken);
+
+        // 2) **Immediately push the full GAME_STATE into every player’s personal queue**  
+        log.info("Sending initial GAME_STATE to all players in lobby {}", lobbyId);
+        gameService.sendGameStateToAll(lobbyId);  // ← new line
+
+        // 3) Mark lobby in-progress
         lobbyService.updateLobbyStatus(lobbyId, "IN_PROGRESS");
-        
-        log.info("Game started for lobby {} with {} players, starting player token: {}, round card submitter: {}, will continue until a player has no round cards left",
-                 lobbyId, playerTokens.size(), startingPlayerToken, gameState.getRoundCardSubmitter());
     }
+    
+    /**
+     * NEW: Allow a client to request their GAME_STATE on demand.
+     */
+    @MessageMapping("/lobby/{lobbyId}/game/state")
+    public void requestGameState(@DestinationVariable Long lobbyId, Principal principal) {
+        String token = validateAuthentication(principal);
+        log.info("📨 State-request from user {}", token);
+        gameService.sendGameStateToUserByToken(lobbyId, token);
+    }
+    
 
     /**
      * Handle round card selection
@@ -401,7 +337,11 @@ public class GameWebSocketController {
                 gameState.setActiveRoundCard(finalRoundCardId);
                 
                 // FIXED: Remove the card from player's inventory - it's been played
+                // remove from RoundCardService storage
                 roundCardService.removePlayerRoundCard(lobbyId, userToken, finalRoundCardId);
+                // **NEW**: also remove from GameState inventory
+                gameState.getInventoryForPlayer(userToken)
+                .getRoundCards().remove(finalRoundCardId);
                 
                 // Broadcast round card selection to all players
                 messagingTemplate.convertAndSend(
@@ -435,9 +375,8 @@ public class GameWebSocketController {
                 
                 // Then broadcast action card phase start with timeLimit
                 messagingTemplate.convertAndSend(
-                    "/topic/lobby/" + lobbyId + "/game",
-                    new WebSocketMessage<>(
-                        "ACTION_CARD_PHASE_START", 
+                "/topic/lobby/" + lobbyId + "/game",
+                new WebSocketMessage<>("ACTION_CARD_PHASE_START", 
                         Map.of(
                             "timeLimit", timeLimit,
                             "coordinates", Map.of(
@@ -621,8 +560,12 @@ public class GameWebSocketController {
                     try {
                         String winnerToken = gameService.determineRoundWinner(lobbyId);
                         if (winnerToken != null) {
-                            // Get the winner's username and winning distance
-                            String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
+                            User winnerUser = authService.getUserByToken(winnerToken);
+                            String winnerUsername = winnerUser != null
+                                ? winnerUser.getProfile().getUsername()
+                                : "UNKNOWN";
+                            log.debug("Determined round‐winner via AuthService: token={}, username={}", 
+                                    winnerToken, winnerUsername);
                             int winningDistance = gameState.getPlayerGuesses().get(winnerToken);
                             
                             // Broadcast round winner with structured message
@@ -665,6 +608,7 @@ public class GameWebSocketController {
         }
     }
 
+    @Transactional
     @MessageMapping("/lobby/{lobbyId}/game/play-action-card")
     public void playActionCard(@DestinationVariable Long lobbyId,
                                @Payload Map<String, Object> payload,
@@ -775,7 +719,7 @@ public class GameWebSocketController {
             gameService.sendGameStateToAll(lobbyId);
 
             // Check if all players have played their cards
-            List<String> allPlayerTokens = lobbyService.getLobbyPlayerTokens(lobbyId);
+            List<String> allPlayerTokens = gameService.getPlayerTokens(lobbyId);
             int playedCount = gameService.getPlayedCardCount(lobbyId);
             
             log.info("Action card played count: {}/{}", playedCount, allPlayerTokens.size());
@@ -840,8 +784,8 @@ public class GameWebSocketController {
     }
     
     /**
-     * Processes round completion, removing round card from winner if they played it
-     * This should be called when determining the round winner
+     * Processes round completion, removing the round card from the winner if they played it
+     * and ending the game if it was their last card.
      */
     private void processRoundCompletion(Long lobbyId, String winnerToken) {
         GameService.GameState gameState = gameService.getGameState(lobbyId);
@@ -849,63 +793,74 @@ public class GameWebSocketController {
             log.error("Game not found for lobby {} during round completion", lobbyId);
             return;
         }
-        
-        // Check if the winner is the same player who played the round card
+
         String roundCardPlayerToken = gameState.getCurrentRoundCardPlayer();
-        String roundCardId = gameState.getCurrentRoundCardId();
-        
-        if (roundCardPlayerToken != null && roundCardId != null && roundCardPlayerToken.equals(winnerToken)) {
-            // Winner is the same player who played the round card, remove it from their inventory
-            log.info("Round winner {} is the same player who chose the round card {}. Removing card from inventory.", 
-                     winnerToken, roundCardId);
-                     
+        String roundCardId          = gameState.getCurrentRoundCardId();
+
+        if (roundCardPlayerToken != null
+            && roundCardId != null
+            && roundCardPlayerToken.equals(winnerToken)) {
+
+            log.info("Round winner {} played the round card {}. Removing it.", winnerToken, roundCardId);
+
+            // 1) remove from persistent store
             boolean removed = roundCardService.removeRoundCardFromPlayerByToken(lobbyId, winnerToken, roundCardId);
+            // 2) also remove from in-memory GameState
+            gameState.getInventoryForPlayer(winnerToken)
+                    .getRoundCards()
+                    .remove(roundCardId);
+
             if (removed) {
-                log.info("Round card {} removed from player {} because they won the round", 
-                         roundCardId, winnerToken);
-                
-                // Check if the player has no round cards left after removal
-                if (!gameService.hasRoundCards(lobbyId, winnerToken)) {
+                log.info("Round card {} removed from player {}'s inventory", roundCardId, winnerToken);
+
+                // 3) if that was their last card, end the game
+                if (gameState.getInventoryForPlayer(winnerToken).getRoundCards().isEmpty()) {
                     log.info("Player {} has no more round cards left - ending game", winnerToken);
-                    String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
-                    
-                    // Send game winner broadcast
+                    String winnerUsername = authService
+                        .getUserByToken(winnerToken)
+                        .getProfile()
+                        .getUsername();
+
+                    // broadcast the game WINNER event
                     messagingTemplate.convertAndSend(
                         "/topic/lobby/" + lobbyId + "/game",
                         new GameWinnerBroadcast(winnerUsername)
                     );
-                    
-                    // End the game
+                    // update state and notify everyone
                     gameService.endGame(lobbyId, winnerToken);
-                } else {
-                    // Player still has round cards, prepare for next round with this player as the active player
-                    log.info("Player {} still has round cards left - preparing for next round with them as active player", 
-                             winnerToken);
-                    gameService.prepareNextRound(lobbyId, winnerToken);
+                    return;
                 }
             } else {
-                log.error("Failed to remove round card {} from winner {}", roundCardId, winnerToken);
-                // Still prepare for next round even if the removal failed
-                gameService.prepareNextRound(lobbyId, winnerToken);
+                log.error("Failed to remove round card {} from player {}", roundCardId, winnerToken);
             }
-        } else if (roundCardPlayerToken != null && roundCardId != null) {
-            // The player who played the round card didn't win, so keep the card in their inventory
-            log.info("Round card {} stays with player {} because they didn't win the round",
-                     roundCardId, roundCardPlayerToken);
-                     
-            // Winner is not the player who played the round card
-            // Just prepare next round with the winner as the active player
-            log.info("Preparing for next round with winner {} as the active player", winnerToken);
-            gameService.prepareNextRound(lobbyId, winnerToken);
-        } else {
-            // Missing information about who played the round card
-            log.warn("Missing round card player information during round completion");
-            // Still prepare for next round with the winner as the active player
-            gameService.prepareNextRound(lobbyId, winnerToken);
         }
-        
-        // Reset tracking for the next round
+
+        // either they didn't play the card or still have cards left → next round
+        gameService.prepareNextRound(lobbyId, winnerToken);
         gameState.setCurrentRoundCardPlayer(null);
         gameState.setCurrentRoundCardId(null);
+        gameService.sendGameStateToAll(lobbyId);
     }
+
+
+        /**
+     * Handle a player’s map‐click guess.
+     * Clients publish to /app/lobby/{lobbyId}/game/guess with JSON { latitude, longitude }.
+     */
+    @MessageMapping("/lobby/{lobbyId}/game/guess")
+    public void handleGuess(
+             @DestinationVariable Long lobbyId,
+             @Payload Map<String,Object> payload,
+             Principal principal
+    ) {
+        String token = validateAuthentication(principal);
+        // parse out doubles from the JSON map
+        double lat = ((Number) payload.get("latitude")).doubleValue();
+        double lon = ((Number) payload.get("longitude")).doubleValue();
+        log.info("Processing guess for lobby {} from token {}: {}/{}", 
+                 lobbyId, TokenUtils.maskToken(token), lat, lon);
+        // this will broadcast GUESS_SUBMITTED and then ROUND_WINNER when all are in
+        gameService.registerGuessByToken(lobbyId, token, lat, lon);
+    }
+
 }

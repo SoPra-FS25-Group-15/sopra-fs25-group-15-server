@@ -465,7 +465,8 @@ public class GameService {
         submitGuess(gameId, playerToken, latitude, longitude);
         
         // Broadcast guess to all players
-        String username = gameState.getPlayerInfo().get(playerToken).getUsername();
+        String username = authService.getUserByToken(playerToken).getProfile().getUsername();
+
         
         // Calculate distance
         LatLngDTO targetCoords = gameState.getCurrentLatLngDTO();
@@ -490,14 +491,23 @@ public class GameService {
         // If all players have submitted guesses, automatically determine winner
         if (areAllGuessesSubmitted(gameId)) {
             String winnerToken = determineRoundWinner(gameId);
-            String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
+            User winnerUser = authService.getUserByToken(winnerToken);
+            // 2) pull the real username (fallback if something’s wrong)
+            String winnerUsername = winnerUser != null
+                ? winnerUser.getProfile().getUsername()
+                : "UNKNOWN";
+            // 3) debug‐log what we’re about to send
+            log.debug("Determined round‐winner via AuthService: token={}, username={}", 
+            winnerToken, winnerUsername);
             int winningDistance = gameState.getPlayerGuesses().get(winnerToken);
             
-            // Broadcast round winner with structured message
+            // 4) broadcast with the real name
             messagingTemplate.convertAndSend(
                 "/topic/lobby/" + gameId + "/game",
                 new RoundWinnerBroadcast(winnerUsername, gameState.getCurrentRound(), winningDistance)
             );
+            log.info("Broadcasted RoundWinnerBroadcast: username={}, …", winnerUsername);
+            
             
             // Game will continue to the next round or end if the winner has no round cards left
             // This logic is now entirely handled in prepareNextRound
@@ -614,7 +624,7 @@ public class GameService {
     
     /**
      * End the game with a winner
-     * @param gameId ID of the game
+     * @param gameId    ID of the game
      * @param winnerToken Token of the winning player
      */
     public void endGame(Long gameId, String winnerToken) {
@@ -622,31 +632,34 @@ public class GameService {
         if (gameState == null) {
             throw new IllegalStateException("Game not initialized: " + gameId);
         }
-        
+
         gameState.setStatus(GameStatus.GAME_OVER);
         gameState.setGameWinnerToken(winnerToken);
-        gameState.setCurrentScreen("GAMEOVER"); // Set screen to game over
-        
-        // Get winner username
-        String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
-        
+        gameState.setCurrentScreen("GAMEOVER");  // Set screen to game over
+
+        // Lookup the winner's username via AuthService instead of PlayerInfo
+        String winnerUsername = authService
+            .getUserByToken(winnerToken)
+            .getProfile()
+            .getUsername();
+
         log.info("Game {} ended, winner username: {}, token: {}", gameId, winnerUsername, winnerToken);
-        
+
         // Send structured game winner broadcast
         messagingTemplate.convertAndSend(
             "/topic/lobby/" + gameId + "/game",
             new GameWinnerBroadcast(winnerUsername)
         );
-        
+
         // Notify all clients of the final game state
         sendGameStateToAll(gameId);
-        
+
         // Schedule cleanup of game resources after some time
-        // This gives clients time to receive the final state before cleanup
         CompletableFuture.delayedExecutor(60, TimeUnit.SECONDS).execute(() -> {
             cleanupGame(gameId);
         });
     }
+
     
     /**
      * Clean up game resources when a game is complete
@@ -704,19 +717,20 @@ public class GameService {
             // FIXED: Always include roundCardSubmitter if in ROUNDCARD phase and current turn player exists
             if (gameState.getRoundCardSubmitter() != null) {
                 responseState.put("roundCardSubmitter", gameState.getRoundCardSubmitter());
-            } else if ("ROUNDCARD".equals(gameState.getCurrentScreen()) && gameState.getCurrentTurnPlayerToken() != null) {
-                // If we're in round card phase but submitter isn't set, derive it from current player
+            } else if ("ROUNDCARD".equals(gameState.getCurrentScreen())
+                    && gameState.getCurrentTurnPlayerToken() != null) {
                 try {
-                    User currentTurnPlayer = authService.getUserByToken(gameState.getCurrentTurnPlayerToken());
+                    User currentTurnPlayer = authService.getUserByToken(
+                        gameState.getCurrentTurnPlayerToken()
+                    );
                     String username = currentTurnPlayer.getProfile().getUsername();
                     responseState.put("roundCardSubmitter", username);
                     
-                    // Update the game state for future consistency
+                    // Persist it for future consistency
                     gameState.setRoundCardSubmitter(username);
                     log.info("Derived roundCardSubmitter in sendGameStateToUser: {}", username);
                 } catch (Exception e) {
                     log.error("Failed to derive roundCardSubmitter: {}", e.getMessage());
-                    // Fallback to null which is what we had before
                     responseState.put("roundCardSubmitter", null);
                 }
             } else {
@@ -726,13 +740,18 @@ public class GameService {
             responseState.put("activeRoundCard", gameState.getActiveRoundCard());
             responseState.put("currentTurnPlayerToken", gameState.getCurrentTurnPlayerToken());
             
-            // Rest of the method remains unchanged
-            // Add inventory for this specific player
+            // Inventory for this player
             GameState.PlayerInventory inventory = gameState.getInventoryForPlayer(playerToken);
             if (inventory != null) {
                 Map<String, List<String>> inventoryMap = new HashMap<>();
-                inventoryMap.put("roundCards", inventory.getRoundCards() != null ? inventory.getRoundCards() : List.of());
-                inventoryMap.put("actionCards", inventory.getActionCards() != null ? inventory.getActionCards() : List.of());
+                inventoryMap.put(
+                  "roundCards",
+                  inventory.getRoundCards() != null ? inventory.getRoundCards() : List.of()
+                );
+                inventoryMap.put(
+                  "actionCards",
+                  inventory.getActionCards() != null ? inventory.getActionCards() : List.of()
+                );
                 responseState.put("inventory", inventoryMap);
             } else {
                 responseState.put("inventory", Map.of(
@@ -741,7 +760,7 @@ public class GameService {
                 ));
             }
             
-            // Add guess screen attributes
+            // Guess‐screen attrs
             Map<String, Object> guessScreenAttrs = new HashMap<>();
             guessScreenAttrs.put("time", gameState.getGuessScreenAttributes().getTime());
             if (gameState.getGuessScreenAttributes().getLatitude() != 0) {
@@ -750,15 +769,18 @@ public class GameService {
                 guessLocation.put("lon", gameState.getGuessScreenAttributes().getLongitude());
                 guessScreenAttrs.put("guessLocation", guessLocation);
             }
-            
             if (gameState.getGuessScreenAttributes().getResolveResponse() != null) {
-                guessScreenAttrs.put("resolveResponse", gameState.getGuessScreenAttributes().getResolveResponse());
+                guessScreenAttrs.put(
+                  "resolveResponse",
+                  gameState.getGuessScreenAttributes().getResolveResponse()
+                );
             }
             responseState.put("guessScreenAttributes", guessScreenAttrs);
             
-            // Add player info
+            // Player list
             List<Map<String, Object>> playersArray = new ArrayList<>();
-            for (Map.Entry<String, GameState.PlayerInfo> entry : gameState.getPlayerInfo().entrySet()) {
+            for (Map.Entry<String, GameState.PlayerInfo> entry
+                 : gameState.getPlayerInfo().entrySet()) {
                 GameState.PlayerInfo info = entry.getValue();
                 Map<String, Object> playerInfo = new HashMap<>();
                 playerInfo.put("username", info.getUsername());
@@ -769,19 +791,21 @@ public class GameService {
             }
             responseState.put("players", playersArray);
             
-            // Send state to this specific user
+            // **Log and send**
+            log.info("📨 Sending GAME_STATE to user {} (round={}, screen={})",
+                     playerToken,
+                     gameState.getCurrentRound(),
+                     gameState.getCurrentScreen());
             messagingTemplate.convertAndSendToUser(
                 playerToken,
                 "/queue/lobby/" + gameId + "/game/state",
                 new WebSocketMessage<>("GAME_STATE", responseState)
             );
-            
-            log.debug("Sent game state to user {}: round={}, screen={}", 
-                    playerToken, gameState.getCurrentRound(), gameState.getCurrentScreen());
         } catch (Exception e) {
             log.error("Error sending game state to user {}: {}", playerToken, e.getMessage(), e);
         }
     }
+    
     
     /**
      * Send game state to a specific user by token
