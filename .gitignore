@@ -43,4 +43,21 @@ local.properties
 .vscode
 .xcode*
 
-/bin
+/build/
+/bin/
+
+/.gradle/
+
+.vscode/
+/.idea/
+
+.envrc
+.direnv/
+
+/logs/
+
+/node_modules/
+
+/flake.lock
+
+.DS_Store
