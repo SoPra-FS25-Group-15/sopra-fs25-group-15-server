@@ -12,10 +12,19 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * GoogleMapsService now ensures that any randomly chosen coordinate
+ * not only lies on land, but also has active Street View imagery.
+ */
 @Service
 public class GoogleMapsService {
 
     private static final Logger logger = LoggerFactory.getLogger(GoogleMapsService.class);
+
+    // Metadata endpoint to check for Street View coverage
+    private static final String STREETVIEW_METADATA_URL =
+        "https://maps.googleapis.com/maps/api/streetview/metadata";
+
     private final RestTemplate restTemplate;
     private final String apiKey;
 
@@ -46,103 +55,118 @@ public class GoogleMapsService {
     }
 
     /**
-     * Generates random land coordinates and returns as a DTO for the client.
+     * Generates random coordinates that
+     * 1. reverse‐geocode to land, and
+     * 2. have Street View coverage.
+     *
+     * Retries up to 10 times, then picks from a fixed fallback list.
      */
     public LatLngDTO getRandomCoordinatesOnLand() {
-        final int maxAttempts = 10;
+        final int maxAttempts = 30;
+
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            // 1) pick a random lat/lng
             double lat = ThreadLocalRandom.current().nextDouble(MIN_LAT, MAX_LAT);
             double lng = ThreadLocalRandom.current().nextDouble(MIN_LNG, MAX_LNG);
 
-            String url = UriComponentsBuilder
+            // 2) reverse‐geocode to find nearest land coordinate
+            String geocodeUrl = UriComponentsBuilder
                 .fromHttpUrl("https://maps.googleapis.com/maps/api/geocode/json")
                 .queryParam("latlng", lat + "," + lng)
                 .queryParam("key", apiKey)
                 .toUriString();
 
             try {
-                GeocodeResponse response = restTemplate.getForObject(url, GeocodeResponse.class);
-                if (response != null && "OK".equalsIgnoreCase(response.status) && !response.results.isEmpty()) {
-                    Location loc = response.results.get(0).geometry.location;
-                    logger.info("[Attempt {}/{}] API land coords: ({}, {})",
-                        attempt, maxAttempts, loc.lat, loc.lng);
-                    return new LatLngDTO(loc.lat, loc.lng);
+                GeocodeResponse geoResp = restTemplate.getForObject(geocodeUrl, GeocodeResponse.class);
+                if (geoResp != null
+                    && "OK".equalsIgnoreCase(geoResp.status)
+                    && !geoResp.results.isEmpty())
+                {
+                    Location loc = geoResp.results.get(0).geometry.location;
+                    double candidateLat = loc.lat;
+                    double candidateLng = loc.lng;
+                    logger.info("[Attempt {}/{}] Land at ({}, {})",
+                                attempt, maxAttempts, candidateLat, candidateLng);
+
+                    // 3) check Street View metadata for that coordinate
+                    String metaUrl = UriComponentsBuilder
+                        .fromHttpUrl(STREETVIEW_METADATA_URL)
+                        .queryParam("location", candidateLat + "," + candidateLng)
+                        .queryParam("key", apiKey)
+                        .toUriString();
+
+                    StreetViewMetadata meta = restTemplate
+                        .getForObject(metaUrl, StreetViewMetadata.class);
+
+                    if (meta != null && "OK".equalsIgnoreCase(meta.status)) {
+                        logger.info("[Attempt {}/{}] Street View OK at ({}, {})",
+                                    attempt, maxAttempts, candidateLat, candidateLng);
+                        return new LatLngDTO(candidateLat, candidateLng);
+                    } else {
+                        logger.debug("[Attempt {}/{}] No Street View at ({}, {}): status={}",
+                                     attempt, maxAttempts, candidateLat, candidateLng,
+                                     meta == null ? "null" : meta.status);
+                    }
                 } else {
-                    logger.debug("[Attempt {}/{}] No result for ({}, {})",
-                        attempt, maxAttempts, lat, lng);
+                    logger.debug("[Attempt {}/{}] No land result for ({}, {})",
+                                 attempt, maxAttempts, lat, lng);
                 }
             } catch (Exception ex) {
                 logger.warn("[Attempt {}/{}] Google API error: {}",
-                    attempt, maxAttempts, ex.getMessage());
+                            attempt, maxAttempts, ex.getMessage());
             }
         }
-        // Fallback
+
+        // 4) fallback if all else fails
         LatLngDTO fallback = FALLBACK_LOCATIONS.get(
             ThreadLocalRandom.current().nextInt(FALLBACK_LOCATIONS.size())
         );
-        logger.warn("Exceeded {} attempts; using fallback: {}", maxAttempts, fallback);
+        logger.warn("No suitable Street View found after {} attempts; using fallback: {}",
+                    maxAttempts, fallback);
         return fallback;
     }
 
-    // --- Regular classes for Jackson compatibility ---
+    // --- Internal DTOs for JSON mapping ---
+
     public static class GeocodeResponse {
         @JsonProperty("status")
         public String status;
-        
+
         @JsonProperty("results")
         public List<Result> results;
-        
-        // Default constructor for Jackson
+
         public GeocodeResponse() {}
-        
-        // Constructor for tests
-        public GeocodeResponse(String status, List<Result> results) {
-            this.status = status;
-            this.results = results;
-        }
     }
-    
+
     public static class Result {
         @JsonProperty("geometry")
         public Geometry geometry;
-        
-        // Default constructor for Jackson
+
         public Result() {}
-        
-        // Constructor for tests
-        public Result(Geometry geometry) {
-            this.geometry = geometry;
-        }
     }
-    
+
     public static class Geometry {
         @JsonProperty("location")
         public Location location;
-        
-        // Default constructor for Jackson
+
         public Geometry() {}
-        
-        // Constructor for tests
-        public Geometry(Location location) {
-            this.location = location;
-        }
     }
-    
+
     public static class Location {
         @JsonProperty("lat")
         public double lat;
-        
+
         @JsonProperty("lng")
         public double lng;
-        
-        // Default constructor for Jackson
+
         public Location() {}
-        
-        // Constructor for tests
-        public Location(double lat, double lng) {
-            this.lat = lat;
-            this.lng = lng;
-        }
+    }
+
+    public static class StreetViewMetadata {
+        @JsonProperty("status")
+        public String status;
+
+        public StreetViewMetadata() {}
     }
 
     /**
