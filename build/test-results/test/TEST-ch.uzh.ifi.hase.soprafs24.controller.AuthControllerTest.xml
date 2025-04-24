@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ch.uzh.ifi.hase.soprafs24.controller.AuthControllerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-04-21T20:52:04" hostname="Daria-XPS" time="0.582">
+  <properties/>
+  <testcase name="testLogin_Success()" classname="ch.uzh.ifi.hase.soprafs24.controller.AuthControllerTest" time="0.569"/>
+  <testcase name="testRegister_Success()" classname="ch.uzh.ifi.hase.soprafs24.controller.AuthControllerTest" time="0.005"/>
+  <testcase name="testGetMe_Success()" classname="ch.uzh.ifi.hase.soprafs24.controller.AuthControllerTest" time="0.003"/>
+  <testcase name="testLogout_Success()" classname="ch.uzh.ifi.hase.soprafs24.controller.AuthControllerTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

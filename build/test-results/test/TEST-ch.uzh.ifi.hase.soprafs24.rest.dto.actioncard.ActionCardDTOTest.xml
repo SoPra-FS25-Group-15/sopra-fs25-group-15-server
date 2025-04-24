@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTOTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2025-04-21T20:52:10" hostname="Daria-XPS" time="0.007">
+  <properties/>
+  <testcase name="testActionCardDTO_PowerUp()" classname="ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTOTest" time="0.001"/>
+  <testcase name="testActionCardDTO_Punishment()" classname="ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTOTest" time="0.0"/>
+  <testcase name="testActionCardEffectDTO()" classname="ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTOTest" time="0.001"/>
+  <testcase name="testActionCardPlayDTO_ModifyingProperties()" classname="ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTOTest" time="0.001"/>
+  <testcase name="testActionCardPlayDTO_WithoutTarget()" classname="ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTOTest" time="0.001"/>
+  <testcase name="testActionCardPlayDTO_WithTarget()" classname="ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTOTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

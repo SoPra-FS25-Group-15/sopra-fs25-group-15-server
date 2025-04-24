@@ -1,0 +1,1244 @@
+{
+  "events": [
+    {
+      "timestamp": "2025-04-21T20:42:59.564Z",
+      "type": "JOINING_LOBBY",
+      "data": {
+        "player": "B",
+        "code": "46149"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:42:59.629Z",
+      "type": "JOIN_SUCCESS",
+      "data": {
+        "player": "B",
+        "lobbyState": {
+          "playerAJoined": true,
+          "playerBJoined": true,
+          "lobbyCreated": true,
+          "gameStarted": false,
+          "gameStartAttempted": false,
+          "playerCount": 0,
+          "maxPlayers": 2,
+          "joinedPlayerTokens": [
+            "40a28505-47d9-4690-8379-e469aeeb8ee2",
+            "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+          ]
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:42:59.631Z",
+      "type": "USER_JOINED",
+      "data": {
+        "player": "A",
+        "user": {
+          "userid": 5,
+          "username": "ninana",
+          "mmr": 0,
+          "points": 0,
+          "email": "ninana@example.com"
+        },
+        "lobbyState": {
+          "playerAJoined": true,
+          "playerBJoined": true,
+          "lobbyCreated": true,
+          "gameStarted": false,
+          "gameStartAttempted": false,
+          "playerCount": 1,
+          "maxPlayers": 2,
+          "joinedPlayerTokens": [
+            "40a28505-47d9-4690-8379-e469aeeb8ee2",
+            "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+          ]
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:42:59.632Z",
+      "type": "USER_JOINED",
+      "data": {
+        "player": "B",
+        "user": {
+          "userid": 5,
+          "username": "ninana",
+          "mmr": 0,
+          "points": 0,
+          "email": "ninana@example.com"
+        },
+        "lobbyState": {
+          "playerAJoined": true,
+          "playerBJoined": true,
+          "lobbyCreated": true,
+          "gameStarted": false,
+          "gameStartAttempted": false,
+          "playerCount": 2,
+          "maxPlayers": 2,
+          "joinedPlayerTokens": [
+            "40a28505-47d9-4690-8379-e469aeeb8ee2",
+            "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+          ]
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.633Z",
+      "type": "STARTING_GAME",
+      "data": {
+        "player": "A",
+        "lobbyState": {
+          "playerAJoined": true,
+          "playerBJoined": true,
+          "lobbyCreated": true,
+          "gameStarted": false,
+          "gameStartAttempted": true,
+          "playerCount": 2,
+          "maxPlayers": 2,
+          "joinedPlayerTokens": [
+            "40a28505-47d9-4690-8379-e469aeeb8ee2",
+            "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+          ]
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.705Z",
+      "type": "ACTION_CARD_RECEIVED",
+      "data": {
+        "player": "A",
+        "cardId": "7choices",
+        "type": "ACTION_CARD_ASSIGNED"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.706Z",
+      "type": "ACTION_CARD_RECEIVED",
+      "data": {
+        "player": "B",
+        "cardId": "7choices",
+        "type": "ACTION_CARD_ASSIGNED"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.708Z",
+      "type": "GAME_STARTED",
+      "data": {
+        "player": "B",
+        "initialState": {
+          "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.708Z",
+      "type": "GAME_STARTED",
+      "data": {
+        "player": "A",
+        "initialState": {
+          "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:02.217Z",
+      "type": "SELECTING_ROUND_CARD",
+      "data": {
+        "player": "B",
+        "roundCardId": "world-a923ed9f"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:02.627Z",
+      "type": "ROUND_CARD_SELECTED",
+      "data": {
+        "player": "B",
+        "roundCard": {
+          "id": "world-a923ed9f",
+          "name": "World",
+          "description": "The round includes the full available coverage",
+          "modifiers": {
+            "guessType": "Precise",
+            "streetView": "Standard",
+            "time": 60
+          }
+        },
+        "username": "ninana"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:02.628Z",
+      "type": "ROUND_CARD_SELECTED",
+      "data": {
+        "player": "A",
+        "roundCard": {
+          "id": "world-a923ed9f",
+          "name": "World",
+          "description": "The round includes the full available coverage",
+          "modifiers": {
+            "guessType": "Precise",
+            "streetView": "Standard",
+            "time": 60
+          }
+        },
+        "username": "ninana"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:03.133Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "B",
+        "screen": "ACTIONCARD",
+        "payload": {
+          "roundCardComplete": true,
+          "screen": "ACTIONCARD"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:03.146Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "A",
+        "screen": "ACTIONCARD",
+        "payload": {
+          "roundCardComplete": true,
+          "screen": "ACTIONCARD"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:03.147Z",
+      "type": "ACTION_CARD_PHASE_START",
+      "data": {
+        "player": "B",
+        "timeLimit": 60,
+        "coordinates": {
+          "longitude": 114.4077367,
+          "latitude": -14.0206667
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:03.148Z",
+      "type": "ACTION_CARD_PHASE_START",
+      "data": {
+        "player": "A",
+        "timeLimit": 60,
+        "coordinates": {
+          "longitude": 114.4077367,
+          "latitude": -14.0206667
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:04.135Z",
+      "type": "PLAYING_ACTION_CARD",
+      "data": {
+        "player": "B",
+        "actionCardId": "7choices"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:04.146Z",
+      "type": "PLAYING_ACTION_CARD",
+      "data": {
+        "player": "A",
+        "actionCardId": "7choices"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.151Z",
+      "type": "ACTION_CARDS_COMPLETE",
+      "data": {
+        "player": "A"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.170Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "B",
+        "screen": "GUESS",
+        "payload": {
+          "actionCardsComplete": true,
+          "screen": "GUESS"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.171Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "A",
+        "screen": "GUESS",
+        "payload": {
+          "actionCardsComplete": true,
+          "screen": "GUESS"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.172Z",
+      "type": "ROUND_STARTED",
+      "data": {
+        "player": "B",
+        "round": 1,
+        "time": 60,
+        "coordinates": {
+          "lat": -14.0206667,
+          "lon": 114.4077367
+        },
+        "activeActionCards": {
+          "a923ed9f-3e5e-4ea4-b061-1f47d540b40c": [],
+          "40a28505-47d9-4690-8379-e469aeeb8ee2": []
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.176Z",
+      "type": "ROUND_STARTED",
+      "data": {
+        "player": "A",
+        "round": 1,
+        "time": 60,
+        "coordinates": {
+          "lat": -14.0206667,
+          "lon": 114.4077367
+        },
+        "activeActionCards": {
+          "a923ed9f-3e5e-4ea4-b061-1f47d540b40c": [],
+          "40a28505-47d9-4690-8379-e469aeeb8ee2": []
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.176Z",
+      "type": "GUESS_TIMER_STARTED",
+      "data": {
+        "timeLimit": 60,
+        "timestamp": 1745268191176
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:13.457Z",
+      "type": "SUBMITTING_GUESS",
+      "data": {
+        "player": "B",
+        "latitude": -11.530830857225547,
+        "longitude": 116.89757254277445
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:14.770Z",
+      "type": "SUBMITTING_GUESS",
+      "data": {
+        "player": "A",
+        "latitude": -5.742098096549864,
+        "longitude": 122.68630530345014
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:12.178Z",
+      "type": "ROUND_TIME_EXPIRED",
+      "data": {
+        "player": "A"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:12.711Z",
+      "type": "ROUND_WINNER",
+      "data": {
+        "player": "B",
+        "username": "ninana",
+        "round": 1,
+        "distance": 7865230
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:12.715Z",
+      "type": "ROUND_WINNER",
+      "data": {
+        "player": "A",
+        "username": "ninana",
+        "round": 1,
+        "distance": 7865230
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.225Z",
+      "type": "SELECTING_ROUND_CARD",
+      "data": {
+        "player": "B",
+        "roundCardId": "flash-a923ed9f"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.428Z",
+      "type": "ROUND_CARD_SELECTED",
+      "data": {
+        "player": "B",
+        "roundCard": {
+          "id": "flash-a923ed9f",
+          "name": "Flash",
+          "description": "The round includes the full available coverage, but the round time is halved",
+          "modifiers": {
+            "guessType": "Precise",
+            "streetView": "Standard",
+            "time": 30
+          }
+        },
+        "username": "ninana"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.433Z",
+      "type": "ROUND_CARD_SELECTED",
+      "data": {
+        "player": "A",
+        "roundCard": {
+          "id": "flash-a923ed9f",
+          "name": "Flash",
+          "description": "The round includes the full available coverage, but the round time is halved",
+          "modifiers": {
+            "guessType": "Precise",
+            "streetView": "Standard",
+            "time": 30
+          }
+        },
+        "username": "ninana"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.940Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "B",
+        "screen": "ACTIONCARD",
+        "payload": {
+          "roundCardComplete": true,
+          "screen": "ACTIONCARD"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.945Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "A",
+        "screen": "ACTIONCARD",
+        "payload": {
+          "roundCardComplete": true,
+          "screen": "ACTIONCARD"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.955Z",
+      "type": "ACTION_CARD_PHASE_START",
+      "data": {
+        "player": "B",
+        "timeLimit": 30,
+        "coordinates": {
+          "longitude": 48.73125899999999,
+          "latitude": -62.97541639999999
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.958Z",
+      "type": "ACTION_CARD_PHASE_START",
+      "data": {
+        "player": "A",
+        "timeLimit": 30,
+        "coordinates": {
+          "longitude": 48.73125899999999,
+          "latitude": -62.97541639999999
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:14.942Z",
+      "type": "PLAYING_ACTION_CARD",
+      "data": {
+        "player": "B",
+        "actionCardId": "7choices"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:14.946Z",
+      "type": "PLAYING_ACTION_CARD",
+      "data": {
+        "player": "A",
+        "actionCardId": "7choices"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.959Z",
+      "type": "ACTION_CARDS_COMPLETE",
+      "data": {
+        "player": "A"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.977Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "B",
+        "screen": "GUESS",
+        "payload": {
+          "actionCardsComplete": true,
+          "screen": "GUESS"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.982Z",
+      "type": "SCREEN_CHANGED",
+      "data": {
+        "player": "A",
+        "screen": "GUESS",
+        "payload": {
+          "actionCardsComplete": true,
+          "screen": "GUESS"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.984Z",
+      "type": "ROUND_STARTED",
+      "data": {
+        "player": "B",
+        "round": 1,
+        "time": 30,
+        "coordinates": {
+          "lat": -62.97541639999999,
+          "lon": 48.73125899999999
+        },
+        "activeActionCards": {
+          "a923ed9f-3e5e-4ea4-b061-1f47d540b40c": [],
+          "40a28505-47d9-4690-8379-e469aeeb8ee2": []
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.986Z",
+      "type": "ROUND_STARTED",
+      "data": {
+        "player": "A",
+        "round": 1,
+        "time": 30,
+        "coordinates": {
+          "lat": -62.97541639999999,
+          "lon": 48.73125899999999
+        },
+        "activeActionCards": {
+          "a923ed9f-3e5e-4ea4-b061-1f47d540b40c": [],
+          "40a28505-47d9-4690-8379-e469aeeb8ee2": []
+        }
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.986Z",
+      "type": "GUESS_TIMER_STARTED",
+      "data": {
+        "timeLimit": 30,
+        "timestamp": 1745268261986
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:25.041Z",
+      "type": "SUBMITTING_GUESS",
+      "data": {
+        "player": "B",
+        "latitude": -64.18253875565979,
+        "longitude": 47.52413664434018
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:26.529Z",
+      "type": "SUBMITTING_GUESS",
+      "data": {
+        "player": "A",
+        "latitude": -60.311714580665715,
+        "longitude": 51.394960819334266
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:52.988Z",
+      "type": "ROUND_TIME_EXPIRED",
+      "data": {
+        "player": "A"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:53.531Z",
+      "type": "ROUND_WINNER",
+      "data": {
+        "player": "B",
+        "username": "ninana",
+        "round": 1,
+        "distance": 6244672
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:53.532Z",
+      "type": "ROUND_WINNER",
+      "data": {
+        "player": "A",
+        "username": "ninana",
+        "round": 1,
+        "distance": 6244672
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:53.533Z",
+      "type": "GAME_WINNER",
+      "data": {
+        "player": "B"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:53.533Z",
+      "type": "GAME_WINNER",
+      "data": {
+        "player": "A"
+      }
+    }
+  ],
+  "states": [
+    {
+      "timestamp": "2025-04-21T20:43:01.715Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ROUNDCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-a923ed9f",
+            "flash-a923ed9f"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "time": 0
+        },
+        "activeRoundCard": null,
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.716Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ROUNDCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-a923ed9f",
+            "flash-a923ed9f"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "time": 0
+        },
+        "activeRoundCard": null,
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.731Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ROUNDCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "time": 0
+        },
+        "activeRoundCard": null,
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:01.732Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ROUNDCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "time": 0
+        },
+        "activeRoundCard": null,
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:03.151Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ACTIONCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 1,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "flash-a923ed9f"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 114.4077367,
+            "lat": -14.0206667
+          },
+          "time": 60
+        },
+        "activeRoundCard": "world-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:03.152Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ACTIONCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 1,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 114.4077367,
+            "lat": -14.0206667
+          },
+          "time": 60
+        },
+        "activeRoundCard": "world-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.178Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "GUESS",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 1,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 114.4077367,
+            "lat": -14.0206667
+          },
+          "time": 60
+        },
+        "activeRoundCard": "world-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:43:11.178Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "GUESS",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 1,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "flash-a923ed9f"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 114.4077367,
+            "lat": -14.0206667
+          },
+          "time": 60
+        },
+        "activeRoundCard": "world-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:12.716Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ROUNDCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 1,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 114.4077367,
+            "lat": -14.0206667
+          },
+          "time": 60
+        },
+        "activeRoundCard": null,
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:12.724Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ROUNDCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 1,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "flash-a923ed9f"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 114.4077367,
+            "lat": -14.0206667
+          },
+          "time": 60
+        },
+        "activeRoundCard": null,
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.960Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ACTIONCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 0,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 48.73125899999999,
+            "lat": -62.97541639999999
+          },
+          "time": 30
+        },
+        "activeRoundCard": "flash-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:13.960Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "ACTIONCARD",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 0,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 48.73125899999999,
+            "lat": -62.97541639999999
+          },
+          "time": 30
+        },
+        "activeRoundCard": "flash-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.987Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "GUESS",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 0,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 48.73125899999999,
+            "lat": -62.97541639999999
+          },
+          "time": 30
+        },
+        "activeRoundCard": "flash-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:21.988Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "GUESS",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 0,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 48.73125899999999,
+            "lat": -62.97541639999999
+          },
+          "time": 30
+        },
+        "activeRoundCard": "flash-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:53.534Z",
+      "source": "B-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "GAMEOVER",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 0,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 48.73125899999999,
+            "lat": -62.97541639999999
+          },
+          "time": 30
+        },
+        "activeRoundCard": "flash-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    },
+    {
+      "timestamp": "2025-04-21T20:44:53.534Z",
+      "source": "A-update",
+      "state": {
+        "currentRound": 1,
+        "currentScreen": "GAMEOVER",
+        "roundCardSubmitter": "ninana",
+        "players": [
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 0,
+            "actionCardsLeft": 1,
+            "username": "ninana"
+          },
+          {
+            "activeActionCards": [],
+            "roundCardsLeft": 2,
+            "actionCardsLeft": 1,
+            "username": "wini"
+          }
+        ],
+        "inventory": {
+          "roundCards": [
+            "world-40a28505",
+            "flash-40a28505"
+          ],
+          "actionCards": [
+            "7choices"
+          ]
+        },
+        "guessScreenAttributes": {
+          "guessLocation": {
+            "lon": 48.73125899999999,
+            "lat": -62.97541639999999
+          },
+          "time": 30
+        },
+        "activeRoundCard": "flash-a923ed9f",
+        "currentTurnPlayerToken": "a923ed9f-3e5e-4ea4-b061-1f47d540b40c"
+      }
+    }
+  ],
+  "roundsPlayed": 0,
+  "playerACards": [],
+  "playerBCards": [],
+  "winner": null
+}
