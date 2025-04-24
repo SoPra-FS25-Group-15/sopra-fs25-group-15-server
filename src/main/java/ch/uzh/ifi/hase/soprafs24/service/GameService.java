@@ -624,7 +624,7 @@ public class GameService {
     
     /**
      * End the game with a winner
-     * @param gameId ID of the game
+     * @param gameId    ID of the game
      * @param winnerToken Token of the winning player
      */
     public void endGame(Long gameId, String winnerToken) {
@@ -632,31 +632,34 @@ public class GameService {
         if (gameState == null) {
             throw new IllegalStateException("Game not initialized: " + gameId);
         }
-        
+
         gameState.setStatus(GameStatus.GAME_OVER);
         gameState.setGameWinnerToken(winnerToken);
-        gameState.setCurrentScreen("GAMEOVER"); // Set screen to game over
-        
-        // Get winner username
-        String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
-        
+        gameState.setCurrentScreen("GAMEOVER");  // Set screen to game over
+
+        // Lookup the winner's username via AuthService instead of PlayerInfo
+        String winnerUsername = authService
+            .getUserByToken(winnerToken)
+            .getProfile()
+            .getUsername();
+
         log.info("Game {} ended, winner username: {}, token: {}", gameId, winnerUsername, winnerToken);
-        
+
         // Send structured game winner broadcast
         messagingTemplate.convertAndSend(
             "/topic/lobby/" + gameId + "/game",
             new GameWinnerBroadcast(winnerUsername)
         );
-        
+
         // Notify all clients of the final game state
         sendGameStateToAll(gameId);
-        
+
         // Schedule cleanup of game resources after some time
-        // This gives clients time to receive the final state before cleanup
         CompletableFuture.delayedExecutor(60, TimeUnit.SECONDS).execute(() -> {
             cleanupGame(gameId);
         });
     }
+
     
     /**
      * Clean up game resources when a game is complete
