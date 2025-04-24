@@ -337,7 +337,11 @@ public class GameWebSocketController {
                 gameState.setActiveRoundCard(finalRoundCardId);
                 
                 // FIXED: Remove the card from player's inventory - it's been played
+                // remove from RoundCardService storage
                 roundCardService.removePlayerRoundCard(lobbyId, userToken, finalRoundCardId);
+                // **NEW**: also remove from GameState inventory
+                gameState.getInventoryForPlayer(userToken)
+                .getRoundCards().remove(finalRoundCardId);
                 
                 // Broadcast round card selection to all players
                 messagingTemplate.convertAndSend(
@@ -371,9 +375,8 @@ public class GameWebSocketController {
                 
                 // Then broadcast action card phase start with timeLimit
                 messagingTemplate.convertAndSend(
-                    "/topic/lobby/" + lobbyId + "/game",
-                    new WebSocketMessage<>(
-                        "ACTION_CARD_PHASE_START", 
+                "/topic/lobby/" + lobbyId + "/game",
+                new WebSocketMessage<>("ACTION_CARD_PHASE_START", 
                         Map.of(
                             "timeLimit", timeLimit,
                             "coordinates", Map.of(
@@ -800,13 +803,17 @@ public class GameWebSocketController {
             log.info("Round winner {} is the same player who chose the round card {}. Removing card from inventory.", 
                      winnerToken, roundCardId);
                      
+            // remove from RoundCardService
             boolean removed = roundCardService.removeRoundCardFromPlayerByToken(lobbyId, winnerToken, roundCardId);
+            // **NEW**: also remove from GameState inventory
+            gameState.getInventoryForPlayer(winnerToken)
+                    .getRoundCards().remove(roundCardId);
             if (removed) {
                 log.info("Round card {} removed from player {} because they won the round", 
                          roundCardId, winnerToken);
                 
                 // Check if the player has no round cards left after removal
-                if (!gameService.hasRoundCards(lobbyId, winnerToken)) {
+                if (gameState.getInventoryForPlayer(winnerToken).getRoundCards().isEmpty()) {
                     log.info("Player {} has no more round cards left - ending game", winnerToken);
                     String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
                     
@@ -822,7 +829,7 @@ public class GameWebSocketController {
                     // Player still has round cards, prepare for next round with this player as the active player
                     log.info("Player {} still has round cards left - preparing for next round with them as active player", 
                              winnerToken);
-                    gameService.prepareNextRound(lobbyId, winnerToken);
+                             gameService.prepareNextRound(lobbyId, winnerToken);
                 }
             } else {
                 log.error("Failed to remove round card {} from winner {}", roundCardId, winnerToken);
@@ -848,6 +855,7 @@ public class GameWebSocketController {
         // Reset tracking for the next round
         gameState.setCurrentRoundCardPlayer(null);
         gameState.setCurrentRoundCardId(null);
+        gameService.sendGameStateToAll(lobbyId);
     }
 
         /**
