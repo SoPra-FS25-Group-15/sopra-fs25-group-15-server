@@ -79,13 +79,17 @@ bootJar {
     archiveFileName = "${archiveBaseName.get()}.${archiveExtension.get()}"
 }
 
-sonar {
+sonarqube {
     properties {
         property "sonar.projectKey", "julienzb_sopra-fs25-group-15-server"
         property "sonar.projectName", "sopra-fs25-group-15-server"
         property "sonar.organization", "sopra-fs25-group-15"
         property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.sources", "src/main/java"
+        property "sonar.tests", "src/test/java"
+        property "sonar.java.binaries", "${projectDir}/build/classes/java/main"
         property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+        property "sonar.junit.reportPaths", "${buildDir}/test-results/test"
     }
 }
 
