@@ -147,12 +147,12 @@ public class GameWebSocketController {
             log.warn("Only the host can start the game: lobby={}, userToken={}", lobbyId, userToken);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the game");
         }
-
+    
         var lobby = lobbyService.getLobbyById(lobbyId);
         var players = lobbyService.getLobbyPlayerIds(lobbyId);
         int playerCount = players.size();
         log.info("Starting game request for lobby {}: {} players present", lobbyId, playerCount);
-
+    
         // **Changed**: require only 2 players instead of full lobby
         if (playerCount < 2) {
             log.warn("Cannot start game - need at least 2 players but found {}", playerCount);
@@ -161,7 +161,7 @@ public class GameWebSocketController {
                 String.format("Need at least 2 players to start (only %d joined)", playerCount)
             );
         }
-
+    
         // Distribute round cards
         Map<String, List<RoundCardDTO>> tokenToRoundCards = new HashMap<>();
         List<String> playerTokens = players.stream()
@@ -171,37 +171,52 @@ public class GameWebSocketController {
             var cards = roundCardService.assignRoundCardsToPlayer(token);
             tokenToRoundCards.put(token, cards);
         }
-
+    
         // Select random starter
         Random random = new Random();
         String startingToken = playerTokens.get(random.nextInt(playerTokens.size()));
         log.info("Randomly selected starting player token: {}", startingToken);
-
+    
         // Initialize game & distribute action cards
         gameService.initializeGame(lobbyId, playerTokens, startingToken);
         var actionCards = gameRoundService.distributeFreshActionCardsByToken(lobbyId, playerTokens);
-
+    
         // Populate initial inventories & state
         for (String token : playerTokens) {
             var rc = tokenToRoundCards.get(token);
             List<String> rcIds = rc.stream().map(RoundCardDTO::getId).collect(Collectors.toList());
             gameService.getGameState(lobbyId).getInventoryForPlayer(token).setRoundCards(rcIds);
-
+    
             var ac = actionCards.get(token);
             List<String> acIds = ac != null ? List.of(ac.getId()) : List.of();
             gameService.getGameState(lobbyId).getInventoryForPlayer(token).setActionCards(acIds);
         }
-
-        // Broadcast GAME_START so all clients reroute
+    
+        // 1) Broadcast GAME_START so all clients reroute
         messagingTemplate.convertAndSend(
             "/topic/lobby/" + lobbyId + "/game",
             new WebSocketMessage<>("GAME_START", Map.of("startingPlayerToken", startingToken))
         );
         log.info("Broadcasted GAME_START for lobby {} with starting token {}", lobbyId, startingToken);
 
-        // Mark lobby in-progress
+        // 2) **Immediately push the full GAME_STATE into every player’s personal queue**  
+        log.info("Sending initial GAME_STATE to all players in lobby {}", lobbyId);
+        gameService.sendGameStateToAll(lobbyId);  // ← new line
+
+        // 3) Mark lobby in-progress
         lobbyService.updateLobbyStatus(lobbyId, "IN_PROGRESS");
     }
+    
+    /**
+     * NEW: Allow a client to request their GAME_STATE on demand.
+     */
+    @MessageMapping("/lobby/{lobbyId}/game/state")
+    public void requestGameState(@DestinationVariable Long lobbyId, Principal principal) {
+        String token = validateAuthentication(principal);
+        log.info("📨 State-request from user {}", token);
+        gameService.sendGameStateToUserByToken(lobbyId, token);
+    }
+    
 
     /**
      * Handle round card selection
