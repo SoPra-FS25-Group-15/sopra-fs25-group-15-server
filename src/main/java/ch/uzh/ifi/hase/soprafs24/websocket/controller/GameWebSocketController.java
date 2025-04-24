@@ -542,8 +542,12 @@ public class GameWebSocketController {
                     try {
                         String winnerToken = gameService.determineRoundWinner(lobbyId);
                         if (winnerToken != null) {
-                            // Get the winner's username and winning distance
-                            String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
+                            User winnerUser = authService.getUserByToken(winnerToken);
+                            String winnerUsername = winnerUser != null
+                                ? winnerUser.getProfile().getUsername()
+                                : "UNKNOWN";
+                            log.debug("Determined round‐winner via AuthService: token={}, username={}", 
+                                    winnerToken, winnerUsername);
                             int winningDistance = gameState.getPlayerGuesses().get(winnerToken);
                             
                             // Broadcast round winner with structured message
@@ -830,4 +834,25 @@ public class GameWebSocketController {
         gameState.setCurrentRoundCardPlayer(null);
         gameState.setCurrentRoundCardId(null);
     }
+
+        /**
+     * Handle a player’s map‐click guess.
+     * Clients publish to /app/lobby/{lobbyId}/game/guess with JSON { latitude, longitude }.
+     */
+    @MessageMapping("/lobby/{lobbyId}/game/guess")
+    public void handleGuess(
+             @DestinationVariable Long lobbyId,
+             @Payload Map<String,Object> payload,
+             Principal principal
+    ) {
+        String token = validateAuthentication(principal);
+        // parse out doubles from the JSON map
+        double lat = ((Number) payload.get("latitude")).doubleValue();
+        double lon = ((Number) payload.get("longitude")).doubleValue();
+        log.info("Processing guess for lobby {} from token {}: {}/{}", 
+                 lobbyId, TokenUtils.maskToken(token), lat, lon);
+        // this will broadcast GUESS_SUBMITTED and then ROUND_WINNER when all are in
+        gameService.registerGuessByToken(lobbyId, token, lat, lon);
+    }
+
 }

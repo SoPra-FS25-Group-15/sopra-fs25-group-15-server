@@ -465,7 +465,8 @@ public class GameService {
         submitGuess(gameId, playerToken, latitude, longitude);
         
         // Broadcast guess to all players
-        String username = gameState.getPlayerInfo().get(playerToken).getUsername();
+        String username = authService.getUserByToken(playerToken).getProfile().getUsername();
+
         
         // Calculate distance
         LatLngDTO targetCoords = gameState.getCurrentLatLngDTO();
@@ -490,14 +491,23 @@ public class GameService {
         // If all players have submitted guesses, automatically determine winner
         if (areAllGuessesSubmitted(gameId)) {
             String winnerToken = determineRoundWinner(gameId);
-            String winnerUsername = gameState.getPlayerInfo().get(winnerToken).getUsername();
+            User winnerUser = authService.getUserByToken(winnerToken);
+            // 2) pull the real username (fallback if something’s wrong)
+            String winnerUsername = winnerUser != null
+                ? winnerUser.getProfile().getUsername()
+                : "UNKNOWN";
+            // 3) debug‐log what we’re about to send
+            log.debug("Determined round‐winner via AuthService: token={}, username={}", 
+            winnerToken, winnerUsername);
             int winningDistance = gameState.getPlayerGuesses().get(winnerToken);
             
-            // Broadcast round winner with structured message
+            // 4) broadcast with the real name
             messagingTemplate.convertAndSend(
                 "/topic/lobby/" + gameId + "/game",
                 new RoundWinnerBroadcast(winnerUsername, gameState.getCurrentRound(), winningDistance)
             );
+            log.info("Broadcasted RoundWinnerBroadcast: username={}, …", winnerUsername);
+            
             
             // Game will continue to the next round or end if the winner has no round cards left
             // This logic is now entirely handled in prepareNextRound
