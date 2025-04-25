@@ -54,7 +54,11 @@ public class LobbyService {
      */
     @Transactional
     public Lobby createLobby(Lobby lobby) {
-        lobby.setPrivate(false);
+        if (!lobby.isPrivate()) {
+            lobby.setPrivate(false);
+        } else {
+            lobby.setMode(LobbyConstants.MODE_SOLO);
+        }
         String code = generateNumericLobbyCode();
         lobby.setLobbyCode(code);
         logger.debug("Generated code for new lobby: {}", code);
