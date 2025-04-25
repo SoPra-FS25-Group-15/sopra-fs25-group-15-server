@@ -12,17 +12,27 @@ runtime_config:
 
 # Spring Boot & Cloud SQL settings
 env_variables:
-  # use prod profile
+  # active Spring profile
   SPRING_PROFILES_ACTIVE: "prod"
 
-  # force Postgres driver in prod
-  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
-
-  # your Cloud SQL settings
+  # Cloud SQL connection info
   INSTANCE_CONNECTION_NAME: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
   DB_NAME:             "soprafs25db"
   DB_USER:             "postgres"
   DB_PASS:             "FS25-Group15"
+
+  # Ensure Spring Boot sees a valid JDBC URL at startup
+  SPRING_DATASOURCE_URL: >-
+    jdbc:postgresql://localhost:5432/${DB_NAME}
+    ?socketFactory=com.google.cloud.sql.postgres.SocketFactory
+    &socketFactoryArg=${INSTANCE_CONNECTION_NAME}
+
+  # Credentials for the DataSource
+  SPRING_DATASOURCE_USERNAME: "${DB_USER}"
+  SPRING_DATASOURCE_PASSWORD: "${DB_PASS}"
+
+  # Force the PostgreSQL driver in production
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
 
 # mount the built-in Cloud SQL proxy so your app can talk over the Unix socket
 beta_settings:
