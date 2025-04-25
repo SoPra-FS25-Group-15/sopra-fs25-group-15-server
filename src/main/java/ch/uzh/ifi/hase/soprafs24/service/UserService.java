@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
-import com.sun.xml.bind.v2.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -89,7 +88,8 @@ public class UserService {
         }
 
         // 3) Check conflicts for email/username
-        //    (Make sure any user found with the same email/username is either null or is the current user)
+        // (Make sure any user found with the same email/username is either null or is
+        // the current user)
         User emailCheck = userRepository.findByEmail(newEmail);
         if (emailCheck != null && !emailCheck.getId().equals(currentUser.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
@@ -114,10 +114,13 @@ public class UserService {
         return currentUser;
     }
 
-
-    /* Search for a user by email
+    /*
+     * Search for a user by email
+     * 
      * @param email the email to search for
+     * 
      * @return the found user
+     * 
      * @throws ResponseStatusException if user is not found
      */
     public User searchUserByEmail(String email) {
@@ -152,6 +155,31 @@ public class UserService {
     }
 
     /**
+     * Find a user by search query (username or email)
+     */
+    public User getUserBySearch(String searchQuery) {
+        if (searchQuery == null || searchQuery.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Search query cannot be empty");
+        }
+
+        User user;
+        try {
+            user = userRepository.findByEmail(searchQuery);
+            if (user == null) {
+                user = userRepository.findByProfile_Username(searchQuery);
+            }
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No user found with this email or username");
+        }
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No user found with this search query");
+        }
+
+        return user;
+    }
+
+    /**
      * delete current user account
      */
     public void deleteMyAccount(String token, String password) {
@@ -165,7 +193,8 @@ public class UserService {
 
         // 3) check the password is right or not
         if (!authService.verifyPassword(currentUser, password)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Password verification failed, unable to delete account");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Password verification failed, unable to delete account");
         }
 
         // 4) delete the user account
@@ -178,12 +207,13 @@ public class UserService {
 
     /**
      * Retrieves a user based on the provided token
+     * 
      * @param rawToken - the authentication token (with or without Bearer prefix)
      * @return User
      */
     public User getUserByToken(String rawToken) {
         String token = TokenUtils.extractToken(rawToken);
-        
+
         User user = userRepository.findByToken(token);
 
         if (user == null) {
@@ -193,4 +223,3 @@ public class UserService {
         return user;
     }
 }
-
