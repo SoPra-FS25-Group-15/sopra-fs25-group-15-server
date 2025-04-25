@@ -189,11 +189,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                   .setWebSocketEnabled(true)
                   .setDisconnectDelay(5000);
 
-        // Raw WebSocket endpoints (no fallback). 
-        registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend", "/ws/game")
-                .setAllowedOriginPatterns("http://localhost:3000", "https://sopra-fs25-group-15-client.vercel.app") // Change to use patterns instead of origins
-                .addInterceptors(authInterceptor)
-                .setHandshakeHandler(handshakeHandler);
+        // // Raw WebSocket endpoints (no fallback). 
+        // registry.addEndpoint("/ws/lobby", "/ws/lobby-manager", "/ws/user", "/ws/friend", "/ws/game")
+        //         .setAllowedOriginPatterns("http://localhost:3000", "https://sopra-fs25-group-15-client.vercel.app") // Change to use patterns instead of origins
+        //         .addInterceptors(authInterceptor)
+        //         .setHandshakeHandler(handshakeHandler);
 
         // Set the error handler for all endpoints
         registry.setErrorHandler(webSocketErrorHandler);
