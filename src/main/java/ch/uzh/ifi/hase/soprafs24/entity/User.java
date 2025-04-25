@@ -113,4 +113,6 @@ public class User implements Serializable {
     public void generateToken() {
         this.token = UUID.randomUUID().toString();
     }
+    public void setUsername(String testuser) {
+    }
 }
