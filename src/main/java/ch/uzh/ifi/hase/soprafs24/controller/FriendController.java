@@ -58,7 +58,7 @@ public class FriendController {
     // POST /api/friends/request - send a friend request
     @PostMapping("/request")
     @ResponseStatus(HttpStatus.CREATED)
-    public Map<String, String> sendFriendRequest(@RequestHeader("Authorization") String token,
+    public FriendRequestDTO sendFriendRequest(@RequestHeader("Authorization") String token,
             @RequestBody Map<String, String> body) {
 
         // Find recipient by username or email
@@ -72,7 +72,10 @@ public class FriendController {
         }
 
         friendService.sendFriendRequest(token, recipient.getId());
-        return Map.of("message", "Friend request sent to " + recipient.getProfile().getUsername());
+        FriendRequestDTO dto = new FriendRequestDTO();
+        dto.setRecipient(recipient.getId());
+        dto.setRecipientUsername(recipient.getProfile().getUsername());
+        return dto;
     }
 
     // PUT /api/friends/requests/{requestId} - respond to a friend request (accept
