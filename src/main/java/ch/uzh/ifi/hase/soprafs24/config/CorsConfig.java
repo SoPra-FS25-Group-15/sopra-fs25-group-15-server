@@ -14,7 +14,8 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOriginPatterns("*")  // Use allowedOriginPatterns instead of allowedOrigins
+                        .allowedOriginPatterns("https://sopra-fs25-group-15-client.vercel.app",
+                          "http://localhost:3000")  // Use allowedOriginPatterns instead of allowedOrigins
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("Authorization")
@@ -22,7 +23,8 @@ public class CorsConfig {
                 
                 // Explicitly add WebSocket endpoints
                 registry.addMapping("/ws/**")
-                        .allowedOriginPatterns("*")  // Use allowedOriginPatterns instead of allowedOrigins
+                        .allowedOriginPatterns("https://sopra-fs25-group-15-client.vercel.app",
+                          "http://localhost:3000")  // Use allowedOriginPatterns instead of allowedOrigins
                         .allowedMethods("GET", "POST", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("Authorization")
