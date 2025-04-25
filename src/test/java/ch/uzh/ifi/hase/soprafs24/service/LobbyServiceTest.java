@@ -103,9 +103,17 @@ class LobbyServiceTest {
 
     @Test
     void createLobby_soloMode() {
+        // Create a lobby with the solo mode
         Lobby lobby = new Lobby();
         lobby.setMode(LobbyConstants.MODE_SOLO);
         lobby.setHost(testUser);
+        
+        // The service modifies the lobby and returns the saved version
+        when(lobbyRepository.save(any(Lobby.class))).thenAnswer(invocation -> {
+            Lobby savedLobby = invocation.getArgument(0);
+            // Return the saved lobby with modifications made by the service
+            return savedLobby;
+        });
         
         Lobby result = lobbyService.createLobby(lobby);
         
@@ -114,6 +122,7 @@ class LobbyServiceTest {
         assertNotNull(result.getLobbyCode());
         assertEquals(1, result.getMaxPlayersPerTeam());
         assertEquals(8, result.getMaxPlayers());
+        assertNotNull(result.getPlayers());
         assertTrue(result.getPlayers().contains(testUser));
         
         verify(lobbyRepository).save(any(Lobby.class));
@@ -121,9 +130,19 @@ class LobbyServiceTest {
 
     @Test
     void createLobby_teamMode() {
+        // Create a lobby with team mode - CRITICAL: must set isPrivate=false
+        // If lobby is private, service will force mode to solo
         Lobby lobby = new Lobby();
         lobby.setMode(LobbyConstants.MODE_TEAM);
         lobby.setHost(testUser);
+        lobby.setPrivate(false); // Required to maintain team mode
+        
+        // The service modifies the lobby and returns the saved version
+        when(lobbyRepository.save(any(Lobby.class))).thenAnswer(invocation -> {
+            Lobby savedLobby = invocation.getArgument(0);
+            // Return the saved lobby with modifications made by the service
+            return savedLobby;
+        });
         
         Lobby result = lobbyService.createLobby(lobby);
         
@@ -131,6 +150,7 @@ class LobbyServiceTest {
         assertEquals(LobbyConstants.MODE_TEAM, result.getMode());
         assertEquals(2, result.getMaxPlayersPerTeam());
         assertEquals(8, result.getMaxPlayers());
+        assertNotNull(result.getTeams());
         assertTrue(result.getTeams().containsKey("team1"));
         assertTrue(result.getTeams().get("team1").contains(testUser));
         

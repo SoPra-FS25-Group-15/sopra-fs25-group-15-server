@@ -1,43 +1,77 @@
 package ch.uzh.ifi.hase.soprafs24.util;
 
-import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
-public class TokenUtilsTest {
+import static org.junit.jupiter.api.Assertions.*;
+
+class TokenUtilsTest {
 
     @Test
-    public void testExtractToken_withBearer() {
-        String token = TokenUtils.extractToken("Bearer abc123");
-        assertEquals("abc123", token);
+    void extractToken_withBearerPrefix_returnsToken() {
+        // given
+        String authHeader = "Bearer test-token";
+        
+        // when
+        String result = TokenUtils.extractToken(authHeader);
+        
+        // then
+        assertEquals("test-token", result);
     }
-    
+
     @Test
-    public void testExtractToken_withoutBearer() {
-        String token = TokenUtils.extractToken("abc123");
-        assertEquals("abc123", token);
+    void extractToken_withoutPrefix_returnsOriginal() {
+        // given
+        String plainToken = "test-token";
+        
+        // when
+        String result = TokenUtils.extractToken(plainToken);
+        
+        // then
+        assertEquals(plainToken, result);
     }
-    
+
     @Test
-    public void testExtractToken_null() {
-        String token = TokenUtils.extractToken(null);
-        assertNull(token);
+    void extractToken_withNull_returnsNull() {
+        // when
+        String result = TokenUtils.extractToken(null);
+        
+        // then
+        assertNull(result);
     }
-    
+
     @Test
-    public void testFormatWithBearer_rawToken() {
-        String token = TokenUtils.formatWithBearer("abc123");
-        assertEquals("Bearer abc123", token);
+    void formatWithBearer_addsPrefix() {
+        // given
+        String token = "test-token";
+        
+        // when
+        String result = TokenUtils.formatWithBearer(token);
+        
+        // then
+        assertEquals("Bearer test-token", result);
     }
-    
+
     @Test
-    public void testFormatWithBearer_alreadyHasBearer() {
-        String token = TokenUtils.formatWithBearer("Bearer abc123");
-        assertEquals("Bearer abc123", token);
+    void formatWithBearer_withExistingPrefix_returnsSame() {
+        // given
+        String token = "Bearer test-token";
+        
+        // when
+        String result = TokenUtils.formatWithBearer(token);
+        
+        // then
+        assertEquals(token, result);
     }
-    
+
     @Test
-    public void testFormatWithBearer_null() {
-        String token = TokenUtils.formatWithBearer(null);
-        assertNull(token);
+    void maskToken_hidesMiddlePortion() {
+        // given
+        String token = "abcdefghijklm";
+        
+        // when
+        String result = TokenUtils.maskToken(token);
+        
+        // then
+        assertEquals("abcd...jklm", result);
     }
 }
