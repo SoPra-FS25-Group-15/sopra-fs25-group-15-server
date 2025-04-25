@@ -20,7 +20,8 @@ public class CorsConfig {
                                 "http://localhost:3000",
                                 "https://sopra-fs25-group-15-client.vercel.app")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("Authorization", "Content-Type")
+                        // include the header your client was (mis-)sending:
+                        .allowedHeaders("Authorization", "Content-Type", "Access-Control-Allow-Origin")
                         .exposedHeaders("Authorization")
                         .allowCredentials(true);
             }
