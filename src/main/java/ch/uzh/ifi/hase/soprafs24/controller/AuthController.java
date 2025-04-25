@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CrossOrigin;  // ← added import
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +19,15 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 
+@CrossOrigin(
+    origins = {
+        "https://sopra-fs25-group-15-client.vercel.app",
+        "http://localhost:3000"
+    },
+    allowCredentials = "true",
+    allowedHeaders = "*",
+    exposedHeaders = "Authorization"
+)
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
