@@ -1,4 +1,5 @@
-# https://cloud.google.com/appengine/docs/the-appengine-environments#comparing_high-level_features
+# app.yaml
+# https://cloud.google.com/appengine/docs/the-appengine-environments#comparing_high-level-features
 # https://cloud.google.com/appengine/docs/standard
 
 runtime: java
@@ -9,9 +10,13 @@ runtime_config:
   operating_system: "ubuntu22"
   runtime_version: "17"
 
-# tell Spring Boot to use the "prod" profile
+# Spring Boot & Cloud SQL settings
 env_variables:
+  # use prod profile
   SPRING_PROFILES_ACTIVE: "prod"
+
+  # force Postgres driver in prod
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
 
   # your Cloud SQL settings
   INSTANCE_CONNECTION_NAME: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
