@@ -51,39 +51,50 @@ public class GameController {
     @ResponseStatus(HttpStatus.OK)
     public GameDataResponseDTO getGameData(@RequestParam Long lobbyId,
                                            @RequestHeader("Authorization") String authHeader) {
-        // 1) Clean out any "Bearer " prefix
-        String token = TokenUtils.extractToken(authHeader);
+        try {
+            // 1) Clean out any "Bearer " prefix
+            String token = TokenUtils.extractToken(authHeader);
 
-        // 2) Validate token and load user
-        var user = authService.getUserByToken(token);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
+            // 2) Validate token and load user
+            var user = authService.getUserByToken(token);
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
+            }
+
+            // 3) Check membership by token (host or in players list)
+            boolean isHost = lobbyService.isUserHostByToken(lobbyId, token);
+            var playerTokens = lobbyService.getLobbyPlayerTokens(lobbyId);
+            if (!isHost && !playerTokens.contains(token)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a member of this lobby");
+            }
+
+            // 4) Build response
+            GameDataResponseDTO response = new GameDataResponseDTO();
+
+            // Static round cards
+            List<RoundCardDTO> roundCards = roundCardService.getAllRoundCards();
+            response.setRoundCards(roundCards);
+
+            // One fresh action card per player
+            Map<Long, List<ActionCardDTO>> actionMap = new HashMap<>();
+            var playerIds = lobbyService.getLobbyPlayerIds(lobbyId);
+            for (Long pid : playerIds) {
+                var cards = new ArrayList<ActionCardDTO>();
+                cards.add(actionCardService.drawRandomCard());
+                actionMap.put(pid, cards);
+            }
+            response.setActionCards(actionMap);
+
+            return response;
+        } catch (ResponseStatusException ex) {
+            // Re-throw ResponseStatusException as is - these are already properly formatted errors
+            throw ex;
+        } catch (RuntimeException ex) {
+            // Convert all other runtime exceptions to INTERNAL_SERVER_ERROR
+            throw new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR, 
+                "An error occurred processing your request: " + ex.getMessage()
+            );
         }
-
-        // 3) Check membership by token (host or in players list)
-        boolean isHost = lobbyService.isUserHostByToken(lobbyId, token);
-        var playerTokens = lobbyService.getLobbyPlayerTokens(lobbyId);
-        if (!isHost && !playerTokens.contains(token)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a member of this lobby");
-        }
-
-        // 4) Build response
-        GameDataResponseDTO response = new GameDataResponseDTO();
-
-        // Static round cards
-        List<RoundCardDTO> roundCards = roundCardService.getAllRoundCards();
-        response.setRoundCards(roundCards);
-
-        // One fresh action card per player
-        Map<Long, List<ActionCardDTO>> actionMap = new HashMap<>();
-        var playerIds = lobbyService.getLobbyPlayerIds(lobbyId);
-        for (Long pid : playerIds) {
-            var cards = new ArrayList<ActionCardDTO>();
-            cards.add(actionCardService.drawRandomCard());
-            actionMap.put(pid, cards);
-        }
-        response.setActionCards(actionMap);
-
-        return response;
     }
 }

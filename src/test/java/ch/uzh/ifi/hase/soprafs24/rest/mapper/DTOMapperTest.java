@@ -16,6 +16,8 @@ import static org.mockito.Mockito.mock;
 
 import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
@@ -487,5 +489,150 @@ public class DTOMapperTest {
         assertEquals("solo", joinDTO.getMode());
         assertEquals("12345", joinDTO.getLobbyCode());
         assertTrue(joinDTO.isFriendInvited());
+    }
+
+    @Test
+    public void testToFriendRequestDTO_WithCurrentUser() {
+        // Create a friend request
+        User sender = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(sender, 200L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+        UserProfile senderProfile = new UserProfile();
+        senderProfile.setUsername("sender");
+        sender.setProfile(senderProfile);
+
+        User recipient = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(recipient, 300L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+        UserProfile recipientProfile = new UserProfile();
+        recipientProfile.setUsername("recipient");
+        recipient.setProfile(recipientProfile);
+
+        FriendRequest request = new FriendRequest();
+        try {
+            Field idField = FriendRequest.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(request, 400L);
+            
+            Field createdAtField = FriendRequest.class.getDeclaredField("createdAt");
+            createdAtField.setAccessible(true);
+            createdAtField.set(request, Instant.now());
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set friend request fields via reflection", e);
+        }
+        
+        request.setSender(sender);
+        request.setRecipient(recipient);
+        request.setStatus(FriendRequestStatus.PENDING);
+
+        // Test with recipient as current user (incoming request)
+        ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO dto = mapper.toFriendRequestDTO(request, recipient);
+        
+        // Verify mapping
+        assertEquals(400L, dto.getRequestId());
+        assertEquals(200L, dto.getSender());
+        assertEquals("sender", dto.getSenderUsername());
+        assertEquals(300L, dto.getRecipient());
+        assertEquals("recipient", dto.getRecipientUsername());
+        assertEquals("pending", dto.getStatus());
+        assertNotNull(dto.getCreatedAt());
+        assertTrue(dto.isIncoming()); // Request is incoming for recipient
+    }
+
+    @Test
+    public void testToFriendRequestDTO_Basic() {
+        // Create a simple friend request
+        User sender = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(sender, 201L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+
+        User recipient = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(recipient, 301L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+
+        FriendRequest request = new FriendRequest();
+        try {
+            Field idField = FriendRequest.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(request, 401L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set friend request ID via reflection", e);
+        }
+        
+        request.setSender(sender);
+        request.setRecipient(recipient);
+        request.setStatus(FriendRequestStatus.ACCEPTED);
+
+        // Test basic mapper method
+        ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO dto = mapper.toFriendRequestDTO(request);
+        
+        // Verify mapping
+        assertEquals(401L, dto.getRequestId());
+        assertEquals(301L, dto.getRecipient());
+        assertEquals("accepted", dto.getAction());
+    }
+
+    @Test
+    public void testToFriendDTO() {
+        User friend = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(friend, 500L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+
+        UserProfile profile = new UserProfile();
+        profile.setUsername("friendUser");
+        friend.setProfile(profile);
+
+        ch.uzh.ifi.hase.soprafs24.rest.dto.FriendDTO dto = mapper.toFriendDTO(friend);
+        
+        assertEquals(500L, dto.getFriendId());
+        assertEquals("friendUser", dto.getUsername());
+    }
+
+    @Test
+    public void testToUserSearchResponseDTO() {
+        User searchResult = new User();
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(searchResult, 600L);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set user ID via reflection", e);
+        }
+
+        UserProfile profile = new UserProfile();
+        profile.setUsername("searchedUser");
+        searchResult.setProfile(profile);
+        searchResult.setEmail("searched@example.com");
+
+        ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO dto = mapper.toUserSearchResponseDTO(searchResult);
+        
+        assertEquals(600L, dto.getUserid());
+        assertEquals("searchedUser", dto.getUsername());
+        assertEquals("searched@example.com", dto.getEmail());
     }
 }
