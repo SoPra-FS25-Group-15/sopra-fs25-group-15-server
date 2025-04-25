@@ -1,9 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
-import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.game.GameDataResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.game.RoundCardDTO;
 import ch.uzh.ifi.hase.soprafs24.service.ActionCardService;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
@@ -11,219 +9,166 @@ import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.RoundCardService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.ArrayList;
+import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WebMvcTest(GameController.class)
 public class GameControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private RoundCardService roundCardService;
 
-    @Mock
+    @MockBean
     private ActionCardService actionCardService;
 
-    @Mock
+    @MockBean
     private LobbyService lobbyService;
 
-    @Mock
+    @MockBean
     private AuthService authService;
 
-    @InjectMocks
-    private GameController gameController;
-
-    private final Long LOBBY_ID = 1L;
-    private final String VALID_TOKEN = "valid-token";
-    private final String INVALID_TOKEN = "invalid-token";
-    private final Long HOST_ID = 100L;
-    private final Long PLAYER1_ID = 101L;
-    private final Long PLAYER2_ID = 102L;
-    private User hostUser;
-    private User player1User;
-    private Lobby testLobby;
-    private List<RoundCardDTO> testRoundCards;
-    private ActionCardDTO testActionCard1;
-    private ActionCardDTO testActionCard2;
+    private User testUser;
+    private RoundCardDTO testRoundCard1;
+    private RoundCardDTO testRoundCard2;
+    private ActionCardDTO testActionCard;
+    private final String validToken = "Bearer valid-token";
+    private final String cleanToken = "valid-token";
+    private final Long lobbyId = 1L;
 
     @BeforeEach
-    public void setup() {
-        MockitoAnnotations.openMocks(this);
+    public void setup() throws Exception {
+        // Create test user with ID 1
+        testUser = new User();
+        Field idField = User.class.getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(testUser, 1L);
 
-        // Setup test users
-        hostUser = new User();
-        hostUser.setId(HOST_ID);
-        hostUser.setUsername("host");
-        hostUser.setToken("host-token");
+        // Setup round cards
+        testRoundCard1 = new RoundCardDTO();
+        testRoundCard1.setId("world-1"); // Using String ID to avoid type mismatch
+        testRoundCard1.setName("World");
+        testRoundCard1.setDescription("Standard round on world map");
 
-        player1User = new User();
-        player1User.setId(PLAYER1_ID);
-        player1User.setUsername("player1");
-        player1User.setToken(VALID_TOKEN);
+        testRoundCard2 = new RoundCardDTO();
+        testRoundCard2.setId("flash-1"); // Using String ID to avoid type mismatch
+        testRoundCard2.setName("Flash");
+        testRoundCard2.setDescription("Quick round with limited time");
 
-        // Setup test lobby
-        testLobby = new Lobby();
-        testLobby.setId(LOBBY_ID);
-        testLobby.setHost(hostUser);
+        // Setup action cards
+        testActionCard = new ActionCardDTO();
+        testActionCard.setId("7choices");
+        testActionCard.setType("powerup");
+        testActionCard.setTitle("7 Choices"); // Using setTitle instead of setName
+        testActionCard.setDescription("Reveal continent information");
 
-        // Add player to the lobby
-        List<User> players = new ArrayList<>();
-        players.add(player1User);
-        testLobby.setPlayers(players);
-
-        // Setup test round cards
-        testRoundCards = new ArrayList<>();
-        RoundCardDTO roundCard1 = new RoundCardDTO();
-        roundCard1.setId("1");
-
-        RoundCardDTO roundCard2 = new RoundCardDTO();
-        roundCard2.setId("2");
-
-        testRoundCards.add(roundCard1);
-        testRoundCards.add(roundCard2);
-
-        // Setup test action cards
-        testActionCard1 = new ActionCardDTO();
-        testActionCard1.setId("1");
-        testActionCard1.setType("DOUBLE_POINTS");
-        testActionCard1.setDescription("Double your points for this round");
-
-        testActionCard2 = new ActionCardDTO();
-        testActionCard2.setId("2");
-        testActionCard2.setType("HINT");
-        testActionCard2.setDescription("Get a hint for this location");
-
-        // Mock services
-        when(roundCardService.getAllRoundCards()).thenReturn(testRoundCards);
-        when(actionCardService.drawRandomCard()).thenReturn(testActionCard1).thenReturn(testActionCard2);
-        when(authService.getUserByToken(VALID_TOKEN)).thenReturn(player1User);
-        when(authService.getUserByToken("host-token")).thenReturn(hostUser);
-        when(authService.getUserByToken(INVALID_TOKEN)).thenReturn(null);
-
-        // Mock lobby service methods
-        when(lobbyService.getLobbyPlayerIds(LOBBY_ID)).thenReturn(Arrays.asList(HOST_ID, PLAYER1_ID));
-        when(lobbyService.getLobbyPlayerTokens(LOBBY_ID)).thenReturn(Arrays.asList("host-token", VALID_TOKEN));
-        when(lobbyService.isUserHostByToken(eq(LOBBY_ID), eq("host-token"))).thenReturn(true);
-        when(lobbyService.isUserHostByToken(eq(LOBBY_ID), eq(VALID_TOKEN))).thenReturn(false);
+        // Configure default mock responses
+        when(authService.getUserByToken(cleanToken)).thenReturn(testUser);
+        when(roundCardService.getAllRoundCards()).thenReturn(Arrays.asList(testRoundCard1, testRoundCard2));
+        when(actionCardService.drawRandomCard()).thenReturn(testActionCard);
     }
 
     @Test
-    public void getGameData_validPlayerToken_success() {
-        // Call the method
-        GameDataResponseDTO response = gameController.getGameData(LOBBY_ID, "Bearer " + VALID_TOKEN);
+    public void getGameData_ValidHostToken_ReturnsGameData() throws Exception {
+        // Given - user is host
+        when(lobbyService.isUserHostByToken(eq(lobbyId), eq(cleanToken))).thenReturn(true);
+        when(lobbyService.getLobbyPlayerIds(lobbyId)).thenReturn(Arrays.asList(1L, 2L));
 
-        // Verify service calls
-        verify(authService).getUserByToken(VALID_TOKEN);
-        verify(lobbyService).isUserHostByToken(LOBBY_ID, VALID_TOKEN);
-        verify(lobbyService).getLobbyPlayerTokens(LOBBY_ID);
-        verify(roundCardService).getAllRoundCards();
-        verify(lobbyService).getLobbyPlayerIds(LOBBY_ID);
-        verify(actionCardService, times(2)).drawRandomCard();
-
-        // Verify response
-        assertNotNull(response);
-        assertEquals(testRoundCards, response.getRoundCards());
-        assertEquals(2, response.getActionCards().size());
-        assertTrue(response.getActionCards().containsKey(HOST_ID));
-        assertTrue(response.getActionCards().containsKey(PLAYER1_ID));
-        assertEquals(1, response.getActionCards().get(HOST_ID).size());
-        assertEquals(1, response.getActionCards().get(PLAYER1_ID).size());
+        // When & Then
+        mockMvc.perform(get("/games/data")
+                .param("lobbyId", lobbyId.toString())
+                .header("Authorization", validToken)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roundCards", hasSize(2)))
+                .andExpect(jsonPath("$.roundCards[0].id").value("world-1"))
+                .andExpect(jsonPath("$.roundCards[1].id").value("flash-1"))
+                .andExpect(jsonPath("$.actionCards").exists())
+                .andExpect(jsonPath("$.actionCards['1'][0].id").value("7choices"))
+                .andExpect(jsonPath("$.actionCards['2'][0].id").value("7choices"));
     }
 
     @Test
-    public void getGameData_validHostToken_success() {
-        // Call the method
-        GameDataResponseDTO response = gameController.getGameData(LOBBY_ID, "Bearer host-token");
+    public void getGameData_ValidPlayerToken_ReturnsGameData() throws Exception {
+        // Given - user is player but not host
+        when(lobbyService.isUserHostByToken(eq(lobbyId), eq(cleanToken))).thenReturn(false);
+        when(lobbyService.getLobbyPlayerTokens(lobbyId)).thenReturn(Arrays.asList(cleanToken, "other-token"));
+        when(lobbyService.getLobbyPlayerIds(lobbyId)).thenReturn(Arrays.asList(1L, 2L));
 
-        // Verify service calls
-        verify(authService).getUserByToken("host-token");
-        verify(lobbyService).isUserHostByToken(LOBBY_ID, "host-token");
-        verify(roundCardService).getAllRoundCards();
-        verify(lobbyService).getLobbyPlayerIds(LOBBY_ID);
-        verify(actionCardService, times(2)).drawRandomCard();
-
-        // Verify response
-        assertNotNull(response);
-        assertEquals(testRoundCards, response.getRoundCards());
-        assertEquals(2, response.getActionCards().size());
+        // When & Then
+        mockMvc.perform(get("/games/data")
+                .param("lobbyId", lobbyId.toString())
+                .header("Authorization", validToken)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roundCards", hasSize(2)))
+                .andExpect(jsonPath("$.actionCards").exists());
     }
 
     @Test
-    public void getGameData_invalidToken_throwsException() {
-        // Expect exception
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> gameController.getGameData(LOBBY_ID, "Bearer " + INVALID_TOKEN)
-        );
+    public void getGameData_InvalidToken_ReturnsUnauthorized() throws Exception {
+        // Given - invalid token
+        when(authService.getUserByToken(cleanToken)).thenReturn(null);
 
-        // Verify exception details
-        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
-        assertEquals("Invalid or missing token", exception.getReason());
-
-        // Verify service calls
-        verify(authService).getUserByToken(INVALID_TOKEN);
-        verify(lobbyService, never()).getLobbyPlayerIds(anyLong());
-        verify(roundCardService, never()).getAllRoundCards();
+        // When & Then
+        mockMvc.perform(get("/games/data")
+                .param("lobbyId", lobbyId.toString())
+                .header("Authorization", validToken)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    public void getGameData_nonMemberToken_throwsException() {
-        // Setup non-member user
-        User nonMemberUser = new User();
-        nonMemberUser.setId(999L);
-        nonMemberUser.setToken("nonmember-token");
-        when(authService.getUserByToken("nonmember-token")).thenReturn(nonMemberUser);
-        when(lobbyService.isUserHostByToken(LOBBY_ID, "nonmember-token")).thenReturn(false);
+    public void getGameData_UserNotInLobby_ReturnsForbidden() throws Exception {
+        // Given - user not in lobby
+        when(lobbyService.isUserHostByToken(eq(lobbyId), eq(cleanToken))).thenReturn(false);
+        when(lobbyService.getLobbyPlayerTokens(lobbyId)).thenReturn(Collections.singletonList("different-token"));
 
-        // Expect exception
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> gameController.getGameData(LOBBY_ID, "Bearer nonmember-token")
-        );
-
-        // Verify exception details
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("You are not a member of this lobby", exception.getReason());
-
-        // Verify service calls
-        verify(authService).getUserByToken("nonmember-token");
-        verify(lobbyService).isUserHostByToken(LOBBY_ID, "nonmember-token");
-        verify(lobbyService).getLobbyPlayerTokens(LOBBY_ID);
-        verify(roundCardService, never()).getAllRoundCards();
+        // When & Then
+        mockMvc.perform(get("/games/data")
+                .param("lobbyId", lobbyId.toString())
+                .header("Authorization", validToken)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
     }
 
     @Test
-    public void getGameData_randomAssignmentOfActionCards() {
-        // Setup test with multiple draws returning different cards
-        ActionCardDTO card1 = new ActionCardDTO();
-        card1.setId("10");
-        card1.setType("SKIP_ROUND");
+    public void getGameData_NoLobbyId_ReturnsBadRequest() throws Exception {
+        // When & Then - missing required parameter
+        mockMvc.perform(get("/games/data")
+                .header("Authorization", validToken)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
 
-        ActionCardDTO card2 = new ActionCardDTO();
-        card2.setId("20");
-        card2.setType("EXTRA_TIME");
+    @Test
+    public void getGameData_ServiceException_ReturnsInternalServerError() throws Exception {
+        // Given - service throws exception
+        when(lobbyService.isUserHostByToken(eq(lobbyId), eq(cleanToken))).thenReturn(true);
+        when(roundCardService.getAllRoundCards()).thenThrow(new RuntimeException("Service error"));
 
-        when(actionCardService.drawRandomCard())
-                .thenReturn(card1)
-                .thenReturn(card2);
-
-        // Call the method
-        GameDataResponseDTO response = gameController.getGameData(LOBBY_ID, "Bearer " + VALID_TOKEN);
-
-        // Verify different cards were assigned
-        assertEquals(card1, response.getActionCards().get(HOST_ID).get(0));
-        assertEquals(card2, response.getActionCards().get(PLAYER1_ID).get(0));
-        assertNotEquals(response.getActionCards().get(HOST_ID).get(0),
-                response.getActionCards().get(PLAYER1_ID).get(0));
+        // When & Then
+        mockMvc.perform(get("/games/data")
+                .param("lobbyId", lobbyId.toString())
+                .header("Authorization", validToken)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
     }
 }

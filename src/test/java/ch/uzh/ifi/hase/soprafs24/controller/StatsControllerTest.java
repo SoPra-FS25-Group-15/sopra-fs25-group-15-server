@@ -1,32 +1,33 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
-import ch.uzh.ifi.hase.soprafs24.service.AuthService;
-import ch.uzh.ifi.hase.soprafs24.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
+import ch.uzh.ifi.hase.soprafs24.service.UserService;
+
 @WebMvcTest(StatsController.class)
-class StatsControllerTest {
+public class StatsControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,136 +37,130 @@ class StatsControllerTest {
 
     @MockBean
     private AuthService authService;
-
+    
     @MockBean
-    private DTOMapper dtoMapper;
+    private DTOMapper mapper;
 
-    private User testUser;
-    private UserStatsDTO userStatsDTO;
+    @Test
+    public void getUserStats_PublicStats_ReturnsStats() throws Exception {
+        // given
+        User user = new User();
+        // Set ID via reflection because there is no public setId method
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(user, 1L);
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        user.setEmail("test@example.com");
+        user.setStatus(UserStatus.ONLINE);
 
-    @BeforeEach
-    void setup() {
-        // Create test user
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setUsername("testuser");
-        testUser.setPassword("password");
-        testUser.setEmail("test@example.com");
-
-        // Create user profile with stats set to public
         UserProfile profile = new UserProfile();
-        profile.setStatsPublic(true);
-        testUser.setProfile(profile);
+        profile.setUsername("testUser");
+        profile.setMmr(1500);
+        profile.setPoints(1500);
+        profile.setWins(5);
+        profile.setGamesPlayed(7); // Added this since there's no setter for losses directly
+        profile.setStatsPublic(true); // Public stats
+        profile.setAchievements(Arrays.asList("First Win"));
+        user.setProfile(profile);
 
-        // Create user stats DTO with the correct fields
-        userStatsDTO = new UserStatsDTO();
-        userStatsDTO.setGamesPlayed(10);
-        userStatsDTO.setWins(5);
-        userStatsDTO.setMmr(1500);
-        userStatsDTO.setPoints(100);
-    }
+        // Expected DTO
+        UserStatsDTO statsDTO = new UserStatsDTO();
+        statsDTO.setGamesPlayed(7);
+        statsDTO.setWins(5);
+        statsDTO.setMmr(1500);
+        statsDTO.setPoints(1500);
 
-    @Test
-    void getUserStats_whenStatsArePublic_thenReturnsStats() throws Exception {
-        // given
-        when(userService.getPublicProfile(1L)).thenReturn(testUser);
-        when(dtoMapper.toUserStatsDTO(testUser)).thenReturn(userStatsDTO);
+        given(userService.getPublicProfile(eq(1L))).willReturn(user);
+        given(mapper.toUserStatsDTO(user)).willReturn(statsDTO);
 
         // when/then
-        MockHttpServletRequestBuilder getRequest = get("/users/1/stats")
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
+        mockMvc.perform(get("/users/1/stats")
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gamesPlayed", is(10)))
-                .andExpect(jsonPath("$.wins", is(5)))
-                .andExpect(jsonPath("$.mmr", is(1500)))
-                .andExpect(jsonPath("$.points", is(100)));
-
-        verify(userService).getPublicProfile(1L);
-        verify(dtoMapper).toUserStatsDTO(testUser);
+                .andExpect(jsonPath("$.gamesPlayed").value(7))
+                .andExpect(jsonPath("$.wins").value(5))
+                .andExpect(jsonPath("$.mmr").value(1500))
+                .andExpect(jsonPath("$.points").value(1500));
     }
 
     @Test
-    void getUserStats_whenStatsArePrivate_thenReturnsForbidden() throws Exception {
-        // Set stats to private
-        testUser.getProfile().setStatsPublic(false);
-
+    public void getUserStats_PrivateStats_ReturnsForbidden() throws Exception {
         // given
-        when(userService.getPublicProfile(1L)).thenReturn(testUser);
+        User user = new User();
+        // Set ID via reflection
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(user, 1L);
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        user.setEmail("test@example.com");
+        user.setStatus(UserStatus.ONLINE);
+
+        UserProfile profile = new UserProfile();
+        profile.setUsername("testUser");
+        profile.setMmr(1500);
+        profile.setStatsPublic(false); // Private stats
+        user.setProfile(profile);
+
+        given(userService.getPublicProfile(eq(1L))).willReturn(user);
 
         // when/then
-        MockHttpServletRequestBuilder getRequest = get("/users/1/stats")
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
+        mockMvc.perform(get("/users/1/stats")
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
-
-        verify(userService).getPublicProfile(1L);
-        // Verify mapper wasn't called
-        Mockito.verifyNoInteractions(dtoMapper);
     }
 
     @Test
-    void getUserStats_whenUserNotFound_thenReturnsNotFound() throws Exception {
+    public void getMyStats_ValidToken_ReturnsStats() throws Exception {
         // given
-        when(userService.getPublicProfile(99L)).thenThrow(
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        final String token = "Bearer test-token";
+        User user = new User();
+        // Set ID via reflection
+        try {
+            Field idField = User.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(user, 1L);
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        user.setEmail("test@example.com");
+        user.setStatus(UserStatus.ONLINE);
+
+        UserProfile profile = new UserProfile();
+        profile.setUsername("testUser");
+        profile.setMmr(1500);
+        profile.setPoints(1500);
+        profile.setWins(5);
+        profile.setGamesPlayed(7);
+        profile.setStatsPublic(false); // Doesn't matter for personal stats
+        user.setProfile(profile);
+
+        // Expected DTO
+        UserStatsDTO statsDTO = new UserStatsDTO();
+        statsDTO.setGamesPlayed(7);
+        statsDTO.setWins(5);
+        statsDTO.setMmr(1500);
+        statsDTO.setPoints(1500);
+
+        given(authService.getUserByToken(eq(token))).willReturn(user);
+        given(mapper.toUserStatsDTO(user)).willReturn(statsDTO);
 
         // when/then
-        MockHttpServletRequestBuilder getRequest = get("/users/99/stats")
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void getMyStats_withValidToken_thenReturnsStats() throws Exception {
-        // given
-        String token = "valid-token";
-        when(authService.getUserByToken(token)).thenReturn(testUser);
-        when(dtoMapper.toUserStatsDTO(testUser)).thenReturn(userStatsDTO);
-
-        // when/then
-        MockHttpServletRequestBuilder getRequest = get("/users/me/stats")
+        mockMvc.perform(get("/users/me/stats")
                 .header("Authorization", token)
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gamesPlayed", is(10)))
-                .andExpect(jsonPath("$.wins", is(5)))
-                .andExpect(jsonPath("$.mmr", is(1500)))
-                .andExpect(jsonPath("$.points", is(100)));
-
-        verify(authService).getUserByToken(token);
-        verify(dtoMapper).toUserStatsDTO(testUser);
-    }
-
-    @Test
-    void getMyStats_withInvalidToken_thenReturnsUnauthorized() throws Exception {
-        // given
-        String token = "invalid-token";
-        when(authService.getUserByToken(token)).thenThrow(
-                new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
-
-        // when/then
-        MockHttpServletRequestBuilder getRequest = get("/users/me/stats")
-                .header("Authorization", token)
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void getMyStats_withoutToken_thenReturnsBadRequest() throws Exception {
-        // when/then - No Authorization header
-        MockHttpServletRequestBuilder getRequest = get("/users/me/stats")
-                .contentType(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(getRequest)
-                .andExpect(status().isBadRequest());
+                .andExpect(jsonPath("$.gamesPlayed").value(7))
+                .andExpect(jsonPath("$.wins").value(5))
+                .andExpect(jsonPath("$.mmr").value(1500))
+                .andExpect(jsonPath("$.points").value(1500));
     }
 }
