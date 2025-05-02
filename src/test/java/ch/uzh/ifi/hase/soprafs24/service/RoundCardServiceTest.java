@@ -3,89 +3,101 @@ package ch.uzh.ifi.hase.soprafs24.service;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.game.RoundCardDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.game.RoundCardDTO.RoundCardModifiers;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.test.util.ReflectionTestUtils;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class RoundCardServiceTest {
+@SpringBootTest(properties = {
+    // disable Cloud SQL auto‐config
+    "spring.cloud.gcp.sql.enabled=false",
+    // H2 in-memory
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    // Hibernate DDL + SQL logging
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+    // dummy placeholders
+    "jwt.secret=test-secret",
+    "google.maps.api.key=TEST_KEY"
+})
+@Transactional
+@AutoConfigureTestDatabase(replace = ANY)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+public class RoundCardServiceTest {
 
-    @Mock
-    private AuthService authService;
-
-    @Mock
-    private GameService gameService;
-
-    @InjectMocks
+    @Autowired
     private RoundCardService roundCardService;
 
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private GameService gameService;
+
     private User testUser;
-    private final String TEST_TOKEN = "test-token";
-    private final Long TEST_GAME_ID = 1L;
+    private static final String TEST_TOKEN = "test-token";
+    private static final Long TEST_GAME_ID = 1L;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        
+        // prepare a user stub for token lookups
         testUser = new User();
+        // set id via setter or ReflectionTestUtils if private
         testUser.setId(1L);
         testUser.setToken(TEST_TOKEN);
-        
         when(authService.getUserByToken(TEST_TOKEN)).thenReturn(testUser);
     }
 
     @Test
     void assignInitialRoundCards_success() {
         List<Long> playerIds = Arrays.asList(1L, 2L);
-
         roundCardService.assignInitialRoundCards(TEST_GAME_ID, playerIds);
 
-        // Fix: Update the cast to match the actual type (nested map)
-        Map<Long, Map<Long, List<RoundCardDTO>>> cards = (Map<Long, Map<Long, List<RoundCardDTO>>>) ReflectionTestUtils
+        // the service stores cards in a nested map: gameId → (playerId → cards)
+        @SuppressWarnings("unchecked")
+        Map<Long, Map<Long, List<RoundCardDTO>>> allCards =
+            (Map<Long, Map<Long, List<RoundCardDTO>>>)
+            org.springframework.test.util.ReflectionTestUtils
                 .getField(roundCardService, "playerRoundCards");
-        
-        assertNotNull(cards);
-        assertTrue(cards.containsKey(TEST_GAME_ID));
-        
-        Map<Long, List<RoundCardDTO>> gameCards = cards.get(TEST_GAME_ID);
-        assertEquals(2, gameCards.size()); // Two players
-        
-        // Verify each player has the right cards
-        for (Long playerId : playerIds) {
-            assertTrue(gameCards.containsKey(playerId));
-            
-            List<RoundCardDTO> playerCards = gameCards.get(playerId);
-            assertEquals(2, playerCards.size()); // Each player should have 2 cards
 
-            // Verify card types and IDs
-            boolean hasWorld = playerCards.stream().anyMatch(card -> card.getId().startsWith("world-"));
-            boolean hasFlash = playerCards.stream().anyMatch(card -> card.getId().startsWith("flash-"));
-            
-            assertTrue(hasWorld, "Player should have a world card");
-            assertTrue(hasFlash, "Player should have a flash card");
+        assertNotNull(allCards);
+        assertTrue(allCards.containsKey(TEST_GAME_ID));
+
+        Map<Long, List<RoundCardDTO>> gameCards = allCards.get(TEST_GAME_ID);
+        assertEquals(2, gameCards.size());
+
+        for (Long pid : playerIds) {
+            List<RoundCardDTO> cards = gameCards.get(pid);
+            assertEquals(2, cards.size(), "Each player gets 2 cards");
+            assertTrue(cards.stream().anyMatch(c -> c.getId().startsWith("world-")));
+            assertTrue(cards.stream().anyMatch(c -> c.getId().startsWith("flash-")));
         }
     }
 
     @Test
     void getPlayerRoundCards_success() {
-        // Setup test data
-        Long playerId = 1L;
-        List<Long> playerIds = List.of(playerId);
-        roundCardService.assignInitialRoundCards(TEST_GAME_ID, playerIds);
-
-        // Test retrieving cards
+        long playerId = 1L;
+        roundCardService.assignInitialRoundCards(TEST_GAME_ID, List.of(playerId));
         List<RoundCardDTO> cards = roundCardService.getPlayerRoundCards(TEST_GAME_ID, playerId);
-        
+
         assertNotNull(cards);
         assertEquals(2, cards.size());
     }
@@ -93,77 +105,54 @@ class RoundCardServiceTest {
     @Test
     void getPlayerRoundCards_noneAssigned() {
         List<RoundCardDTO> cards = roundCardService.getPlayerRoundCards(TEST_GAME_ID, 999L);
-        
         assertNotNull(cards);
         assertTrue(cards.isEmpty());
     }
 
     @Test
     void removeRoundCardFromPlayer_success() {
-        // Setup test data
-        Long playerId = 1L;
-        List<Long> playerIds = List.of(playerId);
-        roundCardService.assignInitialRoundCards(TEST_GAME_ID, playerIds);
-        
-        // Get card IDs
+        long playerId = 1L;
+        roundCardService.assignInitialRoundCards(TEST_GAME_ID, List.of(playerId));
+
         List<RoundCardDTO> cards = roundCardService.getPlayerRoundCards(TEST_GAME_ID, playerId);
-        String cardId = cards.get(0).getId();
-        
-        // Test removing a card
-        boolean removed = roundCardService.removeRoundCardFromPlayer(TEST_GAME_ID, playerId, cardId);
-        
-        assertTrue(removed);
-        
-        // Verify card was removed
-        List<RoundCardDTO> remainingCards = roundCardService.getPlayerRoundCards(TEST_GAME_ID, playerId);
-        assertEquals(1, remainingCards.size());
-        assertFalse(remainingCards.stream().anyMatch(c -> c.getId().equals(cardId)));
+        String toRemove = cards.get(0).getId();
+
+        assertTrue(roundCardService.removeRoundCardFromPlayer(TEST_GAME_ID, playerId, toRemove));
+        List<RoundCardDTO> remaining = roundCardService.getPlayerRoundCards(TEST_GAME_ID, playerId);
+        assertEquals(1, remaining.size());
+        assertFalse(remaining.stream().anyMatch(c -> c.getId().equals(toRemove)));
     }
 
     @Test
     void removeRoundCardFromPlayer_cardNotFound() {
-        // Setup test data
-        Long playerId = 1L;
-        List<Long> playerIds = List.of(playerId);
-        roundCardService.assignInitialRoundCards(TEST_GAME_ID, playerIds);
-        
-        // Test removing a non-existent card
-        boolean removed = roundCardService.removeRoundCardFromPlayer(TEST_GAME_ID, playerId, "non-existent-card");
-        
-        assertFalse(removed);
+        long playerId = 1L;
+        roundCardService.assignInitialRoundCards(TEST_GAME_ID, List.of(playerId));
+        assertFalse(roundCardService.removeRoundCardFromPlayer(TEST_GAME_ID, playerId, "not-a-card"));
     }
-    
+
     @Test
     void removeRoundCardFromPlayerByToken_success() {
-        // Setup token-based cards
         List<RoundCardDTO> cards = roundCardService.assignPlayerRoundCards(TEST_GAME_ID, TEST_TOKEN);
-        String cardId = cards.get(0).getId();
-        
-        // Test removing a card by token
-        boolean removed = roundCardService.removeRoundCardFromPlayerByToken(TEST_GAME_ID, TEST_TOKEN, cardId);
-        
-        assertTrue(removed);
+        String id = cards.get(0).getId();
+        assertTrue(roundCardService.removeRoundCardFromPlayerByToken(TEST_GAME_ID, TEST_TOKEN, id));
     }
 
     @Test
     void assignRoundCardsToPlayer_success() {
         List<RoundCardDTO> cards = roundCardService.assignRoundCardsToPlayer(TEST_TOKEN);
-        
         assertEquals(2, cards.size());
-        assertTrue(cards.stream().anyMatch(c -> c.getName().equals("World")));
-        assertTrue(cards.stream().anyMatch(c -> c.getName().equals("Flash")));
+        assertTrue(cards.stream().anyMatch(c -> "World".equals(c.getName())));
+        assertTrue(cards.stream().anyMatch(c -> "Flash".equals(c.getName())));
     }
 
     @Test
     void hasNoRoundCardsByToken_true() {
-        // No cards assigned yet
         assertTrue(roundCardService.hasNoRoundCardsByToken(999L, TEST_TOKEN));
     }
-    
+
     @Test
     void getAllRoundCards_success() {
         List<RoundCardDTO> cards = roundCardService.getAllRoundCards();
-        
         assertEquals(2, cards.size());
         assertTrue(cards.stream().anyMatch(c -> c.getId().equals("world")));
         assertTrue(cards.stream().anyMatch(c -> c.getId().equals("flash")));
@@ -171,10 +160,8 @@ class RoundCardServiceTest {
 
     @Test
     void getRoundCardIds_success() {
-        List<String> cardIds = roundCardService.getRoundCardIds();
-        
-        assertEquals(2, cardIds.size());
-        assertTrue(cardIds.contains("world"));
-        assertTrue(cardIds.contains("flash"));
+        List<String> ids = roundCardService.getRoundCardIds();
+        assertEquals(2, ids.size());
+        assertTrue(ids.containsAll(List.of("world", "flash")));
     }
 }

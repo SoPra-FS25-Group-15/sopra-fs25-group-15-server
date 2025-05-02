@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -18,7 +19,11 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DataJpaTest
+@DataJpaTest(properties = {
+    // turn off the Cloud SQL post-processor
+    "spring.cloud.gcp.sql.enabled=false"
+})
+@AutoConfigureTestDatabase(replace = ANY)
 public class GameRepositoryTest {
 
     @Autowired

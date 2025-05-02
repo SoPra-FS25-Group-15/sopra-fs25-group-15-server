@@ -11,6 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
@@ -18,38 +20,55 @@ import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.ActionCardMapper;
-import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService;
-import ch.uzh.ifi.hase.soprafs24.service.ActionCardService;
 
-@WebAppConfiguration
-@SpringBootTest
+import javax.transaction.Transactional;
+import java.util.ArrayList;
+
+@SpringBootTest(properties = {
+  // disable GCP Cloud SQL auto‐configuration in tests
+  "spring.cloud.gcp.sql.enabled=false",
+  // point to in‐memory H2
+  "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+  "spring.datasource.driver-class-name=org.h2.Driver",
+  "spring.datasource.username=sa",
+  "spring.datasource.password=",
+  // JPA/Hibernate DDL handling
+  "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+  "spring.jpa.hibernate.ddl-auto=create-drop",
+  "spring.jpa.show-sql=true"
+})
+@Transactional
+@AutoConfigureTestDatabase(replace = ANY)
 public class UserServiceIntegrationTest {
 
   @Autowired
-  @Qualifier("userRepository")
+  private UserService userService;
+
+  @Autowired
   private UserRepository userRepository;
-  
+
   @Autowired
   private LobbyRepository lobbyRepository;
-  
-  @Autowired
-  private UserService userService;
-  
-  // Add mocked dependencies directly in the test class
+
   @MockBean
   private ActionCardMapper actionCardMapper;
-  
+
   @MockBean
   private ActionCardService actionCardService;
-  
+
   @MockBean
   private GoogleMapsService googleMapsService;
 
   @BeforeEach
   public void setup() {
-    // Clear both lobbies and users to avoid FK constraint issues (e.g., a lobby referencing a user).
+    // Use transactions to ensure proper order of cleanup
+    // First clear lobbies (which may reference users)
     lobbyRepository.deleteAll();
+    lobbyRepository.flush();
+    
+    // Then clear users
     userRepository.deleteAll();
+    userRepository.flush();
   }
 
   @Test
@@ -62,7 +81,11 @@ public class UserServiceIntegrationTest {
     
     UserProfile profile = new UserProfile();
     profile.setUsername("originalUsername");
-    // Set additional fields as needed.
+    profile.setStatsPublic(false); // Initialize with a value
+    profile.setMmr(1000);          // Initialize with a default MMR
+    profile.setGamesPlayed(0);     // Initialize games played
+    profile.setWins(0);            // Initialize wins
+    profile.setAchievements(new ArrayList<>()); // Initialize empty achievements list
     testUser.setProfile(profile);
     
     // Manually assign a token to simulate authentication.
@@ -93,8 +116,14 @@ public class UserServiceIntegrationTest {
     user1.setEmail("first@example.com");
     user1.setPassword("password");
     user1.setStatus(UserStatus.OFFLINE);
+    
     UserProfile profile1 = new UserProfile();
     profile1.setUsername("duplicateUsername");
+    profile1.setStatsPublic(true);        // Initialize with a value
+    profile1.setMmr(1000);                // Initialize with a default MMR
+    profile1.setGamesPlayed(0);           // Initialize games played
+    profile1.setWins(0);                  // Initialize wins 
+    profile1.setAchievements(new ArrayList<>()); // Initialize empty achievements list
     user1.setProfile(profile1);
     user1.setToken("token1");
     userRepository.save(user1);
@@ -104,8 +133,14 @@ public class UserServiceIntegrationTest {
     user2.setEmail("second@example.com");
     user2.setPassword("password");
     user2.setStatus(UserStatus.OFFLINE);
+    
     UserProfile profile2 = new UserProfile();
     profile2.setUsername("uniqueUsername");
+    profile2.setStatsPublic(false);       // Initialize with a value
+    profile2.setMmr(1000);                // Initialize with a default MMR
+    profile2.setGamesPlayed(0);           // Initialize games played
+    profile2.setWins(0);                  // Initialize wins
+    profile2.setAchievements(new ArrayList<>()); // Initialize empty achievements list
     user2.setProfile(profile2);
     user2.setToken("token2");
     userRepository.save(user2);
@@ -117,7 +152,7 @@ public class UserServiceIntegrationTest {
 
     // Attempt to update user2's username to one that is already taken.
     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-      userService.updateMyUser("token2", "duplicateUsername", "newsecond@example.com", null);
+      userService.updateMyUser("token2", "duplicateUsername", "newsecond@example.com", false);
     });
     // Expect a conflict error (HTTP 409).
     assertEquals(409, exception.getStatus().value());

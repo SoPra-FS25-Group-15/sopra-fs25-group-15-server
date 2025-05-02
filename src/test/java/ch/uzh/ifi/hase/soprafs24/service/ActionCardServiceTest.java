@@ -12,7 +12,25 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    // 1) Turn off Cloud SQL auto-configuration
+    "spring.cloud.gcp.sql.enabled=false",
+
+    // 2) H2 in-memory database
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+
+    // 3) Hibernate auto DDL & show SQL
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+
+    // 4) Dummy placeholders for any @Value injections
+    "google.maps.api.key=TEST_KEY",
+    "jwt.secret=test-secret"
+})
 public class ActionCardServiceTest {
 
     @Autowired
