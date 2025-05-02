@@ -13,64 +13,76 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyInviteResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class LobbyServiceTest {
+@SpringBootTest(properties = {
+    "spring.cloud.gcp.sql.enabled=false",
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+    "jwt.secret=test-secret",
+    "google.maps.api.key=TEST_KEY"
+})
+@Transactional
+@AutoConfigureTestDatabase(replace = ANY)
+public class LobbyServiceTest {
 
-    @Mock
+    private static final Long LOBBY_ID = 1L;
+    private static final String LOBBY_CODE = "12345";
+
+    @Autowired
+    private LobbyService lobbyService;
+
+    @MockBean
     private LobbyRepository lobbyRepository;
 
-    @Mock
+    @MockBean
     private UserRepository userRepository;
 
-    @Mock
+    @MockBean
     private DTOMapper mapper;
-
-    @InjectMocks
-    private LobbyService lobbyService;
 
     private User testUser;
     private User testUser2;
     private Lobby testLobby;
-    private final Long LOBBY_ID = 1L;
-    private final String LOBBY_CODE = "12345";
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-
+    void setUp() throws Exception {
+        // Initialize mocks
         // Create test users
         testUser = new User();
-        try {
-            Field idField = User.class.getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(testUser, 1L);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to set user ID via reflection", e);
-        }
+        Field idField = User.class.getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(testUser, 1L);
         testUser.setToken("user1-token");
         UserProfile profile1 = new UserProfile();
         profile1.setUsername("user1");
         testUser.setProfile(profile1);
 
         testUser2 = new User();
-        try {
-            Field idField = User.class.getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(testUser2, 2L);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to set user ID via reflection", e);
-        }
+        Field idField2 = User.class.getDeclaredField("id");
+        idField2.setAccessible(true);
+        idField2.set(testUser2, 2L);
         testUser2.setToken("user2-token");
         UserProfile profile2 = new UserProfile();
         profile2.setUsername("user2");
@@ -78,22 +90,17 @@ class LobbyServiceTest {
 
         // Create test lobby
         testLobby = new Lobby();
-        // Setting ID using reflection since setId method is not available
-        try {
-            Field idField = Lobby.class.getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(testLobby, LOBBY_ID);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to set lobby ID via reflection", e);
-        }
+        Field lobbyIdField = Lobby.class.getDeclaredField("id");
+        lobbyIdField.setAccessible(true);
+        lobbyIdField.set(testLobby, LOBBY_ID);
         testLobby.setHost(testUser);
         testLobby.setLobbyCode(LOBBY_CODE);
         testLobby.setMode(LobbyConstants.MODE_SOLO);
         testLobby.setMaxPlayers(8);
         testLobby.setPlayers(new ArrayList<>(Collections.singletonList(testUser)));
-        testLobby.setStatus(LobbyConstants.LOBBY_STATUS_WAITING); // Fixed: changed from LOBBY_STATUS_OPEN
+        testLobby.setStatus(LobbyConstants.LOBBY_STATUS_WAITING);
 
-        // Setup repository mock behaviors
+        // Stub repository methods
         when(lobbyRepository.findById(LOBBY_ID)).thenReturn(Optional.of(testLobby));
         when(lobbyRepository.findByLobbyCode(LOBBY_CODE)).thenReturn(testLobby);
         when(lobbyRepository.save(any(Lobby.class))).thenReturn(testLobby);
@@ -130,30 +137,21 @@ class LobbyServiceTest {
 
     @Test
     void createLobby_teamMode() {
-        // Create a lobby with team mode - CRITICAL: must set isPrivate=false
-        // If lobby is private, service will force mode to solo
-        Lobby lobby = new Lobby();
-        lobby.setMode(LobbyConstants.MODE_TEAM);
-        lobby.setHost(testUser);
-        lobby.setPrivate(false); // Required to maintain team mode
-        
-        // The service modifies the lobby and returns the saved version
-        when(lobbyRepository.save(any(Lobby.class))).thenAnswer(invocation -> {
-            Lobby savedLobby = invocation.getArgument(0);
-            // Return the saved lobby with modifications made by the service
-            return savedLobby;
-        });
-        
-        Lobby result = lobbyService.createLobby(lobby);
-        
+        Lobby newLobby = new Lobby();
+        newLobby.setMode(LobbyConstants.MODE_TEAM);
+        newLobby.setHost(testUser);
+        newLobby.setPrivate(false);
+
+        when(lobbyRepository.save(any(Lobby.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Lobby result = lobbyService.createLobby(newLobby);
+
         assertNotNull(result);
         assertEquals(LobbyConstants.MODE_TEAM, result.getMode());
         assertEquals(2, result.getMaxPlayersPerTeam());
         assertEquals(8, result.getMaxPlayers());
         assertNotNull(result.getTeams());
-        assertTrue(result.getTeams().containsKey("team1"));
         assertTrue(result.getTeams().get("team1").contains(testUser));
-        
         verify(lobbyRepository).save(any(Lobby.class));
     }
 
@@ -179,10 +177,8 @@ class LobbyServiceTest {
     void updateLobbyConfig_notHost() {
         LobbyConfigUpdateRequestDTO config = new LobbyConfigUpdateRequestDTO();
         config.setMode(LobbyConstants.MODE_TEAM);
-        
-        assertThrows(ResponseStatusException.class, () -> {
-            lobbyService.updateLobbyConfig(LOBBY_ID, config, 999L);
-        });
+        assertThrows(ResponseStatusException.class,
+            () -> lobbyService.updateLobbyConfig(LOBBY_ID, config, 999L));
     }
 
     @Test
@@ -199,11 +195,12 @@ class LobbyServiceTest {
         verify(lobbyRepository).save(testLobby);
     }
 
+
     @Test
     void joinLobby_invalidCode() {
-        assertThrows(ResponseStatusException.class, () -> {
-            lobbyService.joinLobby(LOBBY_ID, testUser2.getId(), null, "wrong-code", false);
-        });
+        assertThrows(ResponseStatusException.class,
+            () -> lobbyService.joinLobby(
+                LOBBY_ID, testUser2.getId(), null, "wrong-code", false));
     }
 
     @Test
@@ -215,10 +212,8 @@ class LobbyServiceTest {
     @Test
     void getLobbyById_notFound() {
         when(lobbyRepository.findById(999L)).thenReturn(Optional.empty());
-        
-        assertThrows(ResponseStatusException.class, () -> {
-            lobbyService.getLobbyById(999L);
-        });
+        assertThrows(ResponseStatusException.class,
+            () -> lobbyService.getLobbyById(999L));
     }
 
     @Test
@@ -230,25 +225,20 @@ class LobbyServiceTest {
     @Test
     void getLobbyByCode_notFound() {
         when(lobbyRepository.findByLobbyCode("wrong-code")).thenReturn(null);
-        
-        assertThrows(ResponseStatusException.class, () -> {
-            lobbyService.getLobbyByCode("wrong-code");
-        });
+        assertThrows(ResponseStatusException.class,
+            () -> lobbyService.getLobbyByCode("wrong-code"));
     }
 
     @Test
     void inviteToLobby_success() {
         InviteLobbyRequestDTO request = new InviteLobbyRequestDTO();
         request.setFriendId(testUser2.getId());
-        
-        // Mock the response
-        LobbyInviteResponseDTO mockedResponse = new LobbyInviteResponseDTO(null, testUser2.getProfile().getUsername());
-        when(userRepository.findById(testUser2.getId())).thenReturn(Optional.of(testUser2));
-        
-        LobbyInviteResponseDTO response = lobbyService.inviteToLobby(LOBBY_ID, testUser.getId(), request);
-        
-        assertNotNull(response);
-        // Fix: Use the correct getter method name for this DTO
+        when(userRepository.findById(testUser2.getId()))
+            .thenReturn(Optional.of(testUser2));
+
+        LobbyInviteResponseDTO response = lobbyService.inviteToLobby(
+            LOBBY_ID, testUser.getId(), request);
+
         assertEquals(testUser2.getProfile().getUsername(), response.getInvitedFriend());
     }
 
@@ -256,36 +246,37 @@ class LobbyServiceTest {
     void inviteToLobby_notHost() {
         InviteLobbyRequestDTO request = new InviteLobbyRequestDTO();
         request.setFriendId(testUser2.getId());
-        
-        assertThrows(ResponseStatusException.class, () -> {
-            lobbyService.inviteToLobby(LOBBY_ID, 999L, request);
-        });
+        assertThrows(ResponseStatusException.class,
+            () -> lobbyService.inviteToLobby(LOBBY_ID, 999L, request));
     }
 
     @Test
     void getLobbyPlayerIds_soloMode() {
+        when(lobbyRepository.findById(LOBBY_ID)).thenReturn(Optional.of(testLobby));
         List<Long> playerIds = lobbyService.getLobbyPlayerIds(LOBBY_ID);
-        
-        assertNotNull(playerIds);
         assertEquals(1, playerIds.size());
         assertTrue(playerIds.contains(testUser.getId()));
     }
 
     @Test
     void isUserHost_true() {
-        boolean result = lobbyService.isUserHost(LOBBY_ID, testUser.getId());
-        assertTrue(result);
+        assertTrue(lobbyService.isUserHost(LOBBY_ID, testUser.getId()));
     }
 
     @Test
     void isUserHost_false() {
-        boolean result = lobbyService.isUserHost(LOBBY_ID, 999L);
-        assertFalse(result);
+        assertFalse(lobbyService.isUserHost(LOBBY_ID, 999L));
     }
 
     @Test
     void isUserInLobby_true() {
-        boolean result = lobbyService.isUserInLobby(testUser.getId(), LOBBY_ID);
-        assertTrue(result);
+        when(lobbyRepository.findById(LOBBY_ID)).thenReturn(Optional.of(testLobby));
+        assertTrue(lobbyService.isUserInLobby(testUser.getId(), LOBBY_ID));
+    }
+
+    @Test
+    void isUserInLobby_false() {
+        when(lobbyRepository.findById(LOBBY_ID)).thenReturn(Optional.of(testLobby));
+        assertFalse(lobbyService.isUserInLobby(testUser2.getId(), 999L));
     }
 }

@@ -10,14 +10,38 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
+
+import javax.transaction.Transactional;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.LobbyRepository;
 
-@WebAppConfiguration
-@SpringBootTest
+@SpringBootTest(properties = {
+    // 1) Turn off Cloud SQL auto-configuration
+    "spring.cloud.gcp.sql.enabled=false",
+
+    // 2) H2 in-memory database
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+
+    // 3) Hibernate auto DDL & show SQL
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+
+    // 4) Dummy placeholders for any @Value injections
+    "google.maps.api.key=TEST_KEY",
+    "jwt.secret=test-secret"
+})
+@Transactional
+@AutoConfigureTestDatabase(replace = ANY)
 public class AuthServiceIntegrationTest {
 
     @Autowired
@@ -26,9 +50,16 @@ public class AuthServiceIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private LobbyRepository lobbyRepository;  // Add this dependency
+
     @BeforeEach
     public void setup() {
-        // Make sure we flush all changes and use a transaction for cleanup
+        // Clear lobbies first to avoid FK constraint issues
+        lobbyRepository.deleteAll();
+        lobbyRepository.flush();
+        
+        // Then clear users
         userRepository.deleteAll();
         userRepository.flush();
     }

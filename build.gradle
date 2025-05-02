@@ -16,16 +16,14 @@ java {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
-
-configurations {
-    developmentOnly
-    runtimeClasspath {
-        extendsFrom developmentOnly
+dependencyManagement {
+    imports {
+        mavenBom "com.google.cloud:spring-cloud-gcp-dependencies:4.0.0"
     }
 }
 
 repositories {
-    mavenLocal()
+    mavenCentral()
     maven {
         allowInsecureProtocol = true
         url 'https://maven.aliyun.com/repository/central'
@@ -46,12 +44,12 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
-
+    implementation 'com.google.cloud.sql:postgres-socket-factory:1.25.0'  // Cloud SQL JDBC Socket Factory :contentReference[oaicite:2]{index=2}
     // Spring & WebSocket
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework:spring-messaging'
+
 
     // MapStruct
     implementation 'org.mapstruct:mapstruct:1.3.1.Final'
@@ -68,8 +66,10 @@ dependencies {
     testImplementation 'com.h2database:h2'
 
     // PostgreSQL driver & Cloud SQL socket factory for production
-    runtimeOnly 'org.postgresql:postgresql:42.5.4'
-    runtimeOnly 'com.google.cloud.sql:postgres-socket-factory:1.24.2'
+    implementation 'org.postgresql:postgresql'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'com.google.cloud.sql:postgres-socket-factory'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-sql-postgresql'
 
     // Testing
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
@@ -77,6 +77,13 @@ dependencies {
     }
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
+
+    // H2 runtime/test dependencies
+    runtimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'com.h2database:h2'
+
+    // Make sure H2 is available for tests
+    testImplementation 'com.h2database:h2'
 }
 
 bootJar {

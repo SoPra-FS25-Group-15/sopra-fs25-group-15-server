@@ -5,82 +5,94 @@ import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-class UserServiceTest {
+@SpringBootTest(properties = {
+    // disable Cloud SQL auto-configuration
+    "spring.cloud.gcp.sql.enabled=false",
+    // H2 in-memory database
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    // JPA/Hibernate DDL auto & SQL logging
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+    // dummy placeholders for any @Value injections
+    "jwt.secret=test-secret",
+    "google.maps.api.key=TEST_KEY"
+})
+@Transactional
+@AutoConfigureTestDatabase(replace = ANY)
+public class UserServiceTest {
 
-    @Mock
+    private static final String VALID_TOKEN = "valid-token";
+
+    @Autowired
+    private UserService userService;
+
+    @MockBean
     private UserRepository userRepository;
 
-    @Mock
+    @MockBean
     private AuthService authService;
-
-    @InjectMocks
-    private UserService userService;
 
     private User testUser;
     private User testUser2;
-    private final String VALID_TOKEN = "valid-token";
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        // Set up test user
+        // prepare primary user
         testUser = new User();
         testUser.setId(1L);
         testUser.setEmail("test@example.com");
         testUser.setToken(VALID_TOKEN);
-        
-        UserProfile profile = new UserProfile();
-        profile.setUsername("testUser");
-        profile.setStatsPublic(true);
-        testUser.setProfile(profile);
+        UserProfile profile1 = new UserProfile();
+        profile1.setUsername("testUser");
+        profile1.setStatsPublic(true);
+        testUser.setProfile(profile1);
 
-        // Set up secondary test user
+        // secondary user
         testUser2 = new User();
         testUser2.setId(2L);
         testUser2.setEmail("test2@example.com");
-        
         UserProfile profile2 = new UserProfile();
         profile2.setUsername("testUser2");
         testUser2.setProfile(profile2);
 
-        // Default mock behavior
+        // common stubs
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.findById(2L)).thenReturn(Optional.of(testUser2));
-        when(authService.getUserByToken(VALID_TOKEN)).thenReturn(testUser);
         when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
         when(userRepository.findByProfile_Username("testUser")).thenReturn(testUser);
         when(userRepository.findByToken(VALID_TOKEN)).thenReturn(testUser);
+        when(authService.getUserByToken(VALID_TOKEN)).thenReturn(testUser);
     }
 
     @Test
     void getPublicProfile_success() {
         User result = userService.getPublicProfile(1L);
-
         assertEquals(testUser.getId(), result.getId());
-        assertEquals(testUser.getProfile().getUsername(), result.getProfile().getUsername());
+        assertEquals("testUser", result.getProfile().getUsername());
     }
 
     @Test
     void getPublicProfile_notFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.getPublicProfile(99L);
-        });
+        assertThrows(ResponseStatusException.class, () -> userService.getPublicProfile(99L));
     }
 
     @Test
@@ -88,39 +100,37 @@ class UserServiceTest {
         String newUsername = "newUsername";
         String newEmail = "new@example.com";
 
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
         User result = userService.updateUser(1L, VALID_TOKEN, newUsername, newEmail);
 
         assertEquals(newUsername, result.getProfile().getUsername());
         assertEquals(newEmail, result.getEmail());
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(userRepository, times(1)).save(result);
     }
 
     @Test
     void updateUser_unauthorized() {
-        // Test when someone tries to update another user's profile
         when(authService.getUserByToken(VALID_TOKEN)).thenReturn(testUser2);
-
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.updateUser(1L, VALID_TOKEN, "newUsername", "new@example.com");
-        });
+        assertThrows(ResponseStatusException.class, () ->
+            userService.updateUser(1L, VALID_TOKEN, "newUsername", "new@example.com")
+        );
     }
 
     @Test
     void updateUser_emailConflict() {
         when(userRepository.findByEmail("taken@example.com")).thenReturn(testUser2);
-
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.updateUser(1L, VALID_TOKEN, "newUsername", "taken@example.com");
-        });
+        assertThrows(ResponseStatusException.class, () ->
+            userService.updateUser(1L, VALID_TOKEN, "newUsername", "taken@example.com")
+        );
     }
 
     @Test
     void updateUser_usernameConflict() {
         when(userRepository.findByProfile_Username("takenUsername")).thenReturn(testUser2);
-
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.updateUser(1L, VALID_TOKEN, "takenUsername", "new@example.com");
-        });
+        assertThrows(ResponseStatusException.class, () ->
+            userService.updateUser(1L, VALID_TOKEN, "takenUsername", "new@example.com")
+        );
     }
 
     @Test
@@ -128,6 +138,8 @@ class UserServiceTest {
         String newUsername = "newUsername";
         String newEmail = "new@example.com";
         Boolean newPrivacy = false;
+
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         User result = userService.updateMyUser(VALID_TOKEN, newUsername, newEmail, newPrivacy);
 
@@ -139,9 +151,9 @@ class UserServiceTest {
 
     @Test
     void updateMyUser_badRequest() {
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.updateMyUser(VALID_TOKEN, "", "new@example.com", true);
-        });
+        assertThrows(ResponseStatusException.class, () ->
+            userService.updateMyUser(VALID_TOKEN, "", "new@example.com", true)
+        );
     }
 
     @Test
@@ -153,10 +165,9 @@ class UserServiceTest {
     @Test
     void searchUserByEmail_notFound() {
         when(userRepository.findByEmail("missing@example.com")).thenReturn(null);
-
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.searchUserByEmail("missing@example.com");
-        });
+        assertThrows(ResponseStatusException.class, () ->
+            userService.searchUserByEmail("missing@example.com")
+        );
     }
 
     @Test
@@ -168,7 +179,6 @@ class UserServiceTest {
     @Test
     void findByUsername_notFound() {
         when(userRepository.findByProfile_Username("nonexistent")).thenReturn(null);
-
         assertNull(userService.findByUsername("nonexistent"));
     }
 
@@ -182,15 +192,13 @@ class UserServiceTest {
     void getUserBySearch_withUsername() {
         when(userRepository.findByEmail("testUser")).thenReturn(null);
         when(userRepository.findByProfile_Username("testUser")).thenReturn(testUser);
-
         User result = userService.getUserBySearch("testUser");
         assertEquals(testUser.getId(), result.getId());
     }
 
     @Test
     void deleteMyAccount_success() {
-        // Mock authService to verify password correctly
-        doReturn(true).when(authService).verifyPassword(eq(testUser), anyString());
+        when(authService.verifyPassword(eq(testUser), anyString())).thenReturn(true);
 
         userService.deleteMyAccount(VALID_TOKEN, "password");
 
@@ -200,11 +208,10 @@ class UserServiceTest {
 
     @Test
     void deleteMyAccount_badPassword() {
-        doReturn(false).when(authService).verifyPassword(eq(testUser), anyString());
-
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.deleteMyAccount(VALID_TOKEN, "wrongPassword");
-        });
+        when(authService.verifyPassword(eq(testUser), anyString())).thenReturn(false);
+        assertThrows(ResponseStatusException.class, () ->
+            userService.deleteMyAccount(VALID_TOKEN, "wrongPassword")
+        );
     }
 
     @Test
@@ -216,9 +223,8 @@ class UserServiceTest {
     @Test
     void getUserByToken_invalidToken() {
         when(userRepository.findByToken("invalid-token")).thenReturn(null);
-
-        assertThrows(ResponseStatusException.class, () -> {
-            userService.getUserByToken("invalid-token");
-        });
+        assertThrows(ResponseStatusException.class, () ->
+            userService.getUserByToken("invalid-token")
+        );
     }
 }

@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import org.springframework.test.context.TestPropertySource;
 import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
@@ -33,6 +33,7 @@ import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.FriendService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 
+@TestPropertySource(properties = "spring.cloud.gcp.sql.enabled=false")
 @WebMvcTest(FriendController.class)
 public class FriendControllerTest {
 

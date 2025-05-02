@@ -1,5 +1,22 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
+
+import java.util.Arrays;
+import java.util.List;
+
+import javax.transaction.Transactional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTO;
@@ -7,104 +24,106 @@ import ch.uzh.ifi.hase.soprafs24.rest.mapper.ActionCardMapper;
 import ch.uzh.ifi.hase.soprafs24.service.GameRoundService.RoundData;
 import ch.uzh.ifi.hase.soprafs24.service.GameService.GameState;
 import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService.LatLngDTO;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+@SpringBootTest(properties = {
+    // disable GCP Cloud SQL auto‐configuration
+    "spring.cloud.gcp.sql.enabled=false",
+    // use in-memory H2
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    // Hibernate DDL & SQL logging
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+    // dummy placeholders for any @Value injections
+    "jwt.secret=test-secret",
+    "google.maps.api.key=TEST_KEY"
+})
+@Transactional
+@AutoConfigureTestDatabase(replace = ANY)
+public class GameRoundServiceTest {
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+    private static final Long GAME_ID       = 1L;
+    private static final String USER_TOKEN_1 = "user1-token";
+    private static final String USER_TOKEN_2 = "user2-token";
 
-class GameRoundServiceTest {
-
-    @Mock
-    private ActionCardService actionCardService;
-
-    @Mock
-    private GameService gameService;
-
-    @Mock
-    private GoogleMapsService googleMapsService;
-
-    @Mock
-    private AuthService authService;
-
-    @Mock
-    private ActionCardMapper actionCardMapper;
-
-    @InjectMocks
+    @Autowired
     private GameRoundService gameRoundService;
 
-    private final Long GAME_ID = 1L;
-    private final String USER_TOKEN_1 = "user1-token";
-    private final String USER_TOKEN_2 = "user2-token";
+    @MockBean
+    private ActionCardService actionCardService;
+
+    @MockBean
+    private GameService gameService;
+
+    @MockBean
+    private GoogleMapsService googleMapsService;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private ActionCardMapper actionCardMapper;
+
     private List<String> playerTokens;
     private User testUser1;
     private User testUser2;
     private ActionCardDTO testActionCard;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        // Setup test users
+    public void setUp() {
+        // --- create two users ---
         testUser1 = new User();
         testUser1.setId(1L);
         testUser1.setToken(USER_TOKEN_1);
-        UserProfile profile1 = new UserProfile();
-        profile1.setUsername("user1");
-        testUser1.setProfile(profile1);
+        UserProfile p1 = new UserProfile();
+        p1.setUsername("user1");
+        testUser1.setProfile(p1);
 
         testUser2 = new User();
         testUser2.setId(2L);
         testUser2.setToken(USER_TOKEN_2);
-        UserProfile profile2 = new UserProfile();
-        profile2.setUsername("user2");
-        testUser2.setProfile(profile2);
+        UserProfile p2 = new UserProfile();
+        p2.setUsername("user2");
+        testUser2.setProfile(p2);
 
-        // Setup player tokens
         playerTokens = Arrays.asList(USER_TOKEN_1, USER_TOKEN_2);
 
-        // Setup test action card
+        // --- action card stub ---
         testActionCard = new ActionCardDTO();
         testActionCard.setId("action-card-1");
         testActionCard.setType("powerup");
         testActionCard.setTitle("Test Card");
         testActionCard.setDescription("Test description");
 
-        // Setup mock behaviors
+        // --- stub AuthService ---
         when(authService.getUserByToken(USER_TOKEN_1)).thenReturn(testUser1);
         when(authService.getUserByToken(USER_TOKEN_2)).thenReturn(testUser2);
+
+        // --- stub ActionCardService & Maps ---
         when(actionCardService.drawRandomCard()).thenReturn(testActionCard);
-        when(googleMapsService.getRandomCoordinatesOnLand()).thenReturn(new LatLngDTO(10.0, 20.0));
-        
-        // Mock game state
+        when(googleMapsService.getRandomCoordinatesOnLand())
+            .thenReturn(new LatLngDTO(10.0, 20.0));
+
+        // --- stub GameService with a fake GameState ---
         GameState mockGameState = mock(GameState.class);
         when(gameService.getGameState(GAME_ID)).thenReturn(mockGameState);
-        when(mockGameState.getInventoryForPlayer(anyString())).thenReturn(new GameState.PlayerInventory());
+        when(mockGameState.getInventoryForPlayer(anyString()))
+            .thenReturn(new GameState.PlayerInventory());
     }
 
     @Test
-    void startGame_success() {
+    public void startGame_success() {
         gameRoundService.startGame(GAME_ID, playerTokens);
-
-        // Verify round is initialized to 0
-        assertEquals(0, gameRoundService.hasMoreRounds(GAME_ID) ? 0 : -1);
+        // after startGame, round index = 0, so hasMoreRounds returns true
+        assertTrue(gameRoundService.hasMoreRounds(GAME_ID));
     }
 
     @Test
-    void startNextRound_success() {
-        // Start game first
+    public void startNextRound_success() {
         gameRoundService.startGame(GAME_ID, playerTokens);
-
-        // Start next round
         RoundData roundData = gameRoundService.startNextRound(GAME_ID, playerTokens);
 
         assertNotNull(roundData);
@@ -115,52 +134,41 @@ class GameRoundServiceTest {
     }
 
     @Test
-    void distributeFreshActionCardsByToken_success() {
-        Map<String, ActionCardDTO> result = gameRoundService.distributeFreshActionCardsByToken(GAME_ID, playerTokens);
-
+    public void distributeFreshActionCardsByToken_success() {
+        var result = gameRoundService.distributeFreshActionCardsByToken(GAME_ID, playerTokens);
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertTrue(result.containsKey(USER_TOKEN_1));
-        assertTrue(result.containsKey(USER_TOKEN_2));
         assertEquals("action-card-1", result.get(USER_TOKEN_1).getId());
         assertEquals("action-card-1", result.get(USER_TOKEN_2).getId());
-
-        // Verify action card service is called for each player
         verify(actionCardService, times(2)).drawRandomCard();
     }
 
     @Test
-    void replacePlayerActionCardByToken_success() {
-        // First distribute cards to establish state
+    public void replacePlayerActionCardByToken_success() {
+        // establish initial cards
         gameRoundService.distributeFreshActionCardsByToken(GAME_ID, playerTokens);
+        ActionCardDTO replaced = gameRoundService.replacePlayerActionCardByToken(GAME_ID, USER_TOKEN_1);
 
-        // Replace a card
-        ActionCardDTO result = gameRoundService.replacePlayerActionCardByToken(GAME_ID, USER_TOKEN_1);
-
-        assertNotNull(result);
-        assertEquals("action-card-1", result.getId());
-        verify(actionCardService, times(3)).drawRandomCard(); // Called twice in distribute + once in replace
+        assertNotNull(replaced);
+        assertEquals("action-card-1", replaced.getId());
+        // two draws for initial + one for replace
+        verify(actionCardService, times(3)).drawRandomCard();
     }
 
     @Test
-    void hasMoreRounds_true() {
-        // Start game and first round
+    public void hasMoreRounds_true() {
         gameRoundService.startGame(GAME_ID, playerTokens);
         gameRoundService.startNextRound(GAME_ID, playerTokens);
-
-        // Should have more rounds (max 3)
         assertTrue(gameRoundService.hasMoreRounds(GAME_ID));
     }
 
     @Test
-    void hasMoreRounds_false() {
-        // Start game and all 3 rounds
+    public void hasMoreRounds_false() {
         gameRoundService.startGame(GAME_ID, playerTokens);
-        gameRoundService.startNextRound(GAME_ID, playerTokens); // Round 1
-        gameRoundService.startNextRound(GAME_ID, playerTokens); // Round 2
-        gameRoundService.startNextRound(GAME_ID, playerTokens); // Round 3
-
-        // Should not have more rounds
+        // play all 3 rounds
+        gameRoundService.startNextRound(GAME_ID, playerTokens);
+        gameRoundService.startNextRound(GAME_ID, playerTokens);
+        gameRoundService.startNextRound(GAME_ID, playerTokens);
         assertFalse(gameRoundService.hasMoreRounds(GAME_ID));
     }
 }

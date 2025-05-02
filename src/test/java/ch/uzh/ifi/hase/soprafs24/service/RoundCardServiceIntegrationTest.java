@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,8 +30,27 @@ import static org.mockito.Mockito.*;
  * Tests the complete flow: loading cards, selecting one, updating game session,
  * persisting new state, and reflecting changes on frontend
  */
-@WebAppConfiguration
-@SpringBootTest
+@SpringBootTest(properties = {
+    // 1) Turn off Cloud SQL auto-configuration
+    "spring.cloud.gcp.sql.enabled=false",
+
+    // 2) H2 in-memory database
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+
+    // 3) Hibernate auto DDL & show SQL
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+
+    // 4) Dummy placeholders for any @Value injections
+    "google.maps.api.key=TEST_KEY",
+    "jwt.secret=test-secret"
+})
+// @Transactional
+@AutoConfigureTestDatabase(replace = ANY)
 public class RoundCardServiceIntegrationTest {
 
     @Mock

@@ -15,6 +15,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
 
 import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
@@ -30,9 +32,27 @@ import ch.uzh.ifi.hase.soprafs24.rest.mapper.ActionCardMapper;
 import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService;
 import ch.uzh.ifi.hase.soprafs24.service.ActionCardService;
 
-@WebAppConfiguration
-@SpringBootTest
-@Transactional
+@SpringBootTest(properties = {
+    // 1) Turn off Cloud SQL auto-configuration
+    "spring.cloud.gcp.sql.enabled=false",
+
+    // 2) H2 in-memory database
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+
+    // 3) Hibernate auto DDL & show SQL
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.show-sql=true",
+
+    // 4) Dummy placeholders for any @Value injections
+    "google.maps.api.key=TEST_KEY",
+    "jwt.secret=test-secret"
+})
+// @Transactional
+@AutoConfigureTestDatabase(replace = ANY)
 public class LobbyServiceIntegrationTest {
 
     @Autowired

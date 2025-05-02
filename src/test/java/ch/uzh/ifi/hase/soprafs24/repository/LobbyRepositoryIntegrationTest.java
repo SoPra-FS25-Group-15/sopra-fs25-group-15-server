@@ -1,7 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.repository;
 
 import java.util.List;
-
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -13,7 +14,11 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 
-@DataJpaTest
+@DataJpaTest(properties = {
+    // turn off the Cloud SQL post-processor
+    "spring.cloud.gcp.sql.enabled=false"
+})
+@AutoConfigureTestDatabase(replace = ANY)
 public class LobbyRepositoryIntegrationTest {
 
     @Autowired
