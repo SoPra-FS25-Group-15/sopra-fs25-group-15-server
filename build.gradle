@@ -44,7 +44,7 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
-    implementation 'com.google.cloud.sql:postgres-socket-factory:1.25.0'  // Cloud SQL JDBC Socket Factory :contentReference[oaicite:2]{index=2}
+    // implementation 'com.google.cloud.sql:postgres-socket-factory:1.25.0' // Cloud SQL JDBC Socket Factory :contentReference[oaicite:2]{index=2}
     // Spring & WebSocket
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
@@ -68,13 +68,11 @@ dependencies {
     // PostgreSQL driver & Cloud SQL socket factory for production
     implementation 'org.postgresql:postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'com.google.cloud.sql:postgres-socket-factory'
     implementation 'com.google.cloud:spring-cloud-gcp-starter-sql-postgresql'
-
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // implementation 'com.google.cloud.sql:postgres-socket-factory:1.25.0'
+    // implementation 'com.google.cloud.sql:jdbc-socket-factory-core:1.25.0'
     // Testing
-    testImplementation('org.springframework.boot:spring-boot-starter-test') {
-        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-    }
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
 

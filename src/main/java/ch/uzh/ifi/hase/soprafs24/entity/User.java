@@ -19,7 +19,7 @@ import javax.persistence.Table;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 
 @Entity
-@Table(name = "USER")
+@Table(name = "users")
 public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;
