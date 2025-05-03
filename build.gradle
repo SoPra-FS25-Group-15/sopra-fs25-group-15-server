@@ -68,6 +68,8 @@ dependencies {
     // PostgreSQL driver & Cloud SQL socket factory for production
     implementation 'org.postgresql:postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.6'
     implementation 'com.google.cloud:spring-cloud-gcp-starter-sql-postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     // implementation 'com.google.cloud.sql:postgres-socket-factory:1.25.0'
