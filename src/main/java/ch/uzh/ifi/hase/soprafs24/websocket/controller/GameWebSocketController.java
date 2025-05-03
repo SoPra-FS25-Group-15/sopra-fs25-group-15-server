@@ -528,8 +528,8 @@ public class GameWebSocketController {
                         double targetLon = gameState.getGuessScreenAttributes().getLongitude();
                         
                         // Generate a default guess that's far from the target (to ensure they don't win)
-                        double defaultLat = (targetLat + 40) % 90;
-                        double defaultLon = (targetLon + 60) % 180;
+                        double defaultLat = -targetLat;
+                        double defaultLon = (targetLon >= 0 ? targetLon - 180 : targetLon + 180);
                         
                         // Register this default guess
                         try {
@@ -784,62 +784,28 @@ public class GameWebSocketController {
     }
     
     /**
-     * Processes round completion, removing the round card from the winner if they played it
-     * and ending the game if it was their last card.
+     * Processes round completion by delegating to the service
+     * (which handles discarding the played card if the winner played it,
+     * and ending the game if it was their last card), then resets the
+     * round-card pointers and broadcasts the updated state.
      */
     private void processRoundCompletion(Long lobbyId, String winnerToken) {
-        GameService.GameState gameState = gameService.getGameState(lobbyId);
-        if (gameState == null) {
-            log.error("Game not found for lobby {} during round completion", lobbyId);
-            return;
-        }
+        log.info("Processing round completion for lobby {}, winner {}", lobbyId, winnerToken);
 
-        String roundCardPlayerToken = gameState.getCurrentRoundCardPlayer();
-        String roundCardId          = gameState.getCurrentRoundCardId();
-
-        if (roundCardPlayerToken != null
-            && roundCardId != null
-            && roundCardPlayerToken.equals(winnerToken)) {
-
-            log.info("Round winner {} played the round card {}. Removing it.", winnerToken, roundCardId);
-
-            // 1) remove from persistent store
-            boolean removed = roundCardService.removeRoundCardFromPlayerByToken(lobbyId, winnerToken, roundCardId);
-            // 2) also remove from in-memory GameState
-            gameState.getInventoryForPlayer(winnerToken)
-                    .getRoundCards()
-                    .remove(roundCardId);
-
-            if (removed) {
-                log.info("Round card {} removed from player {}'s inventory", roundCardId, winnerToken);
-
-                // 3) if that was their last card, end the game
-                if (gameState.getInventoryForPlayer(winnerToken).getRoundCards().isEmpty()) {
-                    log.info("Player {} has no more round cards left - ending game", winnerToken);
-                    String winnerUsername = authService
-                        .getUserByToken(winnerToken)
-                        .getProfile()
-                        .getUsername();
-
-                    // broadcast the game WINNER event
-                    messagingTemplate.convertAndSend(
-                        "/topic/lobby/" + lobbyId + "/game",
-                        new GameWinnerBroadcast(winnerUsername)
-                    );
-                    // update state and notify everyone
-                    gameService.endGame(lobbyId, winnerToken);
-                    return;
-                }
-            } else {
-                log.error("Failed to remove round card {} from player {}", roundCardId, winnerToken);
-            }
-        }
-
-        // either they didn't play the card or still have cards left → next round
+        // 1) Let the service discard the card (if needed) and/or end the game
         gameService.prepareNextRound(lobbyId, winnerToken);
-        gameState.setCurrentRoundCardPlayer(null);
-        gameState.setCurrentRoundCardId(null);
-        gameService.sendGameStateToAll(lobbyId);
+
+        // 2) Clear out the round-card pointers so next round starts fresh
+        GameService.GameState gs = gameService.getGameState(lobbyId);
+        if (gs != null) {
+            gs.setCurrentRoundCardPlayer(null);
+            gs.setCurrentRoundCardId(null);
+
+            // 3) Push the updated state to all clients
+            gameService.sendGameStateToAll(lobbyId);
+        } else {
+            log.error("Game state not found for lobby {} when finalizing round", lobbyId);
+        }
     }
 
 
