@@ -8,9 +8,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.cache.annotation.EnableCaching;
 
 @RestController
 @SpringBootApplication
+@EnableCaching
 public class Application {
 
     public static void main(String[] args) {
