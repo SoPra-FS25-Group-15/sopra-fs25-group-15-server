@@ -1,43 +1,68 @@
-# # app.yaml
-# # https://cloud.google.com/appengine/docs/the-appengine-environments#comparing_high-level-features
-# # https://cloud.google.com/appengine/docs/standard
+# # # app.yaml
+# # # https://cloud.google.com/appengine/docs/the-appengine-environments#comparing_high-level-features
+# # # https://cloud.google.com/appengine/docs/standard
+
+# # runtime: java
+# # env: flex
+
+# # # pick Java 17 on Ubuntu 22
+# # runtime_config:
+# #   operating_system: "ubuntu22"
+# #   runtime_version: "17"
+
+# # # Spring Boot & Cloud SQL settings
+# # env_variables:
+# #   # active Spring profile
+# #   SPRING_PROFILES_ACTIVE: "prod"
+
+# #   # Cloud SQL connection info
+# #   INSTANCE_CONNECTION_NAME: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
+# #   DB_NAME:             "soprafs25db"
+# #   DB_USER:             "postgres"
+# #   DB_PASS:             "FS25-Group15"
+
+# #   # Ensure Spring Boot sees a valid JDBC URL at startup
+# #   SPRING_DATASOURCE_URL: >-
+# #     jdbc:postgresql://localhost:5432/${DB_NAME}
+# #     ?socketFactory=com.google.cloud.sql.postgres.SocketFactory
+# #     &socketFactoryArg=${INSTANCE_CONNECTION_NAME}
+
+# #   # Credentials for the DataSource
+# #   SPRING_DATASOURCE_USERNAME: "${DB_USER}"
+# #   SPRING_DATASOURCE_PASSWORD: "${DB_PASS}"
+
+# #   # Force the PostgreSQL driver in production
+# #   SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+
+# # # mount the built-in Cloud SQL proxy so your app can talk over the Unix socket
+# # beta_settings:
+# #   cloud_sql_instances: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
 
 # runtime: java
 # env: flex
 
-# # pick Java 17 on Ubuntu 22
+# # Pick Java 17 on Ubuntu 22
 # runtime_config:
 #   operating_system: "ubuntu22"
 #   runtime_version: "17"
 
-# # Spring Boot & Cloud SQL settings
-# env_variables:
-#   # active Spring profile
-#   SPRING_PROFILES_ACTIVE: "prod"
-
-#   # Cloud SQL connection info
-#   INSTANCE_CONNECTION_NAME: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
-#   DB_NAME:             "soprafs25db"
-#   DB_USER:             "postgres"
-#   DB_PASS:             "FS25-Group15"
-
-#   # Ensure Spring Boot sees a valid JDBC URL at startup
-#   SPRING_DATASOURCE_URL: >-
-#     jdbc:postgresql://localhost:5432/${DB_NAME}
-#     ?socketFactory=com.google.cloud.sql.postgres.SocketFactory
-#     &socketFactoryArg=${INSTANCE_CONNECTION_NAME}
-
-#   # Credentials for the DataSource
-#   SPRING_DATASOURCE_USERNAME: "${DB_USER}"
-#   SPRING_DATASOURCE_PASSWORD: "${DB_PASS}"
-
-#   # Force the PostgreSQL driver in production
-#   SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
-
-# # mount the built-in Cloud SQL proxy so your app can talk over the Unix socket
+# # Tell App Engine to mount the Cloud SQL proxy
 # beta_settings:
 #   cloud_sql_instances: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
 
+# env_variables:
+#   SPRING_PROFILES_ACTIVE: "prod"
+
+#   # Let Spring Cloud GCP starter auto-configure your DataSource:
+#   SPRING_CLOUD_GCP_SQL_ENABLED: "true"
+#   SPRING_CLOUD_GCP_SQL_JDBC_ENABLED: "true"
+#   SPRING_CLOUD_GCP_SQL_INSTANCE_CONNECTION_NAME: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
+#   SPRING_CLOUD_GCP_SQL_DATABASE_NAME:        "soprafs25db"
+
+#   # Standard Spring datasource credentials
+#   SPRING_DATASOURCE_USERNAME: "postgres"
+#   SPRING_DATASOURCE_PASSWORD: "FS25-Group15"
+#   SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
 runtime: java
 env: flex
 
@@ -46,20 +71,24 @@ runtime_config:
   operating_system: "ubuntu22"
   runtime_version: "17"
 
-# Tell App Engine to mount the Cloud SQL proxy
+# Mount the Cloud SQL proxy automatically
 beta_settings:
   cloud_sql_instances: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
 
+# Environment vars for Spring & Cloud SQL
 env_variables:
-  SPRING_PROFILES_ACTIVE: "prod"
-
-  # Let Spring Cloud GCP starter auto-configure your DataSource:
-  SPRING_CLOUD_GCP_SQL_ENABLED: "true"
-  SPRING_CLOUD_GCP_SQL_JDBC_ENABLED: "true"
+  SPRING_PROFILES_ACTIVE:                        "prod"
+  SPRING_CLOUD_GCP_SQL_ENABLED:                 "true"
+  SPRING_CLOUD_GCP_SQL_JDBC_ENABLED:            "true"
   SPRING_CLOUD_GCP_SQL_INSTANCE_CONNECTION_NAME: "sopra-fs25-group-15-server:europe-west1:sopra-postgres"
-  SPRING_CLOUD_GCP_SQL_DATABASE_NAME:        "soprafs25db"
+  SPRING_CLOUD_GCP_SQL_DATABASE_NAME:           "soprafs25db"
+  SPRING_DATASOURCE_USERNAME:                   "postgres"
+  SPRING_DATASOURCE_PASSWORD:                   "FS25-Group15"
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME:          "org.postgresql.Driver"
 
-  # Standard Spring datasource credentials
-  SPRING_DATASOURCE_USERNAME: "postgres"
-  SPRING_DATASOURCE_PASSWORD: "FS25-Group15"
-  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+automatic_scaling:
+  min_num_instances: 1       # keep at least one up for faster cold starts
+  max_num_instances: 3       # never more than three replicas
+  cpu_utilization:
+    target_utilization: 0.65
+  cool_down_period_sec: 60
