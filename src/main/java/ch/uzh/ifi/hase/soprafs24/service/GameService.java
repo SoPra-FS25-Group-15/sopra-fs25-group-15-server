@@ -198,7 +198,7 @@ public class GameService {
         
         while (coordinates == null && retryCount < maxRetries) {
             try {
-                coordinates = googleMapsService.getRandomCoordinatesOnLand();
+                coordinates = googleMapsService.getRandomCoordinatesOnLand(gameId);
                 log.info("Generated random coordinates for game {}: {}, {}", 
                         gameId, coordinates.getLatitude(), coordinates.getLongitude());
             } catch (Exception e) {
