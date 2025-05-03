@@ -336,12 +336,12 @@ public class GameWebSocketController {
                 // Set active round card in game state
                 gameState.setActiveRoundCard(finalRoundCardId);
                 
-                // FIXED: Remove the card from player's inventory - it's been played
-                // remove from RoundCardService storage
-                roundCardService.removePlayerRoundCard(lobbyId, userToken, finalRoundCardId);
-                // **NEW**: also remove from GameState inventory
-                gameState.getInventoryForPlayer(userToken)
-                .getRoundCards().remove(finalRoundCardId);
+                // // FIXED: Remove the card from player's inventory - it's been played
+                // // remove from RoundCardService storage
+                // roundCardService.removePlayerRoundCard(lobbyId, userToken, finalRoundCardId);
+                // // **NEW**: also remove from GameState inventory
+                // gameState.getInventoryForPlayer(userToken)
+                // .getRoundCards().remove(finalRoundCardId);
                 
                 // Broadcast round card selection to all players
                 messagingTemplate.convertAndSend(
@@ -422,7 +422,7 @@ public class GameWebSocketController {
      */
     @MessageMapping("/lobby/{lobbyId}/game/action-cards-complete")
     public void actionCardsComplete(@DestinationVariable Long lobbyId,
-                              Principal principal) {
+                                    Principal principal) {
         String userToken = validateAuthentication(principal);
         
         log.info("Action cards complete notification received for lobby: {}", lobbyId);
@@ -440,13 +440,34 @@ public class GameWebSocketController {
             roundStart.setRoundTime(state.getGuessScreenAttributes().getTime());
             roundStart.setStartTimer(true);  // Explicitly indicate the timer should start
             
-            // Get active action cards for each player to include in transition message
-            Map<String, List<String>> playerActiveCards = new HashMap<>();
-            state.getPlayerInfo().forEach((token, info) -> {
-                playerActiveCards.put(token, info.getActiveActionCards());
+            // BUILD effects map as lists, keyed by playerToken
+            Map<String, List<Map<String, Object>>> actionCardEffects = new HashMap<>();
+            state.getPlayerInfo().forEach((playerToken, info) -> {
+                for (String cardId : info.getActiveActionCards()) {
+                    List<Map<String, Object>> effects =
+                        actionCardEffects.computeIfAbsent(playerToken, k -> new ArrayList<>());
+                    
+                    if ("7choices".equals(cardId)) {
+                        // Only the player who played it sees the continent hint
+                        Map<String, Object> eff = new HashMap<>();
+                        eff.put("effect", "continent");
+                        eff.put("value", actionCardService.getContinent(
+                            state.getGuessScreenAttributes().getLatitude(),
+                            state.getGuessScreenAttributes().getLongitude()
+                        ));
+                        effects.add(eff);
+                    
+                    } else if ("badsight".equals(cardId)) {
+                        // Only the target player gets blurred
+                        Map<String, Object> eff = new HashMap<>();
+                        eff.put("effect", "blur");
+                        eff.put("duration", 15);
+                        effects.add(eff);
+                    }
+                }
             });
-
-            // 1. Send SCREEN_CHANGE message first - explicit instruction to change screens
+            
+            // 1. Send SCREEN_CHANGE message first
             messagingTemplate.convertAndSend(
                 "/topic/lobby/" + lobbyId + "/game",
                 new WebSocketMessage<>("SCREEN_CHANGE", Map.of(
@@ -455,13 +476,13 @@ public class GameWebSocketController {
                 ))
             );
             
-            // 2. Then send ROUND_START with all necessary information
+            // 2. Then send ROUND_START with structured list of effects
             messagingTemplate.convertAndSend(
                 "/topic/lobby/" + lobbyId + "/game",
                 new WebSocketMessage<>("ROUND_START", Map.of(
-                    "roundData", roundStart,
-                    "activeActionCards", playerActiveCards,
-                    "startGuessTimer", true
+                    "roundData",         roundStart,
+                    "actionCardEffects", actionCardEffects,
+                    "startGuessTimer",   true
                 ))
             );
             
@@ -479,6 +500,7 @@ public class GameWebSocketController {
             );
         }
     }
+
     
     /**
      * Handle round time expiration to determine the winner
@@ -528,8 +550,8 @@ public class GameWebSocketController {
                         double targetLon = gameState.getGuessScreenAttributes().getLongitude();
                         
                         // Generate a default guess that's far from the target (to ensure they don't win)
-                        double defaultLat = (targetLat + 40) % 90;
-                        double defaultLon = (targetLon + 60) % 180;
+                        double defaultLat = -targetLat;
+                        double defaultLon = (targetLon >= 0 ? targetLon - 180 : targetLon + 180);
                         
                         // Register this default guess
                         try {
@@ -611,14 +633,27 @@ public class GameWebSocketController {
     @Transactional
     @MessageMapping("/lobby/{lobbyId}/game/play-action-card")
     public void playActionCard(@DestinationVariable Long lobbyId,
-                               @Payload Map<String, Object> payload,
-                               Principal principal) {
+                            @Payload Map<String, Object> payload,
+                            Principal principal) {
         String userToken = validateAuthentication(principal);
         String actionCardId = (String) payload.get("actionCardId");
-        String targetPlayerToken = (String) payload.get("targetPlayerToken");
 
-        log.info("Action card play request received: lobbyId={}, actionCardId={}, targetPlayerToken={}", 
-                 lobbyId, actionCardId, targetPlayerToken);
+        // Read username instead of token
+        String targetUsername = (String) payload.get("targetUsername");
+        String targetPlayerToken = null;
+        if (targetUsername != null) {
+            // Lookup the real token by username in the current game state
+            var state = gameService.getGameState(lobbyId);
+            targetPlayerToken = state.getPlayerInfo().entrySet().stream()
+                .filter(e -> targetUsername.equals(e.getValue().getUsername()))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "No such player in game: " + targetUsername));
+        }
+
+        log.info("Action card play request received: lobbyId={}, actionCardId={}, targetUsername={}",
+                lobbyId, actionCardId, targetUsername);
 
         try {
             if (gameService.isCardPlayedInCurrentRound(lobbyId, userToken)) {
@@ -630,8 +665,9 @@ public class GameWebSocketController {
                 );
                 return;
             }
-            
-            if (targetPlayerToken != null && gameService.isPlayerPunishedThisRound(lobbyId, targetPlayerToken, actionCardId)) {
+
+            if (targetPlayerToken != null
+                && gameService.isPlayerPunishedThisRound(lobbyId, targetPlayerToken, actionCardId)) {
                 log.warn("Target player with token {} already has punishment {}", targetPlayerToken, actionCardId);
                 messagingTemplate.convertAndSendToUser(
                     userToken,
@@ -640,7 +676,7 @@ public class GameWebSocketController {
                 );
                 return;
             }
-            
+
             // Validate if this is a valid action card
             if (!actionCardService.isValidActionCard(actionCardId)) {
                 log.error("Invalid action card ID: {}", actionCardId);
@@ -651,14 +687,14 @@ public class GameWebSocketController {
                 );
                 return;
             }
-            
+
             // Mark the card as played in the current round
             gameService.markCardPlayedThisRound(lobbyId, userToken, actionCardId, targetPlayerToken);
-            
+
             // Process the action card effect - handle transactions properly
             ActionCardEffectDTO effectDTO = actionCardService.processActionCardForGame(
                 lobbyId, userToken, actionCardId, targetPlayerToken);
-            
+
             if (effectDTO == null) {
                 log.error("Failed to process action card effect for card: {}", actionCardId);
                 messagingTemplate.convertAndSendToUser(
@@ -668,15 +704,15 @@ public class GameWebSocketController {
                 );
                 return;
             }
-            
+
             // Create effect payload based on card type
             Map<String, Object> effect = new HashMap<>();
             effect.put("cardId", actionCardId);
             effect.put("playerToken", userToken);
-            
+
             if (targetPlayerToken != null) {
                 effect.put("targetPlayerToken", targetPlayerToken);
-                
+
                 if ("badsight".equals(actionCardId)) {
                     effect.put("effect", "blur");
                     effect.put("duration", 15);
@@ -697,7 +733,7 @@ public class GameWebSocketController {
                 "/topic/lobby/" + lobbyId + "/game",
                 new WebSocketMessage<>("ACTION_CARD_PLAYED", effect)
             );
-            
+
             // Replace player's action card
             ActionCardDTO newCard = gameRoundService.replacePlayerActionCardByToken(lobbyId, userToken);
             messagingTemplate.convertAndSendToUser(
@@ -714,38 +750,57 @@ public class GameWebSocketController {
                     "actionCardId", actionCardId
                 ))
             );
-            
+
             // Send updated game state to all players
             gameService.sendGameStateToAll(lobbyId);
 
             // Check if all players have played their cards
             List<String> allPlayerTokens = gameService.getPlayerTokens(lobbyId);
             int playedCount = gameService.getPlayedCardCount(lobbyId);
-            
+
             log.info("Action card played count: {}/{}", playedCount, allPlayerTokens.size());
-            
+
             if (playedCount >= allPlayerTokens.size()) {
-                log.info("All players ({}/{}) have played action cards, starting guessing phase", 
+                log.info("All players ({}/{}) have played action cards, starting guessing phase",
                         playedCount, allPlayerTokens.size());
-                        
+
                 // Start the guessing phase
                 gameService.startGuessingPhase(lobbyId);
                 var state = gameService.getGameState(lobbyId);
-                
+
                 // Create round start DTO with coordinates and time
                 var roundStart = new RoundStartDTO();
                 roundStart.setRound(state.getCurrentRound());
                 roundStart.setLatitude(state.getGuessScreenAttributes().getLatitude());
                 roundStart.setLongitude(state.getGuessScreenAttributes().getLongitude());
                 roundStart.setRoundTime(state.getGuessScreenAttributes().getTime());
-                
-                // Get active action cards for each player to include in transition message
-                Map<String, List<String>> playerActiveCards = new HashMap<>();
+
+                // Build a per-player effects map (lists of effects!)
+                Map<String, List<Map<String, Object>>> actionCardEffects = new HashMap<>();
                 state.getPlayerInfo().forEach((token, info) -> {
-                    playerActiveCards.put(token, info.getActiveActionCards());
+                    for (String cardId : info.getActiveActionCards()) {
+                        List<Map<String, Object>> effects =
+                            actionCardEffects.computeIfAbsent(token, t -> new ArrayList<>());
+
+                        if ("7choices".equals(cardId)) {
+                            Map<String, Object> eff = new HashMap<>();
+                            eff.put("effect", "continent");
+                            double lat = state.getGuessScreenAttributes().getLatitude();
+                            double lon = state.getGuessScreenAttributes().getLongitude();
+                            eff.put("value", actionCardService.getContinent(lat, lon));
+                            effects.add(eff);
+
+                        } else if ("badsight".equals(cardId)) {
+                            Map<String, Object> eff = new HashMap<>();
+                            eff.put("effect", "blur");
+                            eff.put("duration", 15);
+                            effects.add(eff);
+                        }
+                    }
                 });
 
-                // 1. Send SCREEN_CHANGE message first - explicit instruction to change screens
+
+                // 1. Send SCREEN_CHANGE first
                 messagingTemplate.convertAndSend(
                     "/topic/lobby/" + lobbyId + "/game",
                     new WebSocketMessage<>("SCREEN_CHANGE", Map.of(
@@ -753,26 +808,26 @@ public class GameWebSocketController {
                         "actionCardsComplete", true
                     ))
                 );
-                
-                // 2. Then send ROUND_START with all necessary information
+
+                // 2. Then send ROUND_START with the **structured** effects map
                 messagingTemplate.convertAndSend(
                     "/topic/lobby/" + lobbyId + "/game",
                     new WebSocketMessage<>("ROUND_START", Map.of(
-                        "roundData", roundStart,
-                        "activeActionCards", playerActiveCards,
-                        "startGuessTimer", true
+                        "roundData",          roundStart,
+                        "actionCardEffects",  actionCardEffects,
+                        "startGuessTimer",    true
                     ))
                 );
-                
-                // Update game state for all players
+
+                // Update game state again
                 gameService.sendGameStateToAll(lobbyId);
-                
-                log.info("Sent guessing phase transition messages with round time: {}s", 
-                         state.getGuessScreenAttributes().getTime());
+
+                log.info("Sent guessing phase transition messages with round time: {}s",
+                        state.getGuessScreenAttributes().getTime());
             }
-            
+
             log.info("Action card {} played by player with token {} in game {}", actionCardId, userToken, lobbyId);
-            
+
         } catch (Exception e) {
             log.error("Error processing action card play: {}", e.getMessage(), e);
             messagingTemplate.convertAndSendToUser(
@@ -782,64 +837,31 @@ public class GameWebSocketController {
             );
         }
     }
+
     
     /**
-     * Processes round completion, removing the round card from the winner if they played it
-     * and ending the game if it was their last card.
+     * Processes round completion by delegating to the service
+     * (which handles discarding the played card if the winner played it,
+     * and ending the game if it was their last card), then resets the
+     * round-card pointers and broadcasts the updated state.
      */
     private void processRoundCompletion(Long lobbyId, String winnerToken) {
-        GameService.GameState gameState = gameService.getGameState(lobbyId);
-        if (gameState == null) {
-            log.error("Game not found for lobby {} during round completion", lobbyId);
-            return;
-        }
+        log.info("Processing round completion for lobby {}, winner {}", lobbyId, winnerToken);
 
-        String roundCardPlayerToken = gameState.getCurrentRoundCardPlayer();
-        String roundCardId          = gameState.getCurrentRoundCardId();
-
-        if (roundCardPlayerToken != null
-            && roundCardId != null
-            && roundCardPlayerToken.equals(winnerToken)) {
-
-            log.info("Round winner {} played the round card {}. Removing it.", winnerToken, roundCardId);
-
-            // 1) remove from persistent store
-            boolean removed = roundCardService.removeRoundCardFromPlayerByToken(lobbyId, winnerToken, roundCardId);
-            // 2) also remove from in-memory GameState
-            gameState.getInventoryForPlayer(winnerToken)
-                    .getRoundCards()
-                    .remove(roundCardId);
-
-            if (removed) {
-                log.info("Round card {} removed from player {}'s inventory", roundCardId, winnerToken);
-
-                // 3) if that was their last card, end the game
-                if (gameState.getInventoryForPlayer(winnerToken).getRoundCards().isEmpty()) {
-                    log.info("Player {} has no more round cards left - ending game", winnerToken);
-                    String winnerUsername = authService
-                        .getUserByToken(winnerToken)
-                        .getProfile()
-                        .getUsername();
-
-                    // broadcast the game WINNER event
-                    messagingTemplate.convertAndSend(
-                        "/topic/lobby/" + lobbyId + "/game",
-                        new GameWinnerBroadcast(winnerUsername)
-                    );
-                    // update state and notify everyone
-                    gameService.endGame(lobbyId, winnerToken);
-                    return;
-                }
-            } else {
-                log.error("Failed to remove round card {} from player {}", roundCardId, winnerToken);
-            }
-        }
-
-        // either they didn't play the card or still have cards left → next round
+        // 1) Let the service discard the card (if needed) and/or end the game
         gameService.prepareNextRound(lobbyId, winnerToken);
-        gameState.setCurrentRoundCardPlayer(null);
-        gameState.setCurrentRoundCardId(null);
-        gameService.sendGameStateToAll(lobbyId);
+
+        // 2) Clear out the round-card pointers so next round starts fresh
+        GameService.GameState gs = gameService.getGameState(lobbyId);
+        if (gs != null) {
+            gs.setCurrentRoundCardPlayer(null);
+            gs.setCurrentRoundCardId(null);
+
+            // 3) Push the updated state to all clients
+            gameService.sendGameStateToAll(lobbyId);
+        } else {
+            log.error("Game state not found for lobby {} when finalizing round", lobbyId);
+        }
     }
 
 

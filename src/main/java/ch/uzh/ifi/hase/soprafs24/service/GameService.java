@@ -198,7 +198,7 @@ public class GameService {
         
         while (coordinates == null && retryCount < maxRetries) {
             try {
-                coordinates = googleMapsService.getRandomCoordinatesOnLand();
+                coordinates = googleMapsService.getRandomCoordinatesOnLand(gameId);
                 log.info("Generated random coordinates for game {}: {}, {}", 
                         gameId, coordinates.getLatitude(), coordinates.getLongitude());
             } catch (Exception e) {
@@ -571,56 +571,64 @@ public class GameService {
     }
     
     /**
-     * Prepare for the next round
-     * @param gameId ID of the game
-     * @param nextTurnPlayerToken Token of the player who will choose the next round card
-     */
-    public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
-        GameState gameState = gameStates.get(gameId);
-        if (gameState == null) {
-            throw new IllegalStateException("Game not initialized: " + gameId);
-        }
-        
-        if (gameState.getStatus() != GameStatus.ROUND_COMPLETE) {
-            throw new IllegalStateException("Current round is not complete");
-        }
-        
-        // Check if the winner has round cards left
-        if (!hasRoundCards(gameId, nextTurnPlayerToken)) {
-            // If the winner has no round cards left, they win the entire game!
-            log.info("Winner {} has no round cards left - they win the game!", nextTurnPlayerToken);
-            endGame(gameId, nextTurnPlayerToken);
-            return; // End the method here - don't proceed to next round
-        }
-        
-        // Reset for next round
-        gameState.setCurrentTurnPlayerToken(nextTurnPlayerToken);
-        
-        // Save previous winner for reference
-        gameState.setLastRoundWinnerToken(nextTurnPlayerToken);
-        String playerUsername = gameState.getPlayerInfo().get(nextTurnPlayerToken).getUsername();
-        log.info("Player {} (token: {}) won the previous round and will pick the next round card", 
-                 playerUsername, nextTurnPlayerToken);
-        
-        // FIXED: Clear current round card and coordinates properly
-        gameState.setCurrentRoundCard(null);
-        gameState.setCurrentLatLngDTO(null);
-        gameState.setActiveRoundCard(null); // Explicitly clear the active round card ID
-        
-        // Clear all guesses for the new round
-        gameState.getPlayerGuesses().clear();
-        gameState.setStatus(GameStatus.WAITING_FOR_ROUND_CARD);
-        gameState.setCurrentScreen("ROUNDCARD"); // Make sure we reset to ROUNDCARD
-        
-        // Reset any card play tracking for the new round
-        resetRoundTracking(gameId);
-        
-        // Send updated game state to all players after preparing next round
-        sendGameStateToAll(gameId);
-        
-        log.info("Prepared for next round in game {}, next player token: {}", 
-                gameId, nextTurnPlayerToken);
+ * Prepare for the next round.
+ * 1) If the winning player also *played* the round card, discard it.
+ * 2) If that was their last card, end the game.
+ * 3) Otherwise reset state and move on to the ROUNDCARD phase.
+ */
+public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
+    GameState gameState = gameStates.get(gameId);
+    if (gameState == null) {
+        throw new IllegalStateException("Game not initialized: " + gameId);
     }
+    if (gameState.getStatus() != GameStatus.ROUND_COMPLETE) {
+        throw new IllegalStateException("Current round is not complete");
+    }
+
+    // ─── 1) DISCARD LOGIC ─────────────────────────────────────────────────────
+    String playedBy   = gameState.getCurrentRoundCardPlayer();
+    String playedCard = gameState.getCurrentRoundCardId();
+    if (playedBy != null
+        && playedCard != null
+        && playedBy.equals(nextTurnPlayerToken)) {
+        log.info("Winner {} played card {} → discarding it", nextTurnPlayerToken, playedCard);
+
+        // Remove from DB
+        roundCardService.removeRoundCardFromPlayerByToken(gameId, nextTurnPlayerToken, playedCard);
+        // Remove from in‐memory inventory
+        gameState.getInventoryForPlayer(nextTurnPlayerToken)
+                 .getRoundCards()
+                 .remove(playedCard);
+    }
+
+    // ─── 2) END‐GAME CHECK ───────────────────────────────────────────────────
+    if (!hasRoundCards(gameId, nextTurnPlayerToken)) {
+        log.info("Player {} has no more round cards → ending game", nextTurnPlayerToken);
+        endGame(gameId, nextTurnPlayerToken);
+        return;
+    }
+
+    // ─── 3) RESET FOR NEXT ROUND ─────────────────────────────────────────────
+    gameState.setCurrentTurnPlayerToken(nextTurnPlayerToken);
+    gameState.setLastRoundWinnerToken(nextTurnPlayerToken);
+
+    // Clear out any leftover pointers & coordinates
+    gameState.setCurrentRoundCard(null);
+    gameState.setCurrentLatLngDTO(null);
+    gameState.setActiveRoundCard(null);
+
+    // Clear guesses and tracking
+    gameState.getPlayerGuesses().clear();
+    resetRoundTracking(gameId);
+
+    // Jump back to the ROUNDCARD phase
+    gameState.setStatus(GameStatus.WAITING_FOR_ROUND_CARD);
+    gameState.setCurrentScreen("ROUNDCARD");
+
+    // Broadcast updated state
+    sendGameStateToAll(gameId);
+    log.info("Prepared for next round in game {}, next chooser: {}", gameId, nextTurnPlayerToken);
+}
     
     /**
      * End the game with a winner
@@ -745,12 +753,12 @@ public class GameService {
             if (inventory != null) {
                 Map<String, List<String>> inventoryMap = new HashMap<>();
                 inventoryMap.put(
-                  "roundCards",
-                  inventory.getRoundCards() != null ? inventory.getRoundCards() : List.of()
+                "roundCards",
+                inventory.getRoundCards() != null ? inventory.getRoundCards() : List.of()
                 );
                 inventoryMap.put(
-                  "actionCards",
-                  inventory.getActionCards() != null ? inventory.getActionCards() : List.of()
+                "actionCards",
+                inventory.getActionCards() != null ? inventory.getActionCards() : List.of()
                 );
                 responseState.put("inventory", inventoryMap);
             } else {
@@ -760,7 +768,7 @@ public class GameService {
                 ));
             }
             
-            // Guess‐screen attrs
+            // Guess-screen attrs
             Map<String, Object> guessScreenAttrs = new HashMap<>();
             guessScreenAttrs.put("time", gameState.getGuessScreenAttributes().getTime());
             if (gameState.getGuessScreenAttributes().getLatitude() != 0) {
@@ -771,31 +779,44 @@ public class GameService {
             }
             if (gameState.getGuessScreenAttributes().getResolveResponse() != null) {
                 guessScreenAttrs.put(
-                  "resolveResponse",
-                  gameState.getGuessScreenAttributes().getResolveResponse()
+                "resolveResponse",
+                gameState.getGuessScreenAttributes().getResolveResponse()
                 );
             }
             responseState.put("guessScreenAttributes", guessScreenAttrs);
             
-            // Player list
+            // Player list: iterate all tokens, populate username & counts
             List<Map<String, Object>> playersArray = new ArrayList<>();
-            for (Map.Entry<String, GameState.PlayerInfo> entry
-                 : gameState.getPlayerInfo().entrySet()) {
-                GameState.PlayerInfo info = entry.getValue();
-                Map<String, Object> playerInfo = new HashMap<>();
-                playerInfo.put("username", info.getUsername());
-                playerInfo.put("roundCardsLeft", info.getRoundCardsLeft());
-                playerInfo.put("actionCardsLeft", info.getActionCardsLeft());
-                playerInfo.put("activeActionCards", info.getActiveActionCards());
-                playersArray.add(playerInfo);
+            for (String token : gameState.getPlayerTokens()) {
+                // 1) get or create the PlayerInfo
+                GameState.PlayerInfo info = gameState.getPlayerInfo(token);
+
+                // 2) lookup and set the real username
+                String uname = authService.getUserByToken(token)
+                                        .getProfile()
+                                        .getUsername();
+                info.setUsername(uname);
+
+                // 3) pull current counts from inventory
+                var inv = gameState.getInventoryForPlayer(token);
+                info.setRoundCardsLeft(inv.getRoundCards().size());
+                info.setActionCardsLeft(inv.getActionCards().size());
+
+                // 4) build the map for the client
+                Map<String, Object> p = new HashMap<>();
+                p.put("username",          info.getUsername());
+                p.put("roundCardsLeft",    info.getRoundCardsLeft());
+                p.put("actionCardsLeft",   info.getActionCardsLeft());
+                p.put("activeActionCards", info.getActiveActionCards());
+                playersArray.add(p);
             }
             responseState.put("players", playersArray);
             
             // **Log and send**
             log.info("📨 Sending GAME_STATE to user {} (round={}, screen={})",
-                     playerToken,
-                     gameState.getCurrentRound(),
-                     gameState.getCurrentScreen());
+                    playerToken,
+                    gameState.getCurrentRound(),
+                    gameState.getCurrentScreen());
             messagingTemplate.convertAndSendToUser(
                 playerToken,
                 "/queue/lobby/" + gameId + "/game/state",
@@ -805,7 +826,7 @@ public class GameService {
             log.error("Error sending game state to user {}: {}", playerToken, e.getMessage(), e);
         }
     }
-    
+
     
     /**
      * Send game state to a specific user by token
@@ -912,11 +933,33 @@ public class GameService {
      * @param gameId ID of the game to reset
      */
     public void resetRoundTracking(Long gameId) {
-        cardsPlayedInRound.remove(gameId);
-        punishmentsInRound.remove(gameId);
-        cardPlayDetails.remove(gameId);
+        GameState gameState = gameStates.get(gameId);
+        if (gameState == null) return;
+
+        // 1) reset cardsPlayedInRound to a fresh, mutable Set
+        cardsPlayedInRound.put(gameId, new HashSet<>());
+
+        // 2) for punishmentsInRound, build a fresh Map<playerToken, empty Set>
+        Map<String, Set<String>> newPunishments = new HashMap<>();
+        for (String token : gameState.getPlayerTokens()) {
+            newPunishments.put(token, new HashSet<>());
+        }
+        punishmentsInRound.put(gameId, newPunishments);
+
+        // 3) for cardPlayDetails, build a fresh Map<playerToken, empty Map>
+        Map<String, Map<String, String>> newDetails = new HashMap<>();
+        for (String token : gameState.getPlayerTokens()) {
+            newDetails.put(token, new HashMap<>());
+        }
+        cardPlayDetails.put(gameId, newDetails);
+
+        // 4) replace each player's action‐card list with a new, mutable List
+        gameState.getPlayerInfo().values()
+                .forEach(pi -> pi.setActiveActionCards(new ArrayList<>()));
+
         log.info("Reset round tracking for game {}", gameId);
     }
+
     
     /**
      * Get the count of played cards in the current round

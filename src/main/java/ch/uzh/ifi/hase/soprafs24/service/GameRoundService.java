@@ -64,7 +64,7 @@ public class GameRoundService {
         gameRounds.put(gameId, currentRound);
         
         // Get coordinates from GoogleMapsService
-        LatLngDTO coordinates = googleMapsService.getRandomCoordinatesOnLand();
+        LatLngDTO coordinates = googleMapsService.getRandomCoordinatesOnLand(gameId);
         
         return new RoundData(currentRound, coordinates.getLatitude(), coordinates.getLongitude(), 1);
     }
