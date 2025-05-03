@@ -101,7 +101,7 @@ public class GameServiceTest {
         when(authService.getUserByToken(USER2_TOKEN)).thenReturn(user2);
 
         // 3) Stub GoogleMapsService
-        when(googleMapsService.getRandomCoordinatesOnLand())
+        when(googleMapsService.getRandomCoordinatesOnLand(TEST_GAME_ID))
             .thenReturn(new LatLngDTO(45.0, 45.0));
 
         // 4) Stub messaging to no-op
@@ -345,7 +345,7 @@ public class GameServiceTest {
     @Test
     void areAllGuessesSubmitted_false() {
         // First start a round with the test round card
-        gameService.startRound(TEST_GAME_ID, testRoundCard);
+        gameService.startRound(TEST_GAME_ID,testRoundCard);
         gameService.startGuessingPhase(TEST_GAME_ID);
 
         // Submit a guess for only one player
@@ -358,7 +358,7 @@ public class GameServiceTest {
     @Test
     void determineRoundWinner_success() {
         // First start a round with the test round card
-        gameService.startRound(TEST_GAME_ID, testRoundCard);
+        gameService.startRound(TEST_GAME_ID,testRoundCard);
         gameService.startGuessingPhase(TEST_GAME_ID);
 
         // Submit guesses for all players with user1 having a better guess
@@ -375,7 +375,7 @@ public class GameServiceTest {
     @Test
     void markCardPlayedThisRound_success() {
         // First start a round with the test round card
-        gameService.startRound(TEST_GAME_ID, testRoundCard);
+        gameService.startRound(TEST_GAME_ID,testRoundCard);
         
         String cardId = "testActionCard";
         String targetToken = USER2_TOKEN;
@@ -391,7 +391,7 @@ public class GameServiceTest {
     @Test
     void resetRoundTracking_success() {
         // First start a round with the test round card
-        gameService.startRound(TEST_GAME_ID, testRoundCard);
+        gameService.startRound(TEST_GAME_ID,testRoundCard);
         
         // Mark a card as played
         gameService.markCardPlayedThisRound(TEST_GAME_ID, USER1_TOKEN, "testActionCard", USER2_TOKEN);

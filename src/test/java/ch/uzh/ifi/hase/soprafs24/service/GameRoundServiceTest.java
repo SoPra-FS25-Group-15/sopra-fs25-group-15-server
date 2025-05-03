@@ -104,7 +104,7 @@ public class GameRoundServiceTest {
 
         // --- stub ActionCardService & Maps ---
         when(actionCardService.drawRandomCard()).thenReturn(testActionCard);
-        when(googleMapsService.getRandomCoordinatesOnLand())
+        when(googleMapsService.getRandomCoordinatesOnLand(GAME_ID))
             .thenReturn(new LatLngDTO(10.0, 20.0));
 
         // --- stub GameService with a fake GameState ---

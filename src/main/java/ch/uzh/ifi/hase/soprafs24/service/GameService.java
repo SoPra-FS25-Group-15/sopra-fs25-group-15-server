@@ -933,20 +933,33 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
      * @param gameId ID of the game to reset
      */
     public void resetRoundTracking(Long gameId) {
-        cardsPlayedInRound.remove(gameId);
-        punishmentsInRound.remove(gameId);
-        cardPlayDetails.remove(gameId);
-        log.info("Reset round tracking for game {}", gameId);
-        
-        // ── NEW: clear all lingering action-card effects ──
         GameState gameState = gameStates.get(gameId);
-        if (gameState != null) {
-            gameState.getPlayerInfo().values()
-                    .forEach(pi -> pi.getActiveActionCards().clear());
+        if (gameState == null) return;
+
+        // 1) reset cardsPlayedInRound to a fresh, mutable Set
+        cardsPlayedInRound.put(gameId, new HashSet<>());
+
+        // 2) for punishmentsInRound, build a fresh Map<playerToken, empty Set>
+        Map<String, Set<String>> newPunishments = new HashMap<>();
+        for (String token : gameState.getPlayerTokens()) {
+            newPunishments.put(token, new HashSet<>());
+        }
+        punishmentsInRound.put(gameId, newPunishments);
+
+        // 3) for cardPlayDetails, build a fresh Map<playerToken, empty Map>
+        Map<String, Map<String, String>> newDetails = new HashMap<>();
+        for (String token : gameState.getPlayerTokens()) {
+            newDetails.put(token, new HashMap<>());
+        }
+        cardPlayDetails.put(gameId, newDetails);
+
+        // 4) replace each player's action‐card list with a new, mutable List
+        gameState.getPlayerInfo().values()
+                .forEach(pi -> pi.setActiveActionCards(new ArrayList<>()));
+
+        log.info("Reset round tracking for game {}", gameId);
     }
 
-    log.info("Reset round tracking for game {}", gameId);
-    }
     
     /**
      * Get the count of played cards in the current round

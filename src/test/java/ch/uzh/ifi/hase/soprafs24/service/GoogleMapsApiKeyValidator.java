@@ -9,12 +9,14 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class contains tests that validate the Google Maps API key.
@@ -79,13 +81,19 @@ public class GoogleMapsApiKeyValidator {
             .toUriString();
             
         try {
-            GoogleMapsService.GeocodeResponse response = restTemplate.getForObject(url, GoogleMapsService.GeocodeResponse.class);
+            // Parse into a generic map since no GeocodeResponse DTO exists
+            @SuppressWarnings("unchecked")
+            Map<String,Object> response = restTemplate.getForObject(url, Map.class);
+
+            String status = (String) response.get("status");
+            @SuppressWarnings("unchecked")
+            List<?> results = (List<?>) response.get("results");
             
             // Log detailed response
-            logger.info("API response status: {}", response.status);
-            logger.info("Results count: {}", response.results != null ? response.results.size() : 0);
+            logger.info("API response status: {}", status);
+            logger.info("Results count: {}", results != null ? results.size() : 0);
             
-            if ("REQUEST_DENIED".equals(response.status)) {
+            if ("REQUEST_DENIED".equals(status)) {
                 // Check common API key issues
                 logger.error("API REQUEST DENIED. This usually means:");
                 logger.error("1. The API key hasn't been activated for Geocoding API");
@@ -99,19 +107,22 @@ public class GoogleMapsApiKeyValidator {
                 logger.error("- Verify billing is set up at https://console.cloud.google.com/billing");
                 logger.error("- Check API key restrictions at https://console.cloud.google.com/apis/credentials");
                 
-                // This will fail but with better error message
+                // This will fail but with a clearer error message
                 fail("Google Maps API returned REQUEST_DENIED. See test output for troubleshooting steps.");
             }
             
             // Assert that the request was successful
-            assertEquals("OK", response.status, "API key is not working properly. Status: " + response.status);
-            assertNotNull(response.results, "Results shouldn't be null");
-            assertFalse(response.results.isEmpty(), "No results returned from the API");
+            assertEquals("OK", status, "API key is not working properly. Status: " + status);
+            assertNotNull(results, "Results shouldn't be null");
+            assertFalse(results.isEmpty(), "No results returned from the API");
             
-            // Verify the coordinates
-            GoogleMapsService.Location location = response.results.get(0).geometry.location;
-            assertNotNull(location, "Location shouldn't be null");
-            logger.info("Verified coordinates: lat={}, lng={}", location.lat, location.lng);
+            // Optionally verify the first result has a geometry.location
+            @SuppressWarnings("unchecked")
+            Map<String,Object> first = (Map<String,Object>) results.get(0);
+            assertNotNull(first.get("geometry"), "No geometry in first result");
+            @SuppressWarnings("unchecked")
+            Map<String,Object> geometry = (Map<String,Object>) first.get("geometry");
+            assertTrue(geometry.containsKey("location"), "No location in geometry");
             
             logger.info("API KEY VALIDATION SUCCESSFUL! Your API key is working correctly.");
         } catch (Exception e) {
@@ -121,7 +132,7 @@ public class GoogleMapsApiKeyValidator {
     }
     
     private void assumeRealApiKey() {
-        boolean looksReal = (apiKey != null)
+        boolean looksReal = apiKey != null
                         && apiKey.startsWith("AIza")
                         && apiKey.length() >= 30;
 
@@ -140,14 +151,14 @@ public class GoogleMapsApiKeyValidator {
         assumeRealApiKey();
         
         GoogleMapsService service = new GoogleMapsService(restTemplateBuilder, apiKey);
-        GoogleMapsService.LatLngDTO result = service.getRandomCoordinatesOnLand();
+        GoogleMapsService.LatLngDTO result = service.getRandomCoordinatesOnLand(0L);
         
         logger.info("Received coordinates: {}, {}", result.getLatitude(), result.getLongitude());
         assertNotNull(result);
         
         // Check if these are NOT one of the fallback coordinates
         for (int i = 0; i < 3; i++) {
-            GoogleMapsService.LatLngDTO attempt = service.getRandomCoordinatesOnLand();
+            GoogleMapsService.LatLngDTO attempt = service.getRandomCoordinatesOnLand(0L);
             logger.info("Attempt #{}: {}, {}", i+1, attempt.getLatitude(), attempt.getLongitude());
             
             // If we get three different coordinates, it's likely not falling back
