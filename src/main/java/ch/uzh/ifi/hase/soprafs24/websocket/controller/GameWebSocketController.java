@@ -336,12 +336,12 @@ public class GameWebSocketController {
                 // Set active round card in game state
                 gameState.setActiveRoundCard(finalRoundCardId);
                 
-                // FIXED: Remove the card from player's inventory - it's been played
-                // remove from RoundCardService storage
-                roundCardService.removePlayerRoundCard(lobbyId, userToken, finalRoundCardId);
-                // **NEW**: also remove from GameState inventory
-                gameState.getInventoryForPlayer(userToken)
-                .getRoundCards().remove(finalRoundCardId);
+                // // FIXED: Remove the card from player's inventory - it's been played
+                // // remove from RoundCardService storage
+                // roundCardService.removePlayerRoundCard(lobbyId, userToken, finalRoundCardId);
+                // // **NEW**: also remove from GameState inventory
+                // gameState.getInventoryForPlayer(userToken)
+                // .getRoundCards().remove(finalRoundCardId);
                 
                 // Broadcast round card selection to all players
                 messagingTemplate.convertAndSend(

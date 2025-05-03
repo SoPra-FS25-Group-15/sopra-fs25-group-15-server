@@ -571,55 +571,63 @@ public class GameService {
     }
     
     /**
-     * Prepare for the next round
-     * @param gameId ID of the game
-     * @param nextTurnPlayerToken Token of the player who will choose the next round card
+     * Prepare for the next round.
+     * 1) If the winning player also *played* the round card, discard it.
+     * 2) If that was their last card, end the game.
+     * 3) Otherwise reset state and move on to the ROUNDCARD phase.
      */
     public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         GameState gameState = gameStates.get(gameId);
         if (gameState == null) {
             throw new IllegalStateException("Game not initialized: " + gameId);
         }
-        
         if (gameState.getStatus() != GameStatus.ROUND_COMPLETE) {
             throw new IllegalStateException("Current round is not complete");
         }
-        
-        // Check if the winner has round cards left
-        if (!hasRoundCards(gameId, nextTurnPlayerToken)) {
-            // If the winner has no round cards left, they win the entire game!
-            log.info("Winner {} has no round cards left - they win the game!", nextTurnPlayerToken);
-            endGame(gameId, nextTurnPlayerToken);
-            return; // End the method here - don't proceed to next round
+
+        // ─── 1) DISCARD LOGIC ─────────────────────────────────────────────────────
+        String playedBy   = gameState.getCurrentRoundCardPlayer();
+        String playedCard = gameState.getCurrentRoundCardId();
+        if (playedBy != null
+            && playedCard != null
+            && playedBy.equals(nextTurnPlayerToken)) {
+            log.info("Winner {} played card {} → discarding it", nextTurnPlayerToken, playedCard);
+
+            // Remove from DB
+            roundCardService.removeRoundCardFromPlayerByToken(gameId, nextTurnPlayerToken, playedCard);
+            // Remove from in‐memory inventory
+            gameState.getInventoryForPlayer(nextTurnPlayerToken)
+                    .getRoundCards()
+                    .remove(playedCard);
         }
-        
-        // Reset for next round
+
+        // ─── 2) END‐GAME CHECK ───────────────────────────────────────────────────
+        if (!hasRoundCards(gameId, nextTurnPlayerToken)) {
+            log.info("Player {} has no more round cards → ending game", nextTurnPlayerToken);
+            endGame(gameId, nextTurnPlayerToken);
+            return;
+        }
+
+        // ─── 3) RESET FOR NEXT ROUND ─────────────────────────────────────────────
         gameState.setCurrentTurnPlayerToken(nextTurnPlayerToken);
-        
-        // Save previous winner for reference
         gameState.setLastRoundWinnerToken(nextTurnPlayerToken);
-        String playerUsername = gameState.getPlayerInfo().get(nextTurnPlayerToken).getUsername();
-        log.info("Player {} (token: {}) won the previous round and will pick the next round card", 
-                 playerUsername, nextTurnPlayerToken);
-        
-        // FIXED: Clear current round card and coordinates properly
+
+        // Clear out any leftover pointers & coordinates
         gameState.setCurrentRoundCard(null);
         gameState.setCurrentLatLngDTO(null);
-        gameState.setActiveRoundCard(null); // Explicitly clear the active round card ID
-        
-        // Clear all guesses for the new round
+        gameState.setActiveRoundCard(null);
+
+        // Clear guesses and tracking
         gameState.getPlayerGuesses().clear();
-        gameState.setStatus(GameStatus.WAITING_FOR_ROUND_CARD);
-        gameState.setCurrentScreen("ROUNDCARD"); // Make sure we reset to ROUNDCARD
-        
-        // Reset any card play tracking for the new round
         resetRoundTracking(gameId);
-        
-        // Send updated game state to all players after preparing next round
+
+        // Jump back to the ROUNDCARD phase
+        gameState.setStatus(GameStatus.WAITING_FOR_ROUND_CARD);
+        gameState.setCurrentScreen("ROUNDCARD");
+
+        // Broadcast updated state
         sendGameStateToAll(gameId);
-        
-        log.info("Prepared for next round in game {}, next player token: {}", 
-                gameId, nextTurnPlayerToken);
+        log.info("Prepared for next round in game {}, next chooser: {}", gameId, nextTurnPlayerToken);
     }
     
     /**
