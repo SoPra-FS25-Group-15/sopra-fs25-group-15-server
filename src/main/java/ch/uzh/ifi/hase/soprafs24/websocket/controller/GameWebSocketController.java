@@ -666,16 +666,16 @@ public class GameWebSocketController {
                 return;
             }
 
-            if (targetPlayerToken != null
-                && gameService.isPlayerPunishedThisRound(lobbyId, targetPlayerToken, actionCardId)) {
-                log.warn("Target player with token {} already has punishment {}", targetPlayerToken, actionCardId);
-                messagingTemplate.convertAndSendToUser(
-                    userToken,
-                    "/queue/lobby/" + lobbyId + "/game",
-                    new WebSocketMessage<>("ERROR", "Target player already has this punishment")
-                );
-                return;
-            }
+            // if (targetPlayerToken != null
+            //     && gameService.isPlayerPunishedThisRound(lobbyId, targetPlayerToken, actionCardId)) {
+            //     log.warn("Target player with token {} already has punishment {}", targetPlayerToken, actionCardId);
+            //     messagingTemplate.convertAndSendToUser(
+            //         userToken,
+            //         "/queue/lobby/" + lobbyId + "/game",
+            //         new WebSocketMessage<>("ERROR", "Target player already has this punishment")
+            //     );
+            //     return;
+            // }
 
             // Validate if this is a valid action card
             if (!actionCardService.isValidActionCard(actionCardId)) {
