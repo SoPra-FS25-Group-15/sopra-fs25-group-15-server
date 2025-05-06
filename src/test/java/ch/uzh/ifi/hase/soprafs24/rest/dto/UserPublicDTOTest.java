@@ -18,7 +18,7 @@ class UserPublicDTOTest {
         userPublicDTO = new UserPublicDTO();
         userPublicDTO.setUserid(1L);
         userPublicDTO.setUsername("testUser");
-        userPublicDTO.setMmr(1500);
+        userPublicDTO.setXp(1500);  // Changed from setMmr to setXp
         userPublicDTO.setPoints(1500);
         userPublicDTO.setAchievements(testAchievements);
         userPublicDTO.setEmail("test@example.com");
@@ -28,7 +28,7 @@ class UserPublicDTOTest {
     void testGettersAndSetters() {
         assertEquals(1L, userPublicDTO.getUserid());
         assertEquals("testUser", userPublicDTO.getUsername());
-        assertEquals(1500, userPublicDTO.getMmr());
+        assertEquals(1500, userPublicDTO.getXp());  // Changed from getMmr to getXp
         assertEquals(1500, userPublicDTO.getPoints());
         assertEquals(testAchievements, userPublicDTO.getAchievements());
         assertEquals("test@example.com", userPublicDTO.getEmail());
@@ -37,14 +37,14 @@ class UserPublicDTOTest {
         List<String> newAchievements = Arrays.asList("Tournament Win", "MVP");
         userPublicDTO.setUserid(2L);
         userPublicDTO.setUsername("publicUser");
-        userPublicDTO.setMmr(1600);
+        userPublicDTO.setXp(1600);  // Changed from setMmr to setXp
         userPublicDTO.setPoints(1600);
         userPublicDTO.setAchievements(newAchievements);
         userPublicDTO.setEmail("public@example.com");
         
         assertEquals(2L, userPublicDTO.getUserid());
         assertEquals("publicUser", userPublicDTO.getUsername());
-        assertEquals(1600, userPublicDTO.getMmr());
+        assertEquals(1600, userPublicDTO.getXp());  // Changed from getMmr to getXp
         assertEquals(1600, userPublicDTO.getPoints());
         assertEquals(newAchievements, userPublicDTO.getAchievements());
         assertEquals("public@example.com", userPublicDTO.getEmail());
@@ -55,7 +55,7 @@ class UserPublicDTOTest {
         UserPublicDTO dto = new UserPublicDTO();
         assertNull(dto.getUserid());
         assertNull(dto.getUsername());
-        assertEquals(0, dto.getMmr());
+        assertEquals(0, dto.getXp());  // Changed from getMmr to getXp
         assertEquals(0, dto.getPoints());
         assertNull(dto.getAchievements());
         assertNull(dto.getEmail());

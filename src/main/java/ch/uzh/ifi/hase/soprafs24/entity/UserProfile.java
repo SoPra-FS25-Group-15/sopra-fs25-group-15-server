@@ -17,9 +17,9 @@ public class UserProfile implements Serializable {
     @Column(nullable = false)
     private String username;
 
-    // "MMR" 
+    // Renamed from "mmr" to "xp"
     @Column(nullable = false)
-    private int mmr;
+    private int xp;
 
     @Column(nullable = false)
     private int points;
@@ -82,11 +82,12 @@ public class UserProfile implements Serializable {
         this.statsPublic = statsPublic;
     }
 
-    public int getMmr() {
-        return mmr;
+    // Renamed from getMmr/setMmr to getXp/setXp
+    public int getXp() {
+        return xp;
     }
-    public void setMmr(int mmr) {
-        this.mmr = mmr;
+    public void setXp(int xp) {
+        this.xp = xp;
     }
 
     public int getPoints() {

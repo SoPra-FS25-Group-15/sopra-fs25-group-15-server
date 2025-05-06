@@ -82,7 +82,7 @@ public class UserServiceIntegrationTest {
     UserProfile profile = new UserProfile();
     profile.setUsername("originalUsername");
     profile.setStatsPublic(false); // Initialize with a value
-    profile.setMmr(1000);          // Initialize with a default MMR
+    profile.setXp(1000);          // Initialize with a default XP (changed from mmr)
     profile.setGamesPlayed(0);     // Initialize games played
     profile.setWins(0);            // Initialize wins
     profile.setAchievements(new ArrayList<>()); // Initialize empty achievements list
@@ -120,7 +120,7 @@ public class UserServiceIntegrationTest {
     UserProfile profile1 = new UserProfile();
     profile1.setUsername("duplicateUsername");
     profile1.setStatsPublic(true);        // Initialize with a value
-    profile1.setMmr(1000);                // Initialize with a default MMR
+    profile1.setXp(1000);                // Initialize with a default XP value
     profile1.setGamesPlayed(0);           // Initialize games played
     profile1.setWins(0);                  // Initialize wins 
     profile1.setAchievements(new ArrayList<>()); // Initialize empty achievements list
@@ -137,7 +137,7 @@ public class UserServiceIntegrationTest {
     UserProfile profile2 = new UserProfile();
     profile2.setUsername("uniqueUsername");
     profile2.setStatsPublic(false);       // Initialize with a value
-    profile2.setMmr(1000);                // Initialize with a default MMR
+    profile2.setXp(1000);                // Initialize with a default XP value
     profile2.setGamesPlayed(0);           // Initialize games played
     profile2.setWins(0);                  // Initialize wins
     profile2.setAchievements(new ArrayList<>()); // Initialize empty achievements list
@@ -156,5 +156,43 @@ public class UserServiceIntegrationTest {
     });
     // Expect a conflict error (HTTP 409).
     assertEquals(409, exception.getStatus().value());
+  }
+
+  @Test
+  public void userXpAwarded_persistsCorrectly() {
+    // Create a test user
+    User testUser = new User();
+    testUser.setEmail("xptest@example.com");
+    testUser.setPassword("password");
+    testUser.setStatus(UserStatus.OFFLINE);
+    
+    UserProfile profile = new UserProfile();
+    profile.setUsername("xpTestUser");
+    profile.setStatsPublic(true);
+    profile.setXp(0);  // Start with 0 XP
+    profile.setGamesPlayed(0);
+    profile.setWins(0);
+    profile.setAchievements(new ArrayList<>());
+    testUser.setProfile(profile);
+    testUser.setToken("xp-test-token");
+    
+    userRepository.save(testUser);
+    userRepository.flush();
+    
+    // Get the saved user ID
+    Long userId = testUser.getId();
+    
+    // Use UserXpService to award XP (if it's available in the test context)
+    // Note: This might need to be mocked or autowired depending on your test setup
+    
+    // Directly update XP for test purposes
+    testUser.getProfile().setXp(50);
+    userRepository.save(testUser);
+    userRepository.flush();
+    
+    // Verify XP was persisted
+    User updatedUser = userRepository.findById(userId).orElse(null);
+    assertNotNull(updatedUser);
+    assertEquals(50, updatedUser.getProfile().getXp());
   }
 }

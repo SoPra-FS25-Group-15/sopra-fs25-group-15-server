@@ -100,7 +100,7 @@ public class LobbyServiceIntegrationTest {
         UserProfile hostProfile = new UserProfile();
         hostProfile.setUsername("HostUser");
         hostProfile.setStatsPublic(true);
-        hostProfile.setMmr(0);
+        hostProfile.setXp(0);  // Updated to use XP instead of MMR
         hostProfile.setAchievements(new ArrayList<>());
         hostUser.setProfile(hostProfile);
         
@@ -197,7 +197,7 @@ public class LobbyServiceIntegrationTest {
         UserProfile joinerProfile = new UserProfile();
         joinerProfile.setUsername("JoiningUser");
         joinerProfile.setStatsPublic(true);
-        joinerProfile.setMmr(0);
+        joinerProfile.setXp(0);  // Updated to use XP instead of MMR
         joinerProfile.setAchievements(new ArrayList<>());
         joiningUser.setProfile(joinerProfile);
         
@@ -240,7 +240,7 @@ public class LobbyServiceIntegrationTest {
         UserProfile joinerProfile = new UserProfile();
         joinerProfile.setUsername("FriendUser");
         joinerProfile.setStatsPublic(true);
-        joinerProfile.setMmr(0);
+        joinerProfile.setXp(0);  // Updated to use XP instead of MMR
         joinerProfile.setAchievements(new ArrayList<>());
         joiningUser.setProfile(joinerProfile);
         
@@ -277,7 +277,7 @@ public class LobbyServiceIntegrationTest {
         UserProfile joinerProfile = new UserProfile();
         joinerProfile.setUsername("JoiningUser2");
         joinerProfile.setStatsPublic(true);
-        joinerProfile.setMmr(0);
+        joinerProfile.setXp(0);  // Updated to use XP instead of MMR
         joinerProfile.setAchievements(new ArrayList<>());
         joiningUser.setProfile(joinerProfile);
         
@@ -318,7 +318,7 @@ public class LobbyServiceIntegrationTest {
         UserProfile joinerProfile = new UserProfile();
         joinerProfile.setUsername("JoiningUser3");
         joinerProfile.setStatsPublic(true);
-        joinerProfile.setMmr(0);
+        joinerProfile.setXp(0);  // Updated to use XP instead of MMR
         joinerProfile.setAchievements(new ArrayList<>());
         joiningUser.setProfile(joinerProfile);
         

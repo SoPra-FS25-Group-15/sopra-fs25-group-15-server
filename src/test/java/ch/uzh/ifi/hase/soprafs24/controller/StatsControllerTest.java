@@ -59,7 +59,7 @@ public class StatsControllerTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("testUser");
-        profile.setMmr(1500);
+        profile.setXp(1500);  // Changed from setMmr to setXp
         profile.setPoints(1500);
         profile.setWins(5);
         profile.setGamesPlayed(7); // Added this since there's no setter for losses directly
@@ -71,7 +71,7 @@ public class StatsControllerTest {
         UserStatsDTO statsDTO = new UserStatsDTO();
         statsDTO.setGamesPlayed(7);
         statsDTO.setWins(5);
-        statsDTO.setMmr(1500);
+        statsDTO.setXp(1500);  // Changed from setMmr to setXp
         statsDTO.setPoints(1500);
 
         given(userService.getPublicProfile(eq(1L))).willReturn(user);
@@ -83,7 +83,7 @@ public class StatsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gamesPlayed").value(7))
                 .andExpect(jsonPath("$.wins").value(5))
-                .andExpect(jsonPath("$.mmr").value(1500))
+                .andExpect(jsonPath("$.xp").value(1500))  // Changed from $.mmr to $.xp
                 .andExpect(jsonPath("$.points").value(1500));
     }
 
@@ -105,7 +105,7 @@ public class StatsControllerTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("testUser");
-        profile.setMmr(1500);
+        profile.setXp(1500);  // Changed from setMmr to setXp
         profile.setStatsPublic(false); // Private stats
         user.setProfile(profile);
 
@@ -136,7 +136,7 @@ public class StatsControllerTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("testUser");
-        profile.setMmr(1500);
+        profile.setXp(1500);  // Changed from setMmr to setXp
         profile.setPoints(1500);
         profile.setWins(5);
         profile.setGamesPlayed(7);
@@ -147,7 +147,7 @@ public class StatsControllerTest {
         UserStatsDTO statsDTO = new UserStatsDTO();
         statsDTO.setGamesPlayed(7);
         statsDTO.setWins(5);
-        statsDTO.setMmr(1500);
+        statsDTO.setXp(1500);  // Changed from setMmr to setXp
         statsDTO.setPoints(1500);
 
         given(authService.getUserByToken(eq(token))).willReturn(user);
@@ -160,7 +160,7 @@ public class StatsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gamesPlayed").value(7))
                 .andExpect(jsonPath("$.wins").value(5))
-                .andExpect(jsonPath("$.mmr").value(1500))
+                .andExpect(jsonPath("$.xp").value(1500))  // Changed from $.mmr to $.xp
                 .andExpect(jsonPath("$.points").value(1500));
     }
 }

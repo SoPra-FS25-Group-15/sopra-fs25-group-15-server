@@ -66,7 +66,7 @@ public class UserControllerTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("firstnameLastname");
-        profile.setMmr(1500);
+        profile.setXp(1500); // Changed from setMmr to setXp
         profile.setPoints(1500); // Add points to match the DTO
         profile.setAchievements(Arrays.asList("First Win"));
         user.setProfile(profile);
@@ -75,7 +75,7 @@ public class UserControllerTest {
         UserPublicDTO publicDTO = new UserPublicDTO();
         publicDTO.setUserid(1L);
         publicDTO.setUsername(profile.getUsername());
-        publicDTO.setMmr(profile.getMmr());
+        publicDTO.setXp(profile.getXp()); // Changed from setMmr/getMmr to setXp/getXp
         publicDTO.setPoints(profile.getPoints()); // Set points to be returned
         publicDTO.setEmail(user.getEmail());
         // No need to set achievements as they are @JsonIgnore'd
@@ -90,7 +90,7 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.userid", is(1)))
             .andExpect(jsonPath("$.username", is(profile.getUsername())))
-            .andExpect(jsonPath("$.mmr", is(profile.getMmr())))
+            .andExpect(jsonPath("$.xp", is(profile.getXp()))) // Changed from mmr to xp
             .andExpect(jsonPath("$.points", is(profile.getPoints())))
             .andExpect(jsonPath("$.email", is(user.getEmail())));
             // Remove the assertion for $.achievements since it's @JsonIgnore'd in UserPublicDTO

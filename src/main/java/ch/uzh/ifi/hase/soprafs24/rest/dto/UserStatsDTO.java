@@ -3,7 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.rest.dto;
 public class UserStatsDTO {
     private int gamesPlayed;
     private int wins;
-    private int mmr;
+    private int xp; // Renamed from mmr to xp
     private int points;
 
     public int getGamesPlayed() {
@@ -22,12 +22,12 @@ public class UserStatsDTO {
         this.wins = wins;
     }
 
-    public int getMmr() {
-        return mmr;
+    public int getXp() { // Renamed from getMmr to getXp
+        return xp;
     }
 
-    public void setMmr(int mmr) {
-        this.mmr = mmr;
+    public void setXp(int xp) { // Renamed from setMmr to setXp
+        this.xp = xp;
     }
 
     public int getPoints() {

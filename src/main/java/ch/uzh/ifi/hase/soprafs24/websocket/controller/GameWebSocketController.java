@@ -33,12 +33,14 @@ import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService.LatLngDTO;
 import ch.uzh.ifi.hase.soprafs24.service.LobbyService;
 import ch.uzh.ifi.hase.soprafs24.service.RoundCardService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
+import ch.uzh.ifi.hase.soprafs24.service.UserXpService;
 import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.RoundStartDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.StartGameRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.RoundWinnerBroadcast;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.GameWinnerBroadcast;
+import ch.uzh.ifi.hase.soprafs24.websocket.dto.XpUpdateMessage;
 
 @Controller
 public class GameWebSocketController {
@@ -68,6 +70,9 @@ public class GameWebSocketController {
     
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private UserXpService userXpService;
 
     /**
      * Verify user token is valid
@@ -598,6 +603,9 @@ public class GameWebSocketController {
                             
                             log.info("Broadcast round winner: {}, distance: {}m", winnerUsername, winningDistance);
                             
+                            // Award XP for winning a round using dedicated service
+                            awardXp(winnerToken, UserXpService.XP_FOR_ROUND_WIN, "Won the round");
+                            
                             // Process round completion - handles round card removal logic
                             processRoundCompletion(lobbyId, winnerToken);
                             
@@ -859,13 +867,48 @@ public class GameWebSocketController {
 
             // 3) Push the updated state to all clients
             gameService.sendGameStateToAll(lobbyId);
+
+            // 4) Award XP for winning the game if it was the last card
+            if (gs.getInventoryForPlayer(winnerToken).getRoundCards().isEmpty()) {
+                awardXp(winnerToken, UserXpService.XP_FOR_GAME_WIN, "Won the game!");
+            }
         } else {
             log.error("Game state not found for lobby {} when finalizing round", lobbyId);
         }
     }
 
+    /**
+     * Awards XP to a player and sends an update message
+     */
+    private void awardXp(String playerToken, int xpAmount, String reason) {
+        try {
+            User user = authService.getUserByToken(playerToken);
+            if (user == null) {
+                log.error("Cannot award XP: user not found for token {}", TokenUtils.maskToken(playerToken));
+                return;
+            }
+            
+            // Use the UserXpService to award XP and send notifications
+            userXpService.awardXp(user, xpAmount, reason);
+            
+            // Get the updated XP after the service has processed it
+            int newTotal = user.getProfile().getXp();
+            
+            // Also send to the game-specific queue for immediate feedback in the game UI
+            messagingTemplate.convertAndSendToUser(
+                playerToken,
+                "/queue/lobby/xp", 
+                new XpUpdateMessage(newTotal, xpAmount, reason)
+            );
+            
+            log.info("Awarded {} XP to user {}, new total: {}, reason: {}", 
+                     xpAmount, user.getProfile().getUsername(), newTotal, reason);
+        } catch (Exception e) {
+            log.error("Error awarding XP to player {}: {}", TokenUtils.maskToken(playerToken), e.getMessage(), e);
+        }
+    }
 
-        /**
+    /**
      * Handle a player’s map‐click guess.
      * Clients publish to /app/lobby/{lobbyId}/game/guess with JSON { latitude, longitude }.
      */
@@ -883,6 +926,45 @@ public class GameWebSocketController {
                  lobbyId, TokenUtils.maskToken(token), lat, lon);
         // this will broadcast GUESS_SUBMITTED and then ROUND_WINNER when all are in
         gameService.registerGuessByToken(lobbyId, token, lat, lon);
+
+        // Award XP for making a guess using dedicated service constants
+        awardXp(token, UserXpService.XP_FOR_GUESS, "Made a guess");
+    }
+
+    /**
+     * Request endpoint for a user to get their current XP
+     * This allows a client to request their current XP at any time
+     */
+    @MessageMapping("/lobby/request-xp")
+    public void handleXpRequest(Principal principal) {
+        if (principal == null) {
+            log.warn("XP request from unauthenticated user");
+            return;
+        }
+        
+        try {
+            String token = validateAuthentication(principal);
+            User user = authService.getUserByToken(token);
+            
+            if (user == null) {
+                log.warn("XP request with invalid token");
+                return;
+            }
+            
+            // Send the current XP to the user
+            userXpService.sendCurrentXpNotification(user);
+            
+            // Also send to the game-specific XP queue for UI feedback
+            messagingTemplate.convertAndSendToUser(
+                token,
+                "/queue/lobby/xp", 
+                new XpUpdateMessage(user.getProfile().getXp(), 0, "XP status request")
+            );
+            
+            log.debug("Sent XP update to user {}: {}", user.getId(), user.getProfile().getXp());
+        } catch (Exception e) {
+            log.error("Error processing XP request: {}", e.getMessage(), e);
+        }
     }
 
 }

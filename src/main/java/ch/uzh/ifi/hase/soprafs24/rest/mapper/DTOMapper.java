@@ -52,7 +52,7 @@ public class DTOMapper {
         // Build profile
         UserProfile profile = new UserProfile();
         profile.setUsername(dto.getUsername());
-        profile.setMmr(0); // default
+        profile.setXp(0); // default
         profile.setAchievements(new ArrayList<>());
         user.setProfile(profile);
 
@@ -75,7 +75,7 @@ public class DTOMapper {
         dto.setUserid(user.getId());
         dto.setUsername(user.getProfile().getUsername());
         dto.setToken(user.getToken());
-        dto.setPoints(user.getProfile().getMmr()); // interpret "points" as mmr
+        dto.setPoints(user.getProfile().getXp()); // interpret "points" as xp
         return dto;
     }
 
@@ -94,7 +94,7 @@ public class DTOMapper {
         UserPublicDTO dto = new UserPublicDTO();
         dto.setUserid(user.getId());
         dto.setUsername(user.getProfile().getUsername());
-        dto.setMmr(user.getProfile().getMmr());
+        dto.setXp(user.getProfile().getXp());
         dto.setAchievements(user.getProfile().getAchievements());
         dto.setEmail(user.getEmail());
         return dto;
@@ -122,7 +122,7 @@ public class DTOMapper {
         UserStatsDTO dto = new UserStatsDTO();
         dto.setGamesPlayed(user.getProfile().getGamesPlayed());
         dto.setWins(user.getProfile().getWins());
-        dto.setMmr(user.getProfile().getMmr());
+        dto.setXp(user.getProfile().getXp());
         return dto;
     }
 
