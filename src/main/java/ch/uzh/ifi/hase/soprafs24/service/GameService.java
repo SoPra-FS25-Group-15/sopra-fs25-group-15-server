@@ -44,6 +44,9 @@ public class GameService {
     private final AuthService authService; // Add AuthService as a dependency
 
     @Autowired
+    private UserService userService;
+    
+    @Autowired
     private RoundCardService roundCardService;
 
     // Track played cards in the current round
@@ -644,6 +647,30 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         gameState.setStatus(GameStatus.GAME_OVER);
         gameState.setGameWinnerToken(winnerToken);
         gameState.setCurrentScreen("GAMEOVER");  // Set screen to game over
+
+
+
+        // 1) Update every player's winStreak & gamesPlayed
+    for (String token : gameState.getPlayerTokens()) {
+        User u = authService.getUserByToken(token);
+        var profile = u.getProfile();
+
+        // increment games played
+        profile.setGamesPlayed(profile.getGamesPlayed() + 1);
+
+        if (token.equals(winnerToken)) {
+            // winner: +1 streak
+            profile.setWinStreak(profile.getWinStreak() + 1);
+            // also count a win
+            profile.setWins(profile.getWins() + 1);
+        } else {
+            // loser: reset to zero
+            profile.setWinStreak(0);
+        }
+        userService.updateUser(u);  // or userRepository.save(u);
+    }
+
+
 
         // Lookup the winner's username via AuthService instead of PlayerInfo
         String winnerUsername = authService
