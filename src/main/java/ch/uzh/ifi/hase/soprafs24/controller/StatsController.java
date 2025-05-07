@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -8,8 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-
+import java.util.List; 
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LeaderboardDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LeaderboardEntryDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
@@ -53,5 +57,15 @@ public class StatsController {
     public UserStatsDTO getMyStats(@RequestHeader("Authorization") String token) {
         User user = authService.getUserByToken(token);
         return mapper.toUserStatsDTO(user);
+    }
+
+    @GetMapping("/leaderboard")
+    @ResponseStatus(HttpStatus.OK)
+    public LeaderboardDTO getLeaderboard() {
+        List<User> top10 = userService.getTopPlayersByMmr(10);
+        List<LeaderboardEntryDTO> entries = top10.stream()
+            .map(mapper::toLeaderboardEntryDTO)
+            .collect(Collectors.toList());
+        return new LeaderboardDTO(entries);
     }
 }
