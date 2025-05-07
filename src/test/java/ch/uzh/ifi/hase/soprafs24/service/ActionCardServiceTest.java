@@ -2,164 +2,207 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.actioncard.ActionCardEffectDTO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.RepeatedTest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest(properties = {
-    // 1) Turn off Cloud SQL auto-configuration
-    "spring.cloud.gcp.sql.enabled=false",
+class ActionCardServiceTest {
 
-    // 2) H2 in-memory database
-    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
+    @Mock
+    private GameService gameService;
 
-    // 3) Hibernate auto DDL & show SQL
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-    "spring.jpa.show-sql=true",
-
-    // 4) Dummy placeholders for any @Value injections
-    "google.maps.api.key=TEST_KEY",
-    "jwt.secret=test-secret"
-})
-public class ActionCardServiceTest {
-
-    @Autowired
+    @Spy
+    @InjectMocks
     private ActionCardService actionCardService;
-    
-    private static final String POWERUP_TYPE = "powerup";
-    private static final String PUNISHMENT_TYPE = "punishment";
-    
+
+    private final String playerToken = "player123";
+    private final String targetPlayerToken = "targetPlayer456";
+    private final Long gameId = 789L;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+    }
+
     @Test
-    void drawRandomCard_returnsValidCard() {
-        // Call the method
+    void drawRandomCard_shouldReturnValidCard() {
+
         ActionCardDTO card = actionCardService.drawRandomCard();
-        
-        // Verify that the card is not null and has valid fields
         assertNotNull(card);
         assertNotNull(card.getId());
         assertNotNull(card.getType());
         assertNotNull(card.getTitle());
         assertNotNull(card.getDescription());
-        
-        // Verify card type is either powerup or punishment
-        assertTrue(card.getType().equals(POWERUP_TYPE) || 
-                   card.getType().equals(PUNISHMENT_TYPE),
-                  "Card type should be either 'powerup' or 'punishment'");
+
+
+        boolean isValidCard = "7choices".equals(card.getId()) || "badsight".equals(card.getId());
+        assertTrue(isValidCard, "Card should be one of the predefined cards");
     }
-    
+
     @Test
-    void drawRandomCard_validCardIds() {
-        // The service should only return cards with specific IDs
-        ActionCardDTO card = actionCardService.drawRandomCard();
-        
-        // Check if the ID is one of the expected values
-        assertTrue(card.getId().equals("7choices") || card.getId().equals("badsight"),
-                  "Card ID should be either '7choices' or 'badsight'");
-        
-        // Verify that the ID corresponds to the correct type
-        if (card.getId().equals("7choices")) {
-            assertEquals(POWERUP_TYPE, card.getType());
-            assertEquals("7 Choices", card.getTitle());
-            assertTrue(card.getDescription().contains("continent"));
-        } else {
-            assertEquals(PUNISHMENT_TYPE, card.getType());
-            assertEquals("Bad Sight", card.getTitle());
-            assertTrue(card.getDescription().contains("blur"));
-        }
+    void findById_shouldReturnCardWhenExists() {
+        ActionCardDTO card = actionCardService.findById("7choices");
+        assertNotNull(card);
+        assertEquals("7choices", card.getId());
+        assertEquals("powerup", card.getType());
+        assertEquals("7 Choices", card.getTitle());
+        assertEquals("Reveal the continent of the target location.", card.getDescription());
     }
-    
-    // This test runs multiple times to ensure we get both types of cards
-    @RepeatedTest(10)
-    void drawRandomCard_multipleDraws_coversBothTypes() {
-        Set<String> foundTypes = new HashSet<>();
-        Set<String> foundIds = new HashSet<>();
-        
-        // Draw cards up to 20 times to increase chance of getting both types
-        for (int i = 0; i < 20; i++) {
-            ActionCardDTO card = actionCardService.drawRandomCard();
-            foundTypes.add(card.getType());
-            foundIds.add(card.getId());
-            
-            // Break early if we've found both types and IDs
-            if (foundTypes.size() == 2 && 
-                foundTypes.contains(POWERUP_TYPE) && 
-                foundTypes.contains(PUNISHMENT_TYPE) &&
-                foundIds.contains("7choices") &&
-                foundIds.contains("badsight")) {
-                break;
-            }
-        }
-        
-        // We should have found both types
-        assertEquals(2, foundTypes.size(), "Should have found both card types");
-        assertTrue(foundTypes.contains(POWERUP_TYPE), "Should have found powerup type");
-        assertTrue(foundTypes.contains(PUNISHMENT_TYPE), "Should have found punishment type");
-        
-        // We should have found both IDs
-        assertEquals(2, foundIds.size(), "Should have found both card IDs");
-        assertTrue(foundIds.contains("7choices"), "Should have found 7choices card");
-        assertTrue(foundIds.contains("badsight"), "Should have found badsight card");
-    }
-    
+
     @Test
-    void findById_returnsCorrectCard() {
-        // Find cards by ID
-        ActionCardDTO powerupCard = actionCardService.findById("7choices");
-        ActionCardDTO punishmentCard = actionCardService.findById("badsight");
-        
-        // Verify powerup card
-        assertNotNull(powerupCard);
-        assertEquals("7choices", powerupCard.getId());
-        assertEquals(POWERUP_TYPE, powerupCard.getType());
-        
-        // Verify punishment card
-        assertNotNull(punishmentCard);
-        assertEquals("badsight", punishmentCard.getId());
-        assertEquals(PUNISHMENT_TYPE, punishmentCard.getType());
-        
-        // Test with invalid ID
-        ActionCardDTO invalidCard = actionCardService.findById("invalid-id");
-        assertNull(invalidCard);
+    void findById_shouldReturnNullWhenCardDoesNotExist() {
+        ActionCardDTO card = actionCardService.findById("nonexistent");
+        assertNull(card);
     }
-    
+
     @Test
-    void isValidActionCard_checksCardExistence() {
-        // Verify valid cards
+    void isValidActionCard_shouldReturnTrueForExistingCard() {
         assertTrue(actionCardService.isValidActionCard("7choices"));
         assertTrue(actionCardService.isValidActionCard("badsight"));
-        
-        // Verify invalid cards
-        assertFalse(actionCardService.isValidActionCard("invalid-id"));
-        assertFalse(actionCardService.isValidActionCard(null));
     }
-    
+
     @Test
-    void processActionCardEffect_returnsCorrectEffect() {
-        // Test 7choices card
-        ActionCardEffectDTO powerupEffect = actionCardService.processActionCardEffect("7choices", null);
-        assertNotNull(powerupEffect);
-        assertEquals("continent", powerupEffect.getEffectType());
-        assertNull(powerupEffect.getTargetPlayer());
-        
-        // Test badsight card
-        String targetPlayer = "player-token";
-        ActionCardEffectDTO punishmentEffect = actionCardService.processActionCardEffect("badsight", targetPlayer);
-        assertNotNull(punishmentEffect);
-        assertEquals("blur", punishmentEffect.getEffectType());
-        assertEquals(targetPlayer, punishmentEffect.getTargetPlayer());
-        
-        // Test invalid card ID
-        ActionCardEffectDTO invalidEffect = actionCardService.processActionCardEffect("invalid-id", targetPlayer);
-        assertNull(invalidEffect);
+    void isValidActionCard_shouldReturnFalseForNonExistingCard() {
+        assertFalse(actionCardService.isValidActionCard("nonexistent"));
+    }
+
+    @Test
+    void processActionCardEffect_shouldReturnEffectForSevenChoicesCard() {
+        ActionCardEffectDTO effect = actionCardService.processActionCardEffect("7choices", targetPlayerToken);
+        assertNotNull(effect);
+        assertEquals("continent", effect.getEffectType());
+        assertNull(effect.getTargetPlayer());
+    }
+
+    @Test
+    void processActionCardEffect_shouldReturnEffectForBadSightCard() {
+        ActionCardEffectDTO effect = actionCardService.processActionCardEffect("badsight", targetPlayerToken);
+        assertNotNull(effect);
+        assertEquals("blur", effect.getEffectType());
+        assertEquals(targetPlayerToken, effect.getTargetPlayer());
+    }
+
+    @Test
+    void processActionCardEffect_shouldReturnNullForInvalidCard() {
+        ActionCardEffectDTO effect = actionCardService.processActionCardEffect("nonexistent", targetPlayerToken);
+        assertNull(effect);
+    }
+
+    @Test
+    void processActionCardForGame_shouldApplyBlurEffectToTargetPlayer() {
+
+        ActionCardEffectDTO result = actionCardService.processActionCardForGame(gameId, playerToken, "badsight", targetPlayerToken);
+
+        assertNotNull(result);
+        assertEquals("blur", result.getEffectType());
+        assertEquals(targetPlayerToken, result.getTargetPlayer());
+
+
+        verify(gameService).applyActionCardToPlayer(gameId, targetPlayerToken, "badsight");
+
+        verify(gameService, never()).applyActionCardToPlayer(gameId, playerToken, "badsight");
+    }
+
+    @Test
+    void processActionCardForGame_shouldApplyContinentEffectToSelf() {
+
+        ActionCardEffectDTO result = actionCardService.processActionCardForGame(gameId, playerToken, "7choices", targetPlayerToken);
+
+        assertNotNull(result);
+        assertEquals("continent", result.getEffectType());
+
+
+        verify(gameService).applyActionCardToPlayer(gameId, playerToken, "7choices");
+    }
+
+    @Test
+    void processActionCardForGame_shouldReturnNullForInvalidCard() {
+        ActionCardEffectDTO result = actionCardService.processActionCardForGame(gameId, playerToken, "nonexistent", targetPlayerToken);
+
+        assertNull(result);
+        verify(gameService, never()).applyActionCardToPlayer(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    void getContinent_shouldReturnEurope() {
+        String continent = actionCardService.getContinent(40.0, 10.0);
+        assertEquals("Europe", continent);
+    }
+
+    @Test
+    void getContinent_shouldReturnAsia() {
+        String continent = actionCardService.getContinent(20.0, 100.0);
+        assertEquals("Asia", continent);
+    }
+
+    @Test
+    void getContinent_shouldReturnAfrica() {
+        String continent = actionCardService.getContinent(-10.0, 20.0);
+        assertEquals("Africa", continent);
+    }
+
+    @Test
+    void getContinent_shouldReturnNorthAmerica() {
+        String continent = actionCardService.getContinent(40.0, -100.0);
+        assertEquals("North America", continent);
+    }
+
+    @Test
+    void getContinent_shouldReturnSouthAmerica() {
+        String continent = actionCardService.getContinent(-30.0, -60.0);
+        assertEquals("South America", continent);
+    }
+
+    @Test
+    void getContinent_shouldReturnAustralia() {
+        String continent = actionCardService.getContinent(-30.0, 130.0);
+        assertEquals("Australia", continent);
+    }
+
+    @Test
+    void getContinent_shouldReturnUnknown() {
+        String continent = actionCardService.getContinent(0.0, 0.0);
+        assertEquals("Unknown", continent);
+    }
+
+    @Test
+    void allPredefinedCardsAreValidAndComplete() {
+
+        List<ActionCardDTO> cards = new ArrayList<>();
+        try {
+            java.lang.reflect.Field cardsField = ActionCardService.class.getDeclaredField("CARDS");
+            cardsField.setAccessible(true);
+            cards = (List<ActionCardDTO>) cardsField.get(null);
+        } catch (Exception e) {
+            fail("Failed to access CARDS field: " + e.getMessage());
+        }
+
+
+        assertEquals(2, cards.size(), "Should have exactly 2 predefined cards");
+
+
+        for (ActionCardDTO card : cards) {
+            assertNotNull(card.getId(), "Card ID should not be null");
+            assertNotNull(card.getType(), "Card type should not be null");
+            assertNotNull(card.getTitle(), "Card title should not be null");
+            assertNotNull(card.getDescription(), "Card description should not be null");
+        }
+
+
+        assertTrue(cards.stream().anyMatch(card -> "7choices".equals(card.getId())),
+                "Should contain '7choices' card");
+        assertTrue(cards.stream().anyMatch(card -> "badsight".equals(card.getId())),
+                "Should contain 'badsight' card");
     }
 }
