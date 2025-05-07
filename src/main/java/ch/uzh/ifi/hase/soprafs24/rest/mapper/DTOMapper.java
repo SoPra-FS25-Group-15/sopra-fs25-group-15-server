@@ -11,12 +11,15 @@ import org.springframework.stereotype.Component;
 
 import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
 import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
+import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LeaderboardEntryDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
@@ -29,9 +32,15 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
+import ch.uzh.ifi.hase.soprafs24.service.UserService;
 
 @Component
 public class DTOMapper {
+    
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private GameRepository gameRepository;
 
     private final UserRepository userRepository;
 
@@ -119,12 +128,30 @@ public class DTOMapper {
 
     // 6) User Stats
     public UserStatsDTO toUserStatsDTO(User user) {
-        UserStatsDTO dto = new UserStatsDTO();
-        dto.setGamesPlayed(user.getProfile().getGamesPlayed());
-        dto.setWins(user.getProfile().getWins());
-        dto.setMmr(user.getProfile().getMmr());
-        return dto;
+    var p    = user.getProfile();
+    var dto  = new UserStatsDTO();
+
+    dto.setGamesPlayed(p.getGamesPlayed());
+    dto.setWins(p.getWins());
+    dto.setMmr(p.getMmr());
+    dto.setWinStreak(p.getWinStreak());               
+
+    // lookup most recent Game for this user
+    Game last = gameRepository
+        .findTopByPlayers_IdOrderByCreationDateDesc(user.getId());
+    if (last != null) {
+        dto.setLastGamePlayers(
+          last.getPlayers().stream()
+              .map(u -> u.getProfile().getUsername())
+              .collect(Collectors.toList())
+        );
+        dto.setLastGameWinner(
+          last.getWinner().getProfile().getUsername()
+        );
     }
+    return dto;
+}
+
 
     // Enhanced friend request mapping 
     public FriendRequestDTO toFriendRequestDTO(FriendRequest request, User currentUser) {
@@ -242,4 +269,12 @@ public class DTOMapper {
         dto.setEmail(user.getEmail());
         return dto;
     }
+
+    public LeaderboardEntryDTO toLeaderboardEntryDTO(User user) {
+    var profile = user.getProfile();
+    return new LeaderboardEntryDTO(
+        profile.getUsername(),
+        profile.getMmr()
+    );
+}
 }
