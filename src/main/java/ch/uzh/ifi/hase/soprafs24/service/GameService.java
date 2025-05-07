@@ -294,7 +294,29 @@ public class GameService {
         
         return false;
     }
-    
+    /**
+     * Check if a player is immune to a specific effect due to active cards
+     * @param gameId ID of the game
+     * @param playerToken Token of the player to check
+     * @param effectType Type of effect to check immunity against
+     * @return true if the player is immune to the effect
+     */
+    public boolean isPlayerImmuneToEffect(Long gameId, String playerToken, String effectType) {
+        GameState gameState = gameStates.get(gameId);
+        if (gameState == null) return false;
+
+        GameState.PlayerInfo info = gameState.getPlayerInfo().get(playerToken);
+        if (info == null || info.getActiveActionCards() == null) return false;
+
+        // Check for immunities based on effect type
+        if ("blur".equals(effectType) && info.getActiveActionCards().contains("clearvision")) {
+            log.info("Player {} is immune to blur effect due to Clear Vision card", playerToken);
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Process all action cards played and start the guessing phase
      * @param gameId ID of the game
@@ -304,31 +326,57 @@ public class GameService {
         if (gameState == null) {
             throw new IllegalStateException("Game not initialized: " + gameId);
         }
-        
+
         // Make this method more flexible by accepting more valid states
-        if (gameState.getStatus() != GameStatus.WAITING_FOR_ACTION_CARDS && 
-            gameState.getStatus() != GameStatus.WAITING_FOR_ROUND_CARD) {
+        if (gameState.getStatus() != GameStatus.WAITING_FOR_ACTION_CARDS &&
+                gameState.getStatus() != GameStatus.WAITING_FOR_ROUND_CARD) {
             // Only throw exception if we're already in guessing or later phase
             if (gameState.getStatus() == GameStatus.WAITING_FOR_GUESSES ||
-                gameState.getStatus() == GameStatus.ROUND_COMPLETE ||
-                gameState.getStatus() == GameStatus.GAME_OVER) {
+                    gameState.getStatus() == GameStatus.ROUND_COMPLETE ||
+                    gameState.getStatus() == GameStatus.GAME_OVER) {
                 throw new IllegalStateException("Game is already in or past guessing phase");
             }
         }
-        
+
         // Clear existing guesses for the new round
         gameState.getPlayerGuesses().clear();
-        
+
+        // Apply relevant action card effects to each player
+        for (String playerToken : gameState.getPlayerTokens()) {
+            GameState.PlayerInfo info = gameState.getPlayerInfo().get(playerToken);
+            if (info != null && info.getActiveActionCards() != null) {
+
+                // Process each active card
+                for (String cardId : info.getActiveActionCards()) {
+                    switch (cardId) {
+                        case "badsight":
+                            // Skip blur effect if player has Clear Vision active
+                            if (!isPlayerImmuneToEffect(gameId, playerToken, "blur")) {
+                                log.info("Applying blur effect to player {}", playerToken);
+                                info.setHasBlurredScreen(true);
+                            }
+                            break;
+                        case "nolabels":
+                            log.info("Applying no-labels effect to player {}", playerToken);
+                            info.setHasNoLabelsMap(true);
+                            break;
+                        // Other cases as needed
+                    }
+                }
+            }
+        }
+        // END OF NEW CODE
+
         // We're either waiting for round card, action cards, or in an initial state
         // In any case, we can proceed to guessing phase
         gameState.setStatus(GameStatus.WAITING_FOR_GUESSES);
         gameState.setCurrentScreen("GUESS");
-        
+
         // Ensure the guessScreenAttributes are properly set for the start of the round
         if (gameState.getCurrentLatLngDTO() != null) {
             double latitude = gameState.getCurrentLatLngDTO().getLatitude();
             double longitude = gameState.getCurrentLatLngDTO().getLongitude();
-            
+
             // Make sure coordinates are properly set
             gameState.getGuessScreenAttributes().setLatitude(latitude);
             gameState.getGuessScreenAttributes().setLongitude(longitude);
@@ -336,15 +384,15 @@ public class GameService {
         } else {
             log.warn("No coordinates available when starting guessing phase for game {}", gameId);
         }
-        
+
         // Verify time is set - default to 30 seconds if not already specified
         if (gameState.getGuessScreenAttributes().getTime() <= 0) {
             gameState.getGuessScreenAttributes().setTime(30);
             log.info("Set default round time (30s) as none was previously specified");
         }
-        
-        log.info("Started guessing phase in game {} with round time {}s", 
-                 gameId, gameState.getGuessScreenAttributes().getTime());
+
+        log.info("Started guessing phase in game {} with round time {}s",
+                gameId, gameState.getGuessScreenAttributes().getTime());
     }
     
     /**
@@ -703,7 +751,7 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         log.info("Game {} started with {} players, {} rounds",
                  gameId, gameState.getPlayerTokens().size(), maxRounds);
     }
-    
+
     /**
      * Send game state to a specific user
      * @param gameId ID of the game
@@ -715,13 +763,13 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
             log.warn("Could not send game state - game {} not found", gameId);
             return;
         }
-        
+
         try {
             // Create state for client
             Map<String, Object> responseState = new HashMap<>();
             responseState.put("currentRound", gameState.getCurrentRound());
             responseState.put("currentScreen", gameState.getCurrentScreen());
-            
+
             // FIXED: Always include roundCardSubmitter if in ROUNDCARD phase and current turn player exists
             if (gameState.getRoundCardSubmitter() != null) {
                 responseState.put("roundCardSubmitter", gameState.getRoundCardSubmitter());
@@ -729,11 +777,11 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
                     && gameState.getCurrentTurnPlayerToken() != null) {
                 try {
                     User currentTurnPlayer = authService.getUserByToken(
-                        gameState.getCurrentTurnPlayerToken()
+                            gameState.getCurrentTurnPlayerToken()
                     );
                     String username = currentTurnPlayer.getProfile().getUsername();
                     responseState.put("roundCardSubmitter", username);
-                    
+
                     // Persist it for future consistency
                     gameState.setRoundCardSubmitter(username);
                     log.info("Derived roundCardSubmitter in sendGameStateToUser: {}", username);
@@ -744,30 +792,30 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
             } else {
                 responseState.put("roundCardSubmitter", null);
             }
-            
+
             responseState.put("activeRoundCard", gameState.getActiveRoundCard());
             responseState.put("currentTurnPlayerToken", gameState.getCurrentTurnPlayerToken());
-            
+
             // Inventory for this player
             GameState.PlayerInventory inventory = gameState.getInventoryForPlayer(playerToken);
             if (inventory != null) {
                 Map<String, List<String>> inventoryMap = new HashMap<>();
                 inventoryMap.put(
-                "roundCards",
-                inventory.getRoundCards() != null ? inventory.getRoundCards() : List.of()
+                        "roundCards",
+                        inventory.getRoundCards() != null ? inventory.getRoundCards() : List.of()
                 );
                 inventoryMap.put(
-                "actionCards",
-                inventory.getActionCards() != null ? inventory.getActionCards() : List.of()
+                        "actionCards",
+                        inventory.getActionCards() != null ? inventory.getActionCards() : List.of()
                 );
                 responseState.put("inventory", inventoryMap);
             } else {
                 responseState.put("inventory", Map.of(
-                    "roundCards", List.of(),
-                    "actionCards", List.of()
+                        "roundCards", List.of(),
+                        "actionCards", List.of()
                 ));
             }
-            
+
             // Guess-screen attrs
             Map<String, Object> guessScreenAttrs = new HashMap<>();
             guessScreenAttrs.put("time", gameState.getGuessScreenAttributes().getTime());
@@ -779,12 +827,12 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
             }
             if (gameState.getGuessScreenAttributes().getResolveResponse() != null) {
                 guessScreenAttrs.put(
-                "resolveResponse",
-                gameState.getGuessScreenAttributes().getResolveResponse()
+                        "resolveResponse",
+                        gameState.getGuessScreenAttributes().getResolveResponse()
                 );
             }
             responseState.put("guessScreenAttributes", guessScreenAttrs);
-            
+
             // Player list: iterate all tokens, populate username & counts
             List<Map<String, Object>> playersArray = new ArrayList<>();
             for (String token : gameState.getPlayerTokens()) {
@@ -793,8 +841,8 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
 
                 // 2) lookup and set the real username
                 String uname = authService.getUserByToken(token)
-                                        .getProfile()
-                                        .getUsername();
+                        .getProfile()
+                        .getUsername();
                 info.setUsername(uname);
 
                 // 3) pull current counts from inventory
@@ -808,19 +856,22 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
                 p.put("roundCardsLeft",    info.getRoundCardsLeft());
                 p.put("actionCardsLeft",   info.getActionCardsLeft());
                 p.put("activeActionCards", info.getActiveActionCards());
+                // Add the new effect properties to the player info
+                p.put("hasBlurredScreen",  info.isHasBlurredScreen());
+                p.put("hasNoLabelsMap",    info.isHasNoLabelsMap());
                 playersArray.add(p);
             }
             responseState.put("players", playersArray);
-            
+
             // **Log and send**
             log.info("📨 Sending GAME_STATE to user {} (round={}, screen={})",
                     playerToken,
                     gameState.getCurrentRound(),
                     gameState.getCurrentScreen());
             messagingTemplate.convertAndSendToUser(
-                playerToken,
-                "/queue/lobby/" + gameId + "/game/state",
-                new WebSocketMessage<>("GAME_STATE", responseState)
+                    playerToken,
+                    "/queue/lobby/" + gameId + "/game/state",
+                    new WebSocketMessage<>("GAME_STATE", responseState)
             );
         } catch (Exception e) {
             log.error("Error sending game state to user {}: {}", playerToken, e.getMessage(), e);
@@ -927,7 +978,7 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         
         log.info("Player with token {} played card {} targeting player {} in game {}", playerToken, cardId, targetPlayerToken, gameId);
     }
-    
+
     /**
      * Resets the cards played tracking for a new round
      * @param gameId ID of the game to reset
@@ -954,8 +1005,12 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         cardPlayDetails.put(gameId, newDetails);
 
         // 4) replace each player's action‐card list with a new, mutable List
-        gameState.getPlayerInfo().values()
-                .forEach(pi -> pi.setActiveActionCards(new ArrayList<>()));
+        // and reset visual effect states
+        gameState.getPlayerInfo().values().forEach(pi -> {
+            pi.setActiveActionCards(new ArrayList<>());
+            pi.setHasBlurredScreen(false);
+            pi.setHasNoLabelsMap(false);
+        });
 
         log.info("Reset round tracking for game {}", gameId);
     }
@@ -1157,7 +1212,9 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
             private int roundCardsLeft;
             private int actionCardsLeft;
             private List<String> activeActionCards = new ArrayList<>(); // ActionCardId[]
-            
+            private boolean hasBlurredScreen = false; // For Bad Sight effect
+            private boolean hasNoLabelsMap = false;  // For No Labels effect
+
             public String getUsername() {
                 return username;
             }
@@ -1188,6 +1245,21 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
             
             public void setActiveActionCards(List<String> activeActionCards) {
                 this.activeActionCards = activeActionCards;
+            }
+            public boolean isHasBlurredScreen() {
+                return hasBlurredScreen;
+            }
+
+            public void setHasBlurredScreen(boolean hasBlurredScreen) {
+                this.hasBlurredScreen = hasBlurredScreen;
+            }
+
+            public boolean isHasNoLabelsMap() {
+                return hasNoLabelsMap;
+            }
+
+            public void setHasNoLabelsMap(boolean hasNoLabelsMap) {
+                this.hasNoLabelsMap = hasNoLabelsMap;
             }
         }
         
