@@ -8,6 +8,6 @@ import java.util.Optional;
 
 @Repository("gameRepository")
 public interface GameRepository extends JpaRepository<Game, Long> {
-
+    Game findTopByPlayers_IdOrderByCreationDateDesc(Long userId);
     Optional<Game> findById(Long id);
 }
