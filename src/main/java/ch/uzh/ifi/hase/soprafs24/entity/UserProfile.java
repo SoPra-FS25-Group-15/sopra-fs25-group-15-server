@@ -116,4 +116,9 @@ public class UserProfile implements Serializable {
     public void setBiography(String biography) {
         this.biography = biography;
     }
+    @Column(nullable = false)
+    private int winStreak = 0;
+
+    public int getWinStreak() { return winStreak; }
+    public void setWinStreak(int winStreak) { this.winStreak = winStreak; }
 }

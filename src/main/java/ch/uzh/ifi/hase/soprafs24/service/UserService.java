@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
+import java.util.List; 
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.util.TokenUtils;
@@ -31,6 +31,10 @@ public class UserService {
         this.authService = authService;
     }
 
+    public User updateUser(User user) {
+        return userRepository.saveAndFlush(user);
+    }
+    
     // Public profile
     public User getPublicProfile(Long userId) {
         return userRepository.findById(userId)
@@ -222,4 +226,12 @@ public class UserService {
 
         return user;
     }
+
+    /**
+ * Return the top N users sorted by descending MMR.
+ */
+    public List<User> getTopPlayersByMmr(int count) {
+    // since we only need 10, you can directly call the repo method:
+    return userRepository.findTop10ByOrderByProfileMmrDesc();
+}
 }

@@ -1,7 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.service;
-
+import ch.uzh.ifi.hase.soprafs24.service.StatsService;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.game.RoundCardDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GameRecordDTO;
 import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService.LatLngDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.GameWinnerBroadcast;
@@ -13,7 +14,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,7 +43,11 @@ public class GameService {
     private final SimpMessagingTemplate messagingTemplate;
     private final GameRoundService gameRoundService;
     private final AuthService authService; // Add AuthService as a dependency
+    private final StatsService        statsService;
 
+    @Autowired
+    private UserService userService;
+    
     @Autowired
     private RoundCardService roundCardService;
 
@@ -58,16 +63,19 @@ public class GameService {
     // Track the current player turn and round status
     private final Map<Long, GameState> gameStates = new ConcurrentHashMap<>();
 
+    
     // Constructor
     @Autowired
     public GameService(GoogleMapsService googleMapsService, 
                        SimpMessagingTemplate messagingTemplate,
                        @Lazy GameRoundService gameRoundService,
-                       AuthService authService) { // Add AuthService to constructor
+                       AuthService authService,
+                       StatsService        statsService ) { // Add AuthService to constructor
         this.googleMapsService = googleMapsService;
         this.messagingTemplate = messagingTemplate;
         this.gameRoundService = gameRoundService;
         this.authService = authService; // Initialize AuthService
+        this.statsService = statsService;
     }
     
     /**
@@ -104,7 +112,24 @@ public class GameService {
             }
             gameState.getInventoryForPlayer(playerToken).setRoundCards(cardIds);
             log.info("Initialized player {} with {} round cards in game {}", playerToken, cards.size(), gameId);
+
         }
+        
+        for (String playerToken : playerTokens) {
+            List<RoundCardDTO> cards = roundCardService.assignPlayerRoundCards(gameId, playerToken);
+            gameState.getInventoryForPlayer(playerToken)
+                     .setRoundCards(cards.stream().map(RoundCardDTO::getId)
+                                         .collect(Collectors.toList()));
+            // ← put the “first-time only” block right here:
+            if (gameState.getStartedAt() == null) {
+                // record how many each got, and when the game started
+                gameState.setInitialRoundCardCount(cards.size());
+                gameState.setStartedAt(LocalDateTime.now());
+            }
+        }
+
+
+        // SETUP COMPLETE ---------------------------------------------------------------
 
         gameStates.put(gameId, gameState);
         log.info("Initialized game {} with {} players, starting player token: {}",
@@ -645,6 +670,30 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         gameState.setGameWinnerToken(winnerToken);
         gameState.setCurrentScreen("GAMEOVER");  // Set screen to game over
 
+
+
+        // 1) Update every player's winStreak & gamesPlayed
+    for (String token : gameState.getPlayerTokens()) {
+        User u = authService.getUserByToken(token);
+        var profile = u.getProfile();
+
+        // increment games played
+        profile.setGamesPlayed(profile.getGamesPlayed() + 1);
+
+        if (token.equals(winnerToken)) {
+            // winner: +1 streak
+            profile.setWinStreak(profile.getWinStreak() + 1);
+            // also count a win
+            profile.setWins(profile.getWins() + 1);
+        } else {
+            // loser: reset to zero
+            profile.setWinStreak(0);
+        }
+        userService.updateUser(u);  // or userRepository.save(u);
+    }
+
+
+
         // Lookup the winner's username via AuthService instead of PlayerInfo
         String winnerUsername = authService
             .getUserByToken(winnerToken)
@@ -652,6 +701,32 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
             .getUsername();
 
         log.info("Game {} ended, winner username: {}, token: {}", gameId, winnerUsername, winnerToken);
+
+
+
+        LocalDateTime completed = LocalDateTime.now();
+        GameRecordDTO rec = new GameRecordDTO();
+        rec.setWinner(
+            authService.getUserByToken(winnerToken).getProfile().getUsername()
+        );
+        rec.setPlayers(
+            gameState.getPlayerTokens().stream()
+                    .map(t -> authService.getUserByToken(t).getProfile().getUsername())
+                    .collect(Collectors.toList())
+        );
+        
+        rec.setRoundsPlayed(gameState.getCurrentRound());
+        rec.setRoundCardStartAmount(gameState.getInitialRoundCardCount());
+        rec.setStartedAt(gameState.getStartedAt());
+        rec.setCompletedAt(completed);
+
+        // persist one record per player
+        for (String token : gameState.getPlayerTokens()) {
+            Long uid = authService.getUserByToken(token).getId();
+            statsService.saveGameRecord(uid, rec);
+        }
+
+
 
         // Send structured game winner broadcast
         messagingTemplate.convertAndSend(
@@ -1046,6 +1121,8 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         private String lastRoundWinnerToken;
         private String gameWinnerToken;
         private GameStatus status;
+        private int initialRoundCardCount;
+        private LocalDateTime startedAt;
         
         // New properties as per requirements
         private int currentRound = 0;
@@ -1339,6 +1416,22 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         public void setCurrentRoundCardId(String currentRoundCardId) {
             this.currentRoundCardId = currentRoundCardId;
         }
+       
+        public LocalDateTime getStartedAt() {
+            return startedAt;
+        }
+        public void setStartedAt(LocalDateTime startedAt) {
+            this.startedAt = startedAt;
+        }
+    
+        public int getInitialRoundCardCount() {
+            return initialRoundCardCount;
+        }
+        public void setInitialRoundCardCount(int initialRoundCardCount) {
+            this.initialRoundCardCount = initialRoundCardCount;
+        }
+    
+    
     }
     
     /**
