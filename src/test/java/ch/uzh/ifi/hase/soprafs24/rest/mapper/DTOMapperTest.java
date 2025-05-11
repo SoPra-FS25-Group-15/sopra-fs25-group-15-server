@@ -63,7 +63,7 @@ public class DTOMapperTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("dummyUser");
-        profile.setMmr(1500);
+        profile.setXp(1500); // Changed from setMmr to setXp
         profile.setAchievements(Arrays.asList("First Win", "Sharp Shooter"));
         profile.setFriends(new ArrayList<>());
         profile.setStatsPublic(true);
@@ -83,7 +83,7 @@ public class DTOMapperTest {
         assertEquals(registerDTO.getEmail(), newUser.getEmail());
         assertEquals(registerDTO.getPassword(), newUser.getPassword());
         // defaults
-        assertEquals(0, newUser.getProfile().getMmr());
+        assertEquals(0, newUser.getProfile().getXp()); // Changed from getMmr() to getXp()
         assertNotNull(newUser.getProfile().getAchievements());
     }
 
@@ -105,8 +105,8 @@ public class DTOMapperTest {
         assertEquals(dummyUser.getId(), loginDTO.getUserid());
         assertEquals(dummyUser.getProfile().getUsername(), loginDTO.getUsername());
         assertEquals(dummyUser.getToken(), loginDTO.getToken());
-        // points interpreted as mmr
-        assertEquals(dummyUser.getProfile().getMmr(), loginDTO.getPoints());
+        // points interpreted as xp now
+        assertEquals(dummyUser.getProfile().getXp(), loginDTO.getPoints()); // Changed from getMmr() to getXp()
     }
 
     @Test
@@ -125,7 +125,7 @@ public class DTOMapperTest {
 
         assertEquals(dummyUser.getId(), publicDTO.getUserid());
         assertEquals(dummyUser.getProfile().getUsername(), publicDTO.getUsername());
-        assertEquals(dummyUser.getProfile().getMmr(), publicDTO.getMmr());
+        assertEquals(dummyUser.getProfile().getXp(), publicDTO.getXp()); // Changed from getMmr()/getMmr() to getXp()/getXp()
         assertEquals(dummyUser.getProfile().getAchievements(), publicDTO.getAchievements());
     }
 
@@ -156,13 +156,13 @@ public class DTOMapperTest {
     public void testToUserStatsDTO() {
         dummyUser.getProfile().setGamesPlayed(20);
         dummyUser.getProfile().setWins(12);
-        dummyUser.getProfile().setMmr(1550);
+        dummyUser.getProfile().setXp(1550); // Changed from setMmr() to setXp()
 
         UserStatsDTO statsDTO = mapper.toUserStatsDTO(dummyUser);
 
         assertEquals(20, statsDTO.getGamesPlayed());
         assertEquals(12, statsDTO.getWins());
-        assertEquals(1550, statsDTO.getMmr());
+        assertEquals(1550, statsDTO.getXp()); // Changed from getMmr() to getXp()
     }
     // New tests for Lobby DTO mappings to comply with solo/team modes
 

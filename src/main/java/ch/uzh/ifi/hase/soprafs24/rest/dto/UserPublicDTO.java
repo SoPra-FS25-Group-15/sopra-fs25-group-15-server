@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public class UserPublicDTO {
     private Long userid;
     private String username;
-    private int mmr;
+    private int xp; // Renamed from mmr to xp
     private int points;
     @JsonIgnore
     private List<String> achievements;
@@ -27,11 +27,11 @@ public class UserPublicDTO {
         this.username = username;
     }
 
-    public int getMmr() {
-        return mmr;
+    public int getXp() { // Renamed from getMmr to getXp
+        return xp;
     }
-    public void setMmr(int mmr) {
-        this.mmr = mmr;
+    public void setXp(int xp) { // Renamed from setMmr to setXp
+        this.xp = xp;
     }
 
     public int getPoints() {

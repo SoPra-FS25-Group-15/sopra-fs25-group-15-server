@@ -38,7 +38,7 @@ public class UserRepositoryIntegrationTest {
     
     UserProfile profile = new UserProfile();
     profile.setUsername("Firstname Lastname");
-    profile.setMmr(1500);
+    profile.setXp(1500);  // Changed from setMmr to setXp
     profile.setAchievements(Arrays.asList("Achievement1", "Achievement2"));
     // You can set other profile fields if necessary.
     user.setProfile(profile);
