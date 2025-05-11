@@ -612,6 +612,10 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
     gameState.setCurrentTurnPlayerToken(nextTurnPlayerToken);
     gameState.setLastRoundWinnerToken(nextTurnPlayerToken);
 
+    // Set the winning players username as the roundCardSubmitter
+    gameState.setRoundCardSubmitter(
+        authService.getUserByToken(nextTurnPlayerToken).getProfile().getUsername());
+
     // Clear out any leftover pointers & coordinates
     gameState.setCurrentRoundCard(null);
     gameState.setCurrentLatLngDTO(null);
