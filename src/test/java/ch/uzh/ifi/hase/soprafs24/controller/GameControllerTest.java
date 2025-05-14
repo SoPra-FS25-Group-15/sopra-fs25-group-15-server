@@ -325,4 +325,50 @@ public class GameControllerTest {
                 .andExpect(jsonPath("$.roundCards", hasSize(2)))
                 .andExpect(jsonPath("$.actionCards").exists());
     }
+
+    @Test
+    public void getGameData_PlayerTokensError_ReturnsNotFound() throws Exception {
+        // membership check throws a 404
+        when(authService.getUserByToken(cleanToken)).thenReturn(testUser);
+        when(lobbyService.isUserHostByToken(eq(lobbyId), eq(cleanToken))).thenReturn(false);
+        when(lobbyService.getLobbyPlayerTokens(eq(lobbyId)))
+            .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+
+        mockMvc.perform(get("/games/data")
+                        .param("lobbyId", lobbyId.toString())
+                        .header("Authorization", validToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+               .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void getGameData_RoundCardServiceStatusException_ReturnsServiceUnavailable() throws Exception {
+        // RoundCardService throws a ResponseStatusException → propagate 503
+        when(lobbyService.isUserHostByToken(eq(lobbyId), eq(cleanToken))).thenReturn(true);
+        when(roundCardService.getAllRoundCards())
+            .thenThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Maintenance"));
+
+        mockMvc.perform(get("/games/data")
+                        .param("lobbyId", lobbyId.toString())
+                        .header("Authorization", validToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+               .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    public void getGameData_ActionCardServiceStatusException_ReturnsServiceUnavailable() throws Exception {
+        // drawRandomCard throws a ResponseStatusException → propagate 503
+        when(lobbyService.isUserHostByToken(eq(lobbyId), eq(cleanToken))).thenReturn(true);
+        when(lobbyService.getLobbyPlayerIds(lobbyId)).thenReturn(Arrays.asList(1L));
+        when(actionCardService.drawRandomCard())
+            .thenThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Rate limit"));
+
+        mockMvc.perform(get("/games/data")
+                        .param("lobbyId", lobbyId.toString())
+                        .header("Authorization", validToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+               .andExpect(status().isServiceUnavailable());
+    }
+
+
 }
