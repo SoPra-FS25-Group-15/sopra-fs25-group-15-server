@@ -1,27 +1,26 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
 import java.lang.reflect.Field;
 import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.when;
 import org.mockito.MockitoAnnotations;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 
@@ -78,16 +77,16 @@ public class AuthControllerTest {
     @Test
     public void testRegister_Success() {
         // Arrange
-        UserRegisterResponseDTO expectedResponse = new UserRegisterResponseDTO();
+        UserMeDTO expectedResponse = new UserMeDTO();
         expectedResponse.setUserid(1L);
         expectedResponse.setToken("test-token");
 
         when(dtoMapper.toEntity(any(UserRegisterRequestDTO.class))).thenReturn(testUser);
         when(authService.register(any(User.class))).thenReturn(testUser);
-        when(dtoMapper.toRegisterResponse(any(User.class))).thenReturn(expectedResponse);
+        when(dtoMapper.toUserMeDTO(any(User.class))).thenReturn(expectedResponse);
 
         // Act
-        UserRegisterResponseDTO actualResponse = authController.register(registerRequestDTO);
+        UserMeDTO actualResponse = authController.register(registerRequestDTO);
 
         // Assert
         assertEquals(expectedResponse.getUserid(), actualResponse.getUserid());
@@ -98,16 +97,16 @@ public class AuthControllerTest {
     @Test
     public void testLogin_Success() {
         // Arrange
-        UserLoginResponseDTO expectedResponse = new UserLoginResponseDTO();
+        UserMeDTO expectedResponse = new UserMeDTO();
         expectedResponse.setUserid(1L);
         expectedResponse.setToken("test-token");
         expectedResponse.setUsername("testUser");
 
         when(authService.login(eq("test@example.com"), eq("password123"))).thenReturn(testUser);
-        when(dtoMapper.toLoginResponse(testUser)).thenReturn(expectedResponse);
+        when(dtoMapper.toUserMeDTO(testUser)).thenReturn(expectedResponse);
 
         // Act
-        UserLoginResponseDTO actualResponse = authController.login(loginRequestDTO);
+        UserMeDTO actualResponse = authController.login(loginRequestDTO);
 
         // Assert
         assertEquals(expectedResponse.getUserid(), actualResponse.getUserid());

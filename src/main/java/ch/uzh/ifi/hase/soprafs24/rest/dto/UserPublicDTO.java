@@ -1,4 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
+
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -8,6 +9,7 @@ public class UserPublicDTO {
     private String username;
     private int xp; // Renamed from mmr to xp
     private int points;
+    private Boolean statsPublic;
     @JsonIgnore
     private List<String> achievements;
     private String email;
@@ -16,6 +18,7 @@ public class UserPublicDTO {
     public Long getUserid() {
         return userid;
     }
+
     public void setUserid(Long userid) {
         this.userid = userid;
     }
@@ -23,6 +26,7 @@ public class UserPublicDTO {
     public String getUsername() {
         return username;
     }
+
     public void setUsername(String username) {
         this.username = username;
     }
@@ -30,6 +34,7 @@ public class UserPublicDTO {
     public int getXp() { // Renamed from getMmr to getXp
         return xp;
     }
+
     public void setXp(int xp) { // Renamed from setMmr to setXp
         this.xp = xp;
     }
@@ -42,17 +47,26 @@ public class UserPublicDTO {
         this.points = points;
     }
 
+    public Boolean getStatsPublic() {
+        return statsPublic;
+    }
+
+    public void setStatsPublic(Boolean statsPublic) {
+        this.statsPublic = statsPublic;
+    }
+
     public List<String> getAchievements() {
         return achievements;
     }
+
     public void setAchievements(List<String> achievements) {
         this.achievements = achievements;
     }
-    
+
     public String getEmail() {
         return email;
     }
-    
+
     public void setEmail(String email) {
         this.email = email;
     }
