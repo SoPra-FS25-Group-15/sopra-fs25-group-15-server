@@ -25,6 +25,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
+
 @TestPropertySource(properties = "spring.cloud.gcp.sql.enabled=false")
 @WebMvcTest(StatsController.class)
 public class StatsControllerTest {
@@ -59,31 +60,29 @@ public class StatsControllerTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("testUser");
-        profile.setXp(1500);  // Changed from setMmr to setXp
+        profile.setXp(1500);
         profile.setPoints(1500);
         profile.setWins(5);
-        profile.setGamesPlayed(7); // Added this since there's no setter for losses directly
-        profile.setStatsPublic(true); // Public stats
+        profile.setGamesPlayed(7);
+        profile.setStatsPublic(true);
         profile.setAchievements(Arrays.asList("First Win"));
         user.setProfile(profile);
 
-        // Expected DTO
         UserStatsDTO statsDTO = new UserStatsDTO();
         statsDTO.setGamesPlayed(7);
         statsDTO.setWins(5);
-        statsDTO.setXp(1500);  // Changed from setMmr to setXp
+        statsDTO.setXp(1500);
         statsDTO.setPoints(1500);
 
         given(userService.getPublicProfile(eq(1L))).willReturn(user);
         given(mapper.toUserStatsDTO(user)).willReturn(statsDTO);
 
-        // when/then
         mockMvc.perform(get("/users/1/stats")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gamesPlayed").value(7))
                 .andExpect(jsonPath("$.wins").value(5))
-                .andExpect(jsonPath("$.xp").value(1500))  // Changed from $.mmr to $.xp
+                .andExpect(jsonPath("$.xp").value(1500))
                 .andExpect(jsonPath("$.points").value(1500));
     }
 
@@ -105,13 +104,12 @@ public class StatsControllerTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("testUser");
-        profile.setXp(1500);  // Changed from setMmr to setXp
-        profile.setStatsPublic(false); // Private stats
+        profile.setXp(1500);
+        profile.setStatsPublic(false);
         user.setProfile(profile);
 
         given(userService.getPublicProfile(eq(1L))).willReturn(user);
 
-        // when/then
         mockMvc.perform(get("/users/1/stats")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -122,7 +120,6 @@ public class StatsControllerTest {
         // given
         final String token = "Bearer test-token";
         User user = new User();
-        // Set ID via reflection
         try {
             Field idField = User.class.getDeclaredField("id");
             idField.setAccessible(true);
@@ -136,31 +133,65 @@ public class StatsControllerTest {
 
         UserProfile profile = new UserProfile();
         profile.setUsername("testUser");
-        profile.setXp(1500);  // Changed from setMmr to setXp
+        profile.setXp(1500);
         profile.setPoints(1500);
         profile.setWins(5);
         profile.setGamesPlayed(7);
-        profile.setStatsPublic(false); // Doesn't matter for personal stats
+        profile.setStatsPublic(false);
         user.setProfile(profile);
 
-        // Expected DTO
         UserStatsDTO statsDTO = new UserStatsDTO();
         statsDTO.setGamesPlayed(7);
         statsDTO.setWins(5);
-        statsDTO.setXp(1500);  // Changed from setMmr to setXp
+        statsDTO.setXp(1500);
         statsDTO.setPoints(1500);
 
         given(authService.getUserByToken(eq(token))).willReturn(user);
         given(mapper.toUserStatsDTO(user)).willReturn(statsDTO);
 
-        // when/then
         mockMvc.perform(get("/users/me/stats")
                 .header("Authorization", token)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gamesPlayed").value(7))
                 .andExpect(jsonPath("$.wins").value(5))
-                .andExpect(jsonPath("$.xp").value(1500))  // Changed from $.mmr to $.xp
+                .andExpect(jsonPath("$.xp").value(1500))
                 .andExpect(jsonPath("$.points").value(1500));
+    }
+
+    // New tests for error conditions
+
+    @Test
+    public void getUserStats_UserNotFound_ReturnsNotFound() throws Exception {
+        // given
+        given(userService.getPublicProfile(eq(2L)))
+            .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // when/then
+        mockMvc.perform(get("/users/2/stats")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void getMyStats_InvalidToken_ReturnsUnauthorized() throws Exception {
+        // given
+        final String token = "Bearer invalid-token";
+        given(authService.getUserByToken(eq(token)))
+            .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token"));
+
+        // when/then
+        mockMvc.perform(get("/users/me/stats")
+                .header("Authorization", token)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void getMyStats_MissingAuthorizationHeader_ReturnsBadRequest() throws Exception {
+        // when/then
+        mockMvc.perform(get("/users/me/stats")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 }
