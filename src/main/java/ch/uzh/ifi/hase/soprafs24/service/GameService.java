@@ -1007,7 +1007,7 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
         // 4) replace each player's action‐card list with a new, mutable List
         // and reset visual effect states
         gameState.getPlayerInfo().values().forEach(pi -> {
-            pi.setActiveActionCards(new ArrayList<>());
+//            pi.setActiveActionCards(new ArrayList<>());
             pi.setHasBlurredScreen(false);
             pi.setHasNoLabelsMap(false);
         });
