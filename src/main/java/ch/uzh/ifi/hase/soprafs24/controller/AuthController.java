@@ -1,7 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.CrossOrigin;  // ← added import
+import org.springframework.web.bind.annotation.CrossOrigin; // ← added import
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,15 +19,10 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 
-@CrossOrigin(
-    origins = {
+@CrossOrigin(origins = {
         "https://sopra-fs25-group-15-client.vercel.app",
         "http://localhost:3000"
-    },
-    allowCredentials = "true",
-    allowedHeaders = "*",
-    exposedHeaders = "Authorization"
-)
+}, allowCredentials = "true", allowedHeaders = "*", exposedHeaders = "Authorization")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -43,18 +38,18 @@ public class AuthController {
     // 1) Register
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public UserRegisterResponseDTO register(@RequestBody UserRegisterRequestDTO registerDTO) {
+    public UserMeDTO register(@RequestBody UserRegisterRequestDTO registerDTO) {
         User newUser = mapper.toEntity(registerDTO);
         User created = authService.register(newUser);
-        return mapper.toRegisterResponse(created);
+        return mapper.toUserMeDTO(created);
     }
 
     // 2) Login
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
-    public UserLoginResponseDTO login(@RequestBody UserLoginRequestDTO loginDTO) {
+    public UserMeDTO login(@RequestBody UserLoginRequestDTO loginDTO) {
         User user = authService.login(loginDTO.getEmail(), loginDTO.getPassword());
-        return mapper.toLoginResponse(user);
+        return mapper.toUserMeDTO(user);
     }
 
     // 3) Logout
@@ -76,9 +71,11 @@ public class AuthController {
     // Simple DTO for logout response
     static class LogoutResponse {
         private String message;
+
         public LogoutResponse(String message) {
             this.message = message;
         }
+
         public String getMessage() {
             return message;
         }

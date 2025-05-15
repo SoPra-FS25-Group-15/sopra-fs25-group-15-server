@@ -5,12 +5,13 @@ public class UserMeDTO {
     private String username;
     private String email;
     private String token;
-    // Possibly more fields if you want them, like mmr or achievements
+    private Boolean statsPublic;
 
     // Getters and setters
     public Long getUserid() {
         return userid;
     }
+
     public void setUserid(Long userid) {
         this.userid = userid;
     }
@@ -18,6 +19,7 @@ public class UserMeDTO {
     public String getUsername() {
         return username;
     }
+
     public void setUsername(String username) {
         this.username = username;
     }
@@ -25,6 +27,7 @@ public class UserMeDTO {
     public String getEmail() {
         return email;
     }
+
     public void setEmail(String email) {
         this.email = email;
     }
@@ -32,7 +35,16 @@ public class UserMeDTO {
     public String getToken() {
         return token;
     }
+
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public Boolean getStatsPublic() {
+        return statsPublic;
+    }
+
+    public void setStatsPublic(Boolean statsPublic) {
+        this.statsPublic = statsPublic;
     }
 }

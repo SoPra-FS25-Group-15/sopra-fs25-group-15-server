@@ -1,39 +1,35 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.mock;
 
+import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
 import ch.uzh.ifi.hase.soprafs24.constant.LobbyConstants;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
-import ch.uzh.ifi.hase.soprafs24.constant.FriendRequestStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.FriendRequest;
 import ch.uzh.ifi.hase.soprafs24.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
-import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.JoinLobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserLoginResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserRegisterResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserStatsDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
 
 public class DTOMapperTest {
 
@@ -42,8 +38,7 @@ public class DTOMapperTest {
 
     @BeforeEach
     public void setup() {
-        UserRepository userRepository = mock(UserRepository.class);
-        mapper = new DTOMapper(userRepository);
+        mapper = new DTOMapper();
         dummyUser = new User();
 
         // Use reflection to set the ID field directly for dummyUser
@@ -89,24 +84,21 @@ public class DTOMapperTest {
 
     @Test
     public void testToRegisterResponse() {
-        UserRegisterResponseDTO responseDTO = mapper.toRegisterResponse(dummyUser);
+        UserMeDTO responseDTO = mapper.toUserMeDTO(dummyUser);
 
         assertEquals(dummyUser.getId(), responseDTO.getUserid());
         assertEquals(dummyUser.getProfile().getUsername(), responseDTO.getUsername());
         assertEquals(dummyUser.getEmail(), responseDTO.getEmail());
         assertEquals(dummyUser.getToken(), responseDTO.getToken());
-        assertEquals(dummyUser.getCreatedAt(), responseDTO.getCreatedAt());
     }
 
     @Test
     public void testToLoginResponse() {
-        UserLoginResponseDTO loginDTO = mapper.toLoginResponse(dummyUser);
+        UserMeDTO loginDTO = mapper.toUserMeDTO(dummyUser);
 
         assertEquals(dummyUser.getId(), loginDTO.getUserid());
         assertEquals(dummyUser.getProfile().getUsername(), loginDTO.getUsername());
         assertEquals(dummyUser.getToken(), loginDTO.getToken());
-        // points interpreted as xp now
-        assertEquals(dummyUser.getProfile().getXp(), loginDTO.getPoints()); // Changed from getMmr() to getXp()
     }
 
     @Test
@@ -125,7 +117,7 @@ public class DTOMapperTest {
 
         assertEquals(dummyUser.getId(), publicDTO.getUserid());
         assertEquals(dummyUser.getProfile().getUsername(), publicDTO.getUsername());
-        assertEquals(dummyUser.getProfile().getXp(), publicDTO.getXp()); // Changed from getMmr()/getMmr() to getXp()/getXp()
+        assertEquals(dummyUser.getProfile().getXp(), publicDTO.getXp());
         assertEquals(dummyUser.getProfile().getAchievements(), publicDTO.getAchievements());
     }
 
@@ -145,7 +137,7 @@ public class DTOMapperTest {
 
     @Test
     public void testToUpdateResponse() {
-        UserUpdateResponseDTO updateResp = mapper.toUpdateResponse(dummyUser);
+        UserMeDTO updateResp = mapper.toUserMeDTO(dummyUser);
 
         assertEquals(dummyUser.getId(), updateResp.getUserid());
         assertEquals(dummyUser.getProfile().getUsername(), updateResp.getUsername());
@@ -181,7 +173,8 @@ public class DTOMapperTest {
         // Since mode is team, maxPlayersPerTeam should be set from DTO
         assertEquals(3, lobby.getMaxPlayersPerTeam());
         assertEquals("team", lobby.getMode());
-        // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
+        // Round cards should not be set by the mapper anymore - but in Lobby they're
+        // initialized as empty list
         assertNotNull(lobby.getHintsEnabled());
         assertTrue(lobby.getHintsEnabled().isEmpty());
         assertEquals(8, lobby.getMaxPlayers());
@@ -203,7 +196,8 @@ public class DTOMapperTest {
         // In solo mode, maxPlayersPerTeam is always set to 1
         assertEquals(1, lobby.getMaxPlayersPerTeam());
         assertEquals("solo", lobby.getMode());
-        // Round cards should not be set by the mapper anymore - but in Lobby they're initialized as empty list
+        // Round cards should not be set by the mapper anymore - but in Lobby they're
+        // initialized as empty list
         assertNotNull(lobby.getHintsEnabled());
         assertTrue(lobby.getHintsEnabled().isEmpty());
         assertEquals(8, lobby.getMaxPlayers());
@@ -294,7 +288,7 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 500L);
-        } catch(IllegalArgumentException | NullPointerException e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             // Handle specific exceptions
             e.printStackTrace();
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -302,25 +296,25 @@ public class DTOMapperTest {
         }
         lobby.setMode("solo");
         lobby.setPrivate(true); // Private = unranked
-        
+
         String testMessage = "Left lobby successfully.";
-        
+
         // Convert using mapper
         LobbyLeaveResponseDTO responseDTO = mapper.toLobbyLeaveResponse(lobby, testMessage);
-        
+
         // Verify mapping results
         assertEquals(testMessage, responseDTO.getMessage());
         assertNotNull(responseDTO.getLobby());
         assertEquals(lobby.getId(), responseDTO.getLobby().getLobbyId());
     }
-    
+
     @Test
     public void testToLobbyLeaveResponse_WithNullLobby() {
         String testMessage = "Lobby was disbanded.";
-        
+
         // Test with null lobby
         LobbyLeaveResponseDTO responseDTO = mapper.toLobbyLeaveResponse(null, testMessage);
-        
+
         // Verify mapping results
         assertEquals(testMessage, responseDTO.getMessage());
         assertNull(responseDTO.getLobby());
@@ -350,7 +344,7 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 100L);
-        } catch(IllegalArgumentException | NullPointerException e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             // Handle specific exceptions
             e.printStackTrace();
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -363,7 +357,7 @@ public class DTOMapperTest {
         lobby.setMaxPlayers(8);
 
         LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
-        
+
         // Verify solo mode mappings
         assertEquals("solo", dto.getMode());
         assertEquals("8", dto.getMaxPlayers()); // MaxPlayers is now a String
@@ -378,9 +372,9 @@ public class DTOMapperTest {
         dto.setPrivate(true); // Casual/unranked game is private
         dto.setMode("team"); // Client attempts to set team mode
         dto.setMaxPlayersPerTeam(3); // Client attempts to set team size
-        
+
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
-        
+
         // Verify mapper enforces solo mode for casual games
         assertEquals(true, lobby.isPrivate()); // Casual games are always private
         assertEquals("solo", lobby.getMode()); // Mode is enforced to solo
@@ -394,9 +388,9 @@ public class DTOMapperTest {
         dto.setPrivate(false); // Ranked game
         dto.setMode("team"); // Client sets team mode
         dto.setMaxPlayersPerTeam(2); // Client sets team size
-        
+
         Lobby lobby = mapper.lobbyRequestDTOToEntity(dto);
-        
+
         // Verify mapper respects mode for ranked games
         assertEquals(false, lobby.isPrivate()); // Ranked games are public
         assertEquals("team", lobby.getMode()); // Mode is preserved
@@ -412,7 +406,7 @@ public class DTOMapperTest {
             Field idField = Lobby.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(lobby, 500L);
-        } catch(IllegalArgumentException | NullPointerException e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             // Handle specific exceptions
             e.printStackTrace();
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -423,9 +417,9 @@ public class DTOMapperTest {
         lobby.setLobbyCode("12345");
         lobby.setMaxPlayersPerTeam(1); // Internal value
         lobby.setMaxPlayers(8);
-        
+
         LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
-        
+
         // Verify solo mode mappings
         assertEquals("solo", dto.getMode());
         assertEquals("8", dto.getMaxPlayers()); // Now a String
@@ -447,9 +441,9 @@ public class DTOMapperTest {
         lobby.setMode("team");
         lobby.setPrivate(false);
         lobby.setMaxPlayersPerTeam(2);
-        
+
         LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
-        
+
         // Verify team mode mappings
         assertEquals("team", dto.getMode());
         assertEquals(2, dto.getPlayersPerTeam()); // This line was failing - ensure it's correctly mapped
@@ -469,10 +463,9 @@ public class DTOMapperTest {
         }
         lobby.setMode("solo");
         lobby.setPrivate(true);
-    
-        
+
         LobbyResponseDTO dto = mapper.lobbyEntityToResponseDTO(lobby);
-        
+
         // Verify roundCardsStartAmount is set correctly
         assertEquals(2, dto.getRoundCardsStartAmount());
     }
@@ -484,7 +477,7 @@ public class DTOMapperTest {
         joinDTO.setMode("solo");
         joinDTO.setLobbyCode("12345");
         joinDTO.setFriendInvited(true);
-        
+
         // Verify the DTO has the expected properties
         assertEquals("solo", joinDTO.getMode());
         assertEquals("12345", joinDTO.getLobbyCode());
@@ -523,21 +516,21 @@ public class DTOMapperTest {
             Field idField = FriendRequest.class.getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(request, 400L);
-            
+
             Field createdAtField = FriendRequest.class.getDeclaredField("createdAt");
             createdAtField.setAccessible(true);
             createdAtField.set(request, Instant.now());
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException("Failed to set friend request fields via reflection", e);
         }
-        
+
         request.setSender(sender);
         request.setRecipient(recipient);
         request.setStatus(FriendRequestStatus.PENDING);
 
         // Test with recipient as current user (incoming request)
         ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO dto = mapper.toFriendRequestDTO(request, recipient);
-        
+
         // Verify mapping
         assertEquals(400L, dto.getRequestId());
         assertEquals(200L, dto.getSender());
@@ -578,14 +571,14 @@ public class DTOMapperTest {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException("Failed to set friend request ID via reflection", e);
         }
-        
+
         request.setSender(sender);
         request.setRecipient(recipient);
         request.setStatus(FriendRequestStatus.ACCEPTED);
 
         // Test basic mapper method
         ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO dto = mapper.toFriendRequestDTO(request);
-        
+
         // Verify mapping
         assertEquals(401L, dto.getRequestId());
         assertEquals(301L, dto.getRecipient());
@@ -608,7 +601,7 @@ public class DTOMapperTest {
         friend.setProfile(profile);
 
         ch.uzh.ifi.hase.soprafs24.rest.dto.FriendDTO dto = mapper.toFriendDTO(friend);
-        
+
         assertEquals(500L, dto.getFriendId());
         assertEquals("friendUser", dto.getUsername());
     }
@@ -630,7 +623,7 @@ public class DTOMapperTest {
         searchResult.setEmail("searched@example.com");
 
         ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO dto = mapper.toUserSearchResponseDTO(searchResult);
-        
+
         assertEquals(600L, dto.getUserid());
         assertEquals("searchedUser", dto.getUsername());
         assertEquals("searched@example.com", dto.getEmail());

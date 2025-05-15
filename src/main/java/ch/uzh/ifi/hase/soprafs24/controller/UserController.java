@@ -17,6 +17,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPublicDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserSearchResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserDeleteRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserMeDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserUpdateResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
@@ -49,12 +50,12 @@ public class UserController {
     // 2) PUT /api/users/me => update user
     @PutMapping("/me")
     @ResponseStatus(HttpStatus.OK)
-    public UserUpdateResponseDTO updateMyProfile(
+    public UserMeDTO updateMyProfile(
             @RequestHeader("Authorization") String token,
             @RequestBody UserUpdateRequestDTO updateDTO
     ) {
         User updatedUser = userService.updateMyUser(token, updateDTO.getUsername(), updateDTO.getEmail(), updateDTO.getStatsPublic());
-        return mapper.toUpdateResponse(updatedUser);
+        return mapper.toUserMeDTO(updatedUser);
     }
 
   
