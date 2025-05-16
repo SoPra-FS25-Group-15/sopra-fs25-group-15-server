@@ -16,6 +16,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.FriendRequestDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.LeaderboardEntryDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyLeaveResponseDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyRequestDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.LobbyResponseDTO;
@@ -206,5 +207,22 @@ public class DTOMapper {
         dto.setUsername(user.getProfile().getUsername());
         dto.setEmail(user.getEmail());
         return dto;
+    }
+
+    /**
+     * Converts a User entity to a LeaderboardEntryDTO
+     * @param user the User entity
+     * @param rank the rank of the user in the leaderboard
+     * @return LeaderboardEntryDTO
+     */
+    public LeaderboardEntryDTO userToLeaderboardEntryDTO(User user, int rank) {
+        LeaderboardEntryDTO leaderboardEntryDTO = new LeaderboardEntryDTO();
+        leaderboardEntryDTO.setRank(rank);
+        leaderboardEntryDTO.setUserId(user.getId());
+        leaderboardEntryDTO.setUsername(user.getProfile().getUsername());
+        leaderboardEntryDTO.setXp(user.getProfile().getXp());
+        leaderboardEntryDTO.setGamesPlayed(user.getProfile().getGamesPlayed());
+        leaderboardEntryDTO.setWins(user.getProfile().getWins());
+        return leaderboardEntryDTO;
     }
 }

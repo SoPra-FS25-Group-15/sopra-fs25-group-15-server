@@ -52,6 +52,32 @@ You can verify that the server is running by visiting `localhost:8080` in your b
 ./gradlew test
 ```
 
+#### Running Specific Tests
+
+To run individual test files or classes instead of the entire test suite:
+
+```bash
+# Run a single test class
+./gradlew test --tests ClassName
+
+# Example: Run only LeaderboardServiceTest
+./gradlew test --tests LeaderboardServiceTest
+
+# Run a specific test method in a class
+./gradlew test --tests ClassName.testMethodName
+
+# Example: Run only the getLeaderboard_ValidParameters_ReturnsCorrectPage test
+./gradlew test --tests LeaderboardServiceTest.getLeaderboard_ValidParameters_ReturnsCorrectPage
+
+# Run all tests in a package
+./gradlew test --tests package.name.*
+
+# Example: Run all tests in the controller package
+./gradlew test --tests ch.uzh.ifi.hase.soprafs24.controller.*
+```
+
+These commands are useful during development to focus on specific test cases without running the entire test suite.
+
 ### Development Mode
 You can start the backend in development mode, this will automatically trigger a new build and reload the application
 once the content of a file has been changed.
