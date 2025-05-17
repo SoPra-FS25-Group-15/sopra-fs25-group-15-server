@@ -7,12 +7,14 @@ import ch.uzh.ifi.hase.soprafs24.service.GameService.GameState;
 import ch.uzh.ifi.hase.soprafs24.service.GameService.GameStatus;
 import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService.LatLngDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
+import ch.uzh.ifi.hase.soprafs24.service.UserXpService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +68,9 @@ public class GameServiceTest {
 
     @MockBean
     private RoundCardService roundCardService;
+
+    @MockBean
+    private UserXpService userXpService;
 
     private List<String> playerTokens;
     private Map<Long, GameState> gameStates;

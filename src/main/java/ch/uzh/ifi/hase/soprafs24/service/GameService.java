@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.game.RoundCardDTO;
 import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService.LatLngDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
+import ch.uzh.ifi.hase.soprafs24.websocket.dto.XpUpdateMessage;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.GameWinnerBroadcast;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.RoundWinnerBroadcast;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class GameService {
     private final SimpMessagingTemplate messagingTemplate;
     private final GameRoundService gameRoundService;
     private final AuthService authService; // Add AuthService as a dependency
+    private final UserXpService userXpService;
 
     @Autowired
     private RoundCardService roundCardService;
@@ -63,11 +65,12 @@ public class GameService {
     public GameService(GoogleMapsService googleMapsService, 
                        SimpMessagingTemplate messagingTemplate,
                        @Lazy GameRoundService gameRoundService,
-                       AuthService authService) { // Add AuthService to constructor
+                       AuthService authService, UserXpService userXpService) { // Add AuthService to constructor
         this.googleMapsService = googleMapsService;
         this.messagingTemplate = messagingTemplate;
         this.gameRoundService = gameRoundService;
         this.authService = authService; // Initialize AuthService
+        this.userXpService = userXpService; // Initialize UserXpService
     }
     
     /**
@@ -509,14 +512,19 @@ public class GameService {
             log.info("Broadcasted RoundWinnerBroadcast: username={}, …", winnerUsername);
             
             
-            // Game will continue to the next round or end if the winner has no round cards left
-            // This logic is now entirely handled in prepareNextRound
-            prepareNextRound(gameId, winnerToken);
+            // Check if this was the final round
+            // Game ends when current round reaches the max rounds value
+            if (gameState.getCurrentRound() >= gameState.getMaxRounds()) {
+                endGame(gameId, winnerToken);
+            } else {
+                // Prepare next round
+                prepareNextRound(gameId, winnerToken);
+            }
         }
     }
     
     /**
-     * Determine the winner of the current round
+     * Determine the winner of the current round (and award XP for round- and game-wins)
      * @param gameId ID of the game
      * @return Token of the winning player
      */
@@ -525,118 +533,140 @@ public class GameService {
         if (gameState == null) {
             throw new IllegalStateException("Game not initialized: " + gameId);
         }
-        
-        // FIXED: Use a synchronized block to avoid race conditions
+
         synchronized (gameState.getPlayerGuesses()) {
-            // FIXED: Add a more robust check with helpful error messages
             if (gameState.getStatus() != GameStatus.WAITING_FOR_GUESSES) {
                 throw new IllegalStateException(
                     String.format("Game is not in guessing phase, current status: %s", gameState.getStatus()));
             }
-            
             if (gameState.getPlayerGuesses().size() < gameState.getPlayerTokens().size()) {
-                // FIXED: Include detailed information about which players are missing guesses
-                Set<String> missingTokens = new HashSet<>(gameState.getPlayerTokens());
-                missingTokens.removeAll(gameState.getPlayerGuesses().keySet());
-                
+                Set<String> missing = new HashSet<>(gameState.getPlayerTokens());
+                missing.removeAll(gameState.getPlayerGuesses().keySet());
                 throw new IllegalStateException(
-                    String.format("Not all players have submitted their guesses. %d/%d received. Missing: %s", 
-                                 gameState.getPlayerGuesses().size(), 
-                                 gameState.getPlayerTokens().size(),
-                                 String.join(", ", missingTokens)));
+                    String.format("Not all players have submitted their guesses. %d/%d received. Missing: %s",
+                                gameState.getPlayerGuesses().size(),
+                                gameState.getPlayerTokens().size(),
+                                String.join(", ", missing)));
             }
-            
-            // Find the player with the smallest distance (lowest guess value)
+
+            // 1) pick winner
             String winnerToken = gameState.getPlayerGuesses().entrySet().stream()
                 .min(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
                 .orElseThrow(() -> new IllegalStateException("Could not determine a winner"));
-                
-            // Store winning distance
             int winningDistance = gameState.getPlayerGuesses().get(winnerToken);
-            
-            // Update game state
+
+            // 2) update game state
             gameState.setLastRoundWinnerToken(winnerToken);
+            gameState.setLastRoundWinningDistance(winningDistance);
             gameState.setStatus(GameStatus.ROUND_COMPLETE);
             gameState.setCurrentScreen("REVEAL");
-            
-            // Store the winning distance in the gameState for the client
-            gameState.setLastRoundWinningDistance(winningDistance);
-            
-            log.info("Player with token {} won the round in game {} with distance {}m", 
-                    winnerToken, gameId, winningDistance);
-            
+            log.info("Player with token {} won round {} of game {} ({}m)",
+                    winnerToken,
+                    gameState.getCurrentRound(),
+                    gameId,
+                    winningDistance);
+
+            // 3) award XP for winning the round
+            User winner = authService.getUserByToken(winnerToken);
+            userXpService.awardXpForRoundWin(winner);
+            messagingTemplate.convertAndSendToUser(
+                winnerToken,
+                "/queue/lobby/xp",
+                new XpUpdateMessage(
+                    winner.getProfile().getXp(),
+                    UserXpService.XP_FOR_ROUND_WIN,
+                    "You won round " + gameState.getCurrentRound()
+                )
+            );
+
+            // 4) if this was the final round, also award game-win XP
+            if (gameState.getCurrentRound() >= gameState.getMaxRounds()) {
+                userXpService.awardXpForGameWin(winner);
+                messagingTemplate.convertAndSendToUser(
+                    winnerToken,
+                    "/queue/lobby/xp",
+                    new XpUpdateMessage(
+                        winner.getProfile().getXp(),
+                        UserXpService.XP_FOR_GAME_WIN,
+                        "You won the game!"
+                    )
+                );
+            }
+
             return winnerToken;
         }
     }
+
+
     
     /**
- * Prepare for the next round.
- * 1) If the winning player also *played* the round card, discard it.
- * 2) If that was their last card, end the game.
- * 3) Otherwise reset state and move on to the ROUNDCARD phase.
- */
-public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
-    GameState gameState = gameStates.get(gameId);
-    if (gameState == null) {
-        throw new IllegalStateException("Game not initialized: " + gameId);
+     * Prepare for the next round.
+     * 1) If the winning player also *played* the round card, discard it.
+     * 2) If that was their last card, end the game.
+     * 3) Otherwise reset state and move on to the ROUNDCARD phase.
+     */
+    public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
+        GameState gameState = gameStates.get(gameId);
+        if (gameState == null) {
+            throw new IllegalStateException("Game not initialized: " + gameId);
+        }
+        if (gameState.getStatus() != GameStatus.ROUND_COMPLETE) {
+            throw new IllegalStateException("Current round is not complete");
+        }
+
+        // ─── 1) DISCARD LOGIC ─────────────────────────────────────────────────────
+        String playedBy   = gameState.getCurrentRoundCardPlayer();
+        String playedCard = gameState.getCurrentRoundCardId();
+        if (playedBy != null
+            && playedCard != null
+            && playedBy.equals(nextTurnPlayerToken)) {
+            log.info("Winner {} played card {} → discarding it", nextTurnPlayerToken, playedCard);
+
+            // Remove from DB
+            roundCardService.removeRoundCardFromPlayerByToken(gameId, nextTurnPlayerToken, playedCard);
+            // Remove from in‐memory inventory
+            gameState.getInventoryForPlayer(nextTurnPlayerToken)
+                    .getRoundCards()
+                    .remove(playedCard);
+        }
+
+        // ─── 2) END‐GAME CHECK ───────────────────────────────────────────────────
+        if (!hasRoundCards(gameId, nextTurnPlayerToken)) {
+            log.info("Player {} has no more round cards → ending game", nextTurnPlayerToken);
+            endGame(gameId, nextTurnPlayerToken);
+            return;
+        }
+
+        // ─── 3) RESET FOR NEXT ROUND ─────────────────────────────────────────────
+        gameState.setCurrentTurnPlayerToken(nextTurnPlayerToken);
+        gameState.setLastRoundWinnerToken(nextTurnPlayerToken);
+
+        // Set the winning players username as the roundCardSubmitter
+        gameState.setRoundCardSubmitter(
+            authService.getUserByToken(nextTurnPlayerToken).getProfile().getUsername());
+
+        // Clear out any leftover pointers & coordinates
+        gameState.setCurrentRoundCard(null);
+        gameState.setCurrentLatLngDTO(null);
+        gameState.setActiveRoundCard(null);
+
+        // Clear guesses and tracking
+        gameState.getPlayerGuesses().clear();
+        resetRoundTracking(gameId);
+
+        // Jump back to the ROUNDCARD phase
+        gameState.setStatus(GameStatus.WAITING_FOR_ROUND_CARD);
+        gameState.setCurrentScreen("ROUNDCARD");
+
+        // Broadcast updated state
+        sendGameStateToAll(gameId);
+        log.info("Prepared for next round in game {}, next chooser: {}", gameId, nextTurnPlayerToken);
     }
-    if (gameState.getStatus() != GameStatus.ROUND_COMPLETE) {
-        throw new IllegalStateException("Current round is not complete");
-    }
-
-    // ─── 1) DISCARD LOGIC ─────────────────────────────────────────────────────
-    String playedBy   = gameState.getCurrentRoundCardPlayer();
-    String playedCard = gameState.getCurrentRoundCardId();
-    if (playedBy != null
-        && playedCard != null
-        && playedBy.equals(nextTurnPlayerToken)) {
-        log.info("Winner {} played card {} → discarding it", nextTurnPlayerToken, playedCard);
-
-        // Remove from DB
-        roundCardService.removeRoundCardFromPlayerByToken(gameId, nextTurnPlayerToken, playedCard);
-        // Remove from in‐memory inventory
-        gameState.getInventoryForPlayer(nextTurnPlayerToken)
-                 .getRoundCards()
-                 .remove(playedCard);
-    }
-
-    // ─── 2) END‐GAME CHECK ───────────────────────────────────────────────────
-    if (!hasRoundCards(gameId, nextTurnPlayerToken)) {
-        log.info("Player {} has no more round cards → ending game", nextTurnPlayerToken);
-        endGame(gameId, nextTurnPlayerToken);
-        return;
-    }
-
-    // ─── 3) RESET FOR NEXT ROUND ─────────────────────────────────────────────
-    gameState.setCurrentTurnPlayerToken(nextTurnPlayerToken);
-    gameState.setLastRoundWinnerToken(nextTurnPlayerToken);
-
-    // Set the winning players username as the roundCardSubmitter
-    gameState.setRoundCardSubmitter(
-        authService.getUserByToken(nextTurnPlayerToken).getProfile().getUsername());
-
-    // Clear out any leftover pointers & coordinates
-    gameState.setCurrentRoundCard(null);
-    gameState.setCurrentLatLngDTO(null);
-    gameState.setActiveRoundCard(null);
-
-    // Clear guesses and tracking
-    gameState.getPlayerGuesses().clear();
-    resetRoundTracking(gameId);
-
-    // Jump back to the ROUNDCARD phase
-    gameState.setStatus(GameStatus.WAITING_FOR_ROUND_CARD);
-    gameState.setCurrentScreen("ROUNDCARD");
-
-    // Broadcast updated state
-    sendGameStateToAll(gameId);
-    log.info("Prepared for next round in game {}, next chooser: {}", gameId, nextTurnPlayerToken);
-}
     
     /**
-     * End the game with a winner
-     * @param gameId    ID of the game
+     * End the game with a winner (and award game-win XP)
+     * @param gameId      ID of the game
      * @param winnerToken Token of the winning player
      */
     public void endGame(Long gameId, String winnerToken) {
@@ -645,33 +675,43 @@ public void prepareNextRound(Long gameId, String nextTurnPlayerToken) {
             throw new IllegalStateException("Game not initialized: " + gameId);
         }
 
+        // 1) Transition to game over
         gameState.setStatus(GameStatus.GAME_OVER);
         gameState.setGameWinnerToken(winnerToken);
-        gameState.setCurrentScreen("GAMEOVER");  // Set screen to game over
-
-        // Lookup the winner's username via AuthService instead of PlayerInfo
-        String winnerUsername = authService
-            .getUserByToken(winnerToken)
-            .getProfile()
-            .getUsername();
+        gameState.setCurrentScreen("GAMEOVER");
+        
+        // 2) Lookup winner User and username
+        User winner = authService.getUserByToken(winnerToken);
+        String winnerUsername = winner.getProfile().getUsername();
 
         log.info("Game {} ended, winner username: {}, token: {}", gameId, winnerUsername, winnerToken);
 
-        // Send structured game winner broadcast
+        // 3) Award XP for winning the game
+        userXpService.awardXpForGameWin(winner);
+        messagingTemplate.convertAndSendToUser(
+            winnerToken,
+            "/queue/lobby/xp",
+            new XpUpdateMessage(
+                winner.getProfile().getXp(),
+                UserXpService.XP_FOR_GAME_WIN,
+                "You won the game!"
+            )
+        );
+
+        // 4) Broadcast game-winner to everyone
         messagingTemplate.convertAndSend(
             "/topic/lobby/" + gameId + "/game",
             new GameWinnerBroadcast(winnerUsername)
         );
 
-        // Notify all clients of the final game state
+        // 5) Send final game state to all clients
         sendGameStateToAll(gameId);
 
-        // Schedule cleanup of game resources after some time
+        // 6) Cleanup after delay
         CompletableFuture.delayedExecutor(60, TimeUnit.SECONDS).execute(() -> {
             cleanupGame(gameId);
         });
     }
-
     
     /**
      * Clean up game resources when a game is complete
