@@ -1,144 +1,62 @@
-# SoPra RESTful Service Template FS25
-
-## Getting started with Spring Boot
--   Documentation: https://docs.spring.io/spring-boot/docs/current/reference/html/index.html
--   Guides: http://spring.io/guides
-    -   Building a RESTful Web Service: http://spring.io/guides/gs/rest-service/
-    -   Building REST services with Spring: https://spring.io/guides/tutorials/rest/
-
-## Setup this Template with your IDE of choice
-Download your IDE of choice (e.g., [IntelliJ](https://www.jetbrains.com/idea/download/), [Visual Studio Code](https://code.visualstudio.com/), or [Eclipse](http://www.eclipse.org/downloads/)). Make sure Java 17 is installed on your system (for Windows, please make sure your `JAVA_HOME` environment variable is set to the correct version of Java).
-
-### IntelliJ
-If you consider to use IntelliJ as your IDE of choice, you can make use of your free educational license [here](https://www.jetbrains.com/community/education/#students).
-1. File -> Open... -> SoPra server template
-2. Accept to import the project as a `gradle project`
-3. To build right click the `build.gradle` file and choose `Run Build`
-
-### VS Code
-The following extensions can help you get started more easily:
--   `vmware.vscode-spring-boot`
--   `vscjava.vscode-spring-initializr`
--   `vscjava.vscode-spring-boot-dashboard`
--   `vscjava.vscode-java-pack`
-
-**Note:** You'll need to build the project first with Gradle, just click on the `build` command in the _Gradle Tasks_ extension. Then check the _Spring Boot Dashboard_ extension if it already shows `soprafs24` and hit the play button to start the server. If it doesn't show up, restart VS Code and check again.
-
-## Building with Gradle
-You can use the local Gradle Wrapper to build the application.
--   macOS: `./gradlew`
--   Linux: `./gradlew`
--   Windows: `./gradlew.bat`
-
-More Information about [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) and [Gradle](https://gradle.org/docs/).
-
-### Build
-
-```bash
-./gradlew build
-```
-
-### Run
-
-```bash
-./gradlew bootRun
-```
-
-You can verify that the server is running by visiting `localhost:8080` in your browser.
-
-### Test
-
-```bash
-./gradlew test
-```
-
-#### Running Specific Tests
-
-To run individual test files or classes instead of the entire test suite:
-
-```bash
-# Run a single test class
-./gradlew test --tests ClassName
-
-# Example: Run only LeaderboardServiceTest
-./gradlew test --tests LeaderboardServiceTest
-
-# Run a specific test method in a class
-./gradlew test --tests ClassName.testMethodName
-
-# Example: Run only the getLeaderboard_ValidParameters_ReturnsCorrectPage test
-./gradlew test --tests LeaderboardServiceTest.getLeaderboard_ValidParameters_ReturnsCorrectPage
-
-# Run all tests in a package
-./gradlew test --tests package.name.*
-
-# Example: Run all tests in the controller package
-./gradlew test --tests ch.uzh.ifi.hase.soprafs24.controller.*
-```
-
-These commands are useful during development to focus on specific test cases without running the entire test suite.
-
-### Development Mode
-You can start the backend in development mode, this will automatically trigger a new build and reload the application
-once the content of a file has been changed.
-
-Start two terminal windows and run:
-
-`./gradlew build --continuous`
-
-and in the other one:
-
-`./gradlew bootRun`
-
-If you want to avoid running all tests with every change, use the following command instead:
-
-`./gradlew build --continuous -xtest`
-
-## API Endpoint Testing with Postman
-We recommend using [Postman](https://www.getpostman.com) to test your API Endpoints.
-
-## Debugging
-If something is not working and/or you don't know what is going on. We recommend using a debugger and step-through the process step-by-step.
-
-To configure a debugger for SpringBoot's Tomcat servlet (i.e. the process you start with `./gradlew bootRun` command), do the following:
-
-1. Open Tab: **Run**/Edit Configurations
-2. Add a new Remote Configuration and name it properly
-3. Start the Server in Debug mode: `./gradlew bootRun --debug-jvm`
-4. Press `Shift + F9` or the use **Run**/Debug "Name of your task"
-5. Set breakpoints in the application where you need it
-6. Step through the process one step at a time
-
-## Testing
-Have a look here: https://www.baeldung.com/spring-boot-testing
-
-<br>
-<br>
-<br>
-
-## Docker
+# Summary ActionGuessr
 
 ### Introduction
-This year, for the first time, Docker will be used to ease the process of deployment.\
-Docker is a tool that uses containers as isolated environments, ensuring that the application runs consistently and uniformly across different devices.\
-Everything in this repository is already set up to minimize your effort for deployment.\
-All changes to the main branch will automatically be pushed to dockerhub and optimized for production.
 
-### Setup
-1. **One** member of the team should create an account on [dockerhub](https://hub.docker.com/), _incorporating the group number into the account name_, for example, `SoPra_group_XX`.\
-2. This account then creates a repository on dockerhub with the _same name as the group's Github repository name_.\
-3. Finally, the person's account details need to be added as [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) to the group's repository:
-    - dockerhub_username (the username of the dockerhub account from step 1, for example, `SoPra_group_XX`)
-    - dockerhub_password (a generated PAT([personal access token](https://docs.docker.com/docker-hub/access-tokens/)) of the account with read and write access)
-    - dockerhub_repo_name (the name of the dockerhub repository from step 2)
+ActionGuessr is a turn-based game designed as an innovative and strategic enhancement of the popular game GeoGuessr. The motivation behind ActionGuessr is to introduce strategic depth and dynamic player interaction, significantly enriching the original gameplay experience. To achieve this, we implemented a system of round cards that determine the unique conditions under which each round is played. Players are also given action cards, which they strategically deploy either as beneficial power-ups for themselves or as tactical punishments targeting their opponents. The ultimate objective is to discard all round cards, with the first player to achieve this being declared the winner. Additionally, winning a round provides the player the advantage of selecting the next round's card, but a card can only be permanently discarded by winning two consecutive rounds. This structure ensures a captivating, engaging, and strategically rewarding gameplay experience beyond the original GeoGuessr concept.
 
-### Pull and run
-Once the image is created and has been successfully pushed to dockerhub, the image can be run on any machine.\
-Ensure that [Docker](https://www.docker.com/) is installed on the machine you wish to run the container.\
-First, pull (download) the image with the following command, replacing your username and repository name accordingly.
+### Technologies 
 
-```docker pull <dockerhub_username>/<dockerhub_repo_name>```
+- Java: Core programming language utilized for robust backend development, offering platform-independent functionality.
+- Java Persistence API (JPA): Provides object-relational mapping for managing relational data in a Java application.
+- Spring: Framework used for dependency injection, web service creation, and RESTful APIs, ensuring modularity and streamlined backend development.
+- Gradle: Powerful build automation tool that simplifies the process of compiling, building, and testing the application.
+- Docker: Containerization technology that ensures consistency and ease in managing dependencies and environments across development, testing, and production phases.
 
-Then, run the image in a container with the following command, again replacing _<dockerhub_username>_ and _<dockerhub_repo_name>_ accordingly.
+### High-level components
 
-```docker run -p 3000:3000 <dockerhub_username>/<dockerhub_repo_name>```
+#### Gamewebsocket Controller
+[Gamewebsocket Controller Code](https://github.com/SoPra-FS25-Group-15/sopra-fs25-group-15-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs24/websocket/controller/GameWebSocketController.java)
+Manages real-time communication between server and clients, orchestrating core game logic and maintaining seamless interactive gameplay.
+
+#### Game Service
+[Game Service Code](https://github.com/SoPra-FS25-Group-15/sopra-fs25-group-15-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs24/service/GameService.java)
+Handles the business logic related to game mechanics, including managing player states, game progression, and calculating experience points (XP).
+
+#### Lobbywebsocket Controller
+[Lobbywebsocket Controller Code](https://github.com/SoPra-FS25-Group-15/sopra-fs25-group-15-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs24/websocket/controller/LobbyWebSocketController.java)
+Facilitates the creation and management of game lobbies, enabling users to set up games, join sessions, and maintain player readiness and lobby synchronization.
+
+
+### Launch & Deployement
+
+#### Local Development
+1. Clone the repository: ```git clone <repository-url>```
+2. Navigate to the project directory: ```cd <project-directory>```
+3. Build the application locally: ```./gradlew build```
+4. Run the application locally:  ```./gradlew bootRun --args='--spring.profiles.active=dev --spring.cloud.gcp.sql.enabled=false'```
+
+#### Run the tests
+To run the tests, use: ```./gradlew test```
+
+#### Deployement
+Deployment is automated upon pushing to the main branch.
+
+
+### Roadmap
+
+- Enhanced Reliability: Improve server stability and performance for handling increased player load.
+- Player Statistics: Integrate backend stats tracking games played and won.
+
+### Authors
+
+Julien Zbinden, Flavia Röösli, Daria Stetsenko, Theodor Mattli, Zhenmei Hao and Tongxi Hu
+
+### Aknowledgment
+
+Thank you to our TA, Lucas Bär, who has been a great help in order to make this project work. Also a big thank you to the whole SoPra Team, who supported us in the process of developing this project and providing a great template.
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/SoPra-FS25-Group-15/sopra-fs25-group-15-server/blob/main/license.md) file for details
+
+
