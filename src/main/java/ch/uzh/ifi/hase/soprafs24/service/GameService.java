@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.game.RoundCardDTO;
 import ch.uzh.ifi.hase.soprafs24.service.GoogleMapsService.LatLngDTO;
 import ch.uzh.ifi.hase.soprafs24.websocket.dto.WebSocketMessage;
@@ -44,7 +45,7 @@ public class GameService {
     private final GameRoundService gameRoundService;
     private final AuthService authService; // Add AuthService as a dependency
     private final UserXpService userXpService;
-
+    private final UserRepository userRepository;
     @Autowired
     private RoundCardService roundCardService;
 
@@ -65,12 +66,14 @@ public class GameService {
     public GameService(GoogleMapsService googleMapsService, 
                        SimpMessagingTemplate messagingTemplate,
                        @Lazy GameRoundService gameRoundService,
-                       AuthService authService, UserXpService userXpService) { // Add AuthService to constructor
+                       AuthService authService, UserXpService userXpService,
+                       UserRepository userRepository) { // Add AuthService to constructor
         this.googleMapsService = googleMapsService;
         this.messagingTemplate = messagingTemplate;
         this.gameRoundService = gameRoundService;
         this.authService = authService; // Initialize AuthService
         this.userXpService = userXpService; // Initialize UserXpService
+        this.userRepository      = userRepository;
     }
     
     /**
@@ -594,7 +597,29 @@ public class GameService {
                 );
             }
 
+            for (String token : gameState.getPlayerInfo().keySet()) {
+                // skip winner here; we'll handle them below
+                if (token.equals(winnerToken)) continue;
+                User participant = authService.getUserByToken(token);
+                participant.getProfile().setGamesPlayed(
+                    participant.getProfile().getGamesPlayed() + 1
+                );
+                userRepository.save(participant);
+            }
+            
+            // now handle the winner
+            winner.getProfile().setGamesPlayed(
+                winner.getProfile().getGamesPlayed() + 1
+            );
+            winner.getProfile().setWins(
+                winner.getProfile().getWins() + 1
+            );
+            userRepository.save(winner);
+
+        
             return winnerToken;
+        
+        
         }
     }
 
