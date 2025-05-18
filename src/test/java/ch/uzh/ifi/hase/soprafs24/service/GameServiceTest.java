@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.UserProfile;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.game.RoundCardDTO;
@@ -84,13 +85,36 @@ public class GameServiceTest {
         playerTokens = Arrays.asList(USER1_TOKEN, USER2_TOKEN);
 
         user1 = new User();
-        ReflectionTestUtils.setField(user1, "id", 1L);
-        user1.setToken(USER1_TOKEN);
-        UserProfile p1 = new UserProfile();
-        p1.setUsername("User One");
-        user1.setProfile(p1);
+    user1.setToken(USER1_TOKEN);
+    user1.setEmail("user1@example.com");
+    user1.setPassword("password1");
+    user1.setStatus(UserStatus.ONLINE);
+    user1.setUsername("user1");
+    UserProfile profile1 = new UserProfile();
+    profile1.setUsername("user1");      // non-nullable
+    profile1.setXp(0);                  // @Column(nullable = false)
+    profile1.setPoints(0);              // @Column(nullable = false)
+    profile1.setGamesPlayed(0);         // @Column(nullable = false)
+    profile1.setWins(0);                // @Column(nullable = false)
+    profile1.setStatsPublic(true);      // @Column(nullable = false)
+    user1.setProfile(profile1);
 
-        user2 = new User();
+    user2 = new User();
+    user2.setToken(USER2_TOKEN);
+    user2.setEmail("user2@example.com");
+    user2.setPassword("password2");
+    user2.setStatus(UserStatus.ONLINE);
+    user2.setUsername("user2");
+    UserProfile profile2 = new UserProfile();
+    profile2.setUsername("user2");
+    profile2.setXp(0);
+    profile2.setPoints(0);
+    profile2.setGamesPlayed(0);
+    profile2.setWins(0);
+    profile2.setStatsPublic(true);
+    user2.setProfile(profile2);
+
+
         ReflectionTestUtils.setField(user2, "id", 2L);
         user2.setToken(USER2_TOKEN);
         UserProfile p2 = new UserProfile();

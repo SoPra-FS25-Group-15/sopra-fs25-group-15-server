@@ -68,12 +68,16 @@ public class GameServiceStatsTest {
 
         // prepare User stats
         User winner = new User();
+        winner.setEmail("winner@example.com");
+        winner.setPassword("test");
         UserProfile wp = new UserProfile();
         wp.setGamesPlayed(0);
         wp.setWins(0);
         winner.setProfile(wp);
 
         User loser = new User();
+        loser.setEmail("loser@example.com");
+        loser.setPassword("test");
         UserProfile lp = new UserProfile();
         lp.setGamesPlayed(5);
         lp.setWins(1);
