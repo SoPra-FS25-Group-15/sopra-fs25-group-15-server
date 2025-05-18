@@ -11,7 +11,7 @@ ActionGuessr is a turn-based game designed as an innovative and strategic enhanc
 - Spring: Framework used for dependency injection, web service creation, and RESTful APIs, ensuring modularity and streamlined backend development.
 - Gradle: Powerful build automation tool that simplifies the process of compiling, building, and testing the application.
 - Docker: Containerization technology that ensures consistency and ease in managing dependencies and environments across development, testing, and production phases.
-- Sockjs:JavaScript library ensuring reliable, cross-browser communication, emulating WebSockets with fallback options like HTTP polling.
+- Sockjs: JavaScript library ensuring reliable, cross-browser communication, emulating WebSockets with fallback options like HTTP polling.
 - Google Cloud: Scalable cloud services platform offering infrastructure, computing resources, and data storage solutions.
 - PostgreSQL Database: Open-source relational database system known for reliability, extensibility, and robust SQL compliance.
 
