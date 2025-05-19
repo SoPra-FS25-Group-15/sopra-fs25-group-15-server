@@ -48,7 +48,7 @@ Deployment is automated upon pushing to the main branch.
 ### Roadmap
 
 - Enhanced Reliability: Improve server stability and performance for handling increased player load.
-- Player Statistics: Integrate backend stats tracking games played and won.
+- More Action Cards: Add more action cards for a more diverse game experience.
 
 ### Authors
 
