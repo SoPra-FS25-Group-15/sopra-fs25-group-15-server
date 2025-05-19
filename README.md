@@ -49,6 +49,9 @@ Deployment is automated upon pushing to the main branch.
 
 - Enhanced Reliability: Improve server stability and performance for handling increased player load.
 - More Action Cards: Add more action cards for a more diverse game experience.
+- Add a rank mode where palyers are automatically assigned their opponent to play the ranking game.
+- Add store with some additional goods or enhancements a player can buy based on the rank and earned XPs.
+- Add more exhaustive statistics for each player.
 
 ### Authors
 
