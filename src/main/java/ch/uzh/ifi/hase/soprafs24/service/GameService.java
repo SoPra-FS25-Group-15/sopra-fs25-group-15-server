@@ -597,24 +597,7 @@ public class GameService {
                 );
             }
 
-            for (String token : gameState.getPlayerInfo().keySet()) {
-                // skip winner here; we'll handle them below
-                if (token.equals(winnerToken)) continue;
-                User participant = authService.getUserByToken(token);
-                participant.getProfile().setGamesPlayed(
-                    participant.getProfile().getGamesPlayed() + 1
-                );
-                userRepository.save(participant);
-            }
             
-            // now handle the winner
-            winner.getProfile().setGamesPlayed(
-                winner.getProfile().getGamesPlayed() + 1
-            );
-            winner.getProfile().setWins(
-                winner.getProfile().getWins() + 1
-            );
-            userRepository.save(winner);
 
         
             return winnerToken;
@@ -722,6 +705,25 @@ public class GameService {
                 "You won the game!"
             )
         );
+
+        for (String token : gameState.getPlayerInfo().keySet()) {
+            // skip winner here; we'll handle them below
+            if (token.equals(winnerToken)) continue;
+            User participant = authService.getUserByToken(token);
+            participant.getProfile().setGamesPlayed(
+                participant.getProfile().getGamesPlayed() + 1
+            );
+            userRepository.save(participant);
+        }
+        
+        // now handle the winner
+        winner.getProfile().setGamesPlayed(
+            winner.getProfile().getGamesPlayed() + 1
+        );
+        winner.getProfile().setWins(
+            winner.getProfile().getWins() + 1
+        );
+        userRepository.save(winner);
 
         // 4) Broadcast game-winner to everyone
         messagingTemplate.convertAndSend(
