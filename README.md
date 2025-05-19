@@ -41,7 +41,7 @@ Facilitates the creation and management of game lobbies, enabling users to set u
 #### Run the tests
 To run the tests, use: ```./gradlew test```
 
-#### Deployement
+#### Deployment
 Deployment is automated upon pushing to the main branch.
 
 
